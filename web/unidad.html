@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Gersain Barron">
+  <meta name="copyright" content="© 2026 Gersain Barron · Licencia MIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d1117">
+  <title>Unidad médica · Abasto de medicamentos</title>
+  <link rel="stylesheet" href="css/unidad.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/jsm/" } }
+  </script>
+</head>
+<body>
+  <!-- Barra superior -->
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <b>Unidad médica</b>
+        <span>Gemelo digital · <em class="author">Gersain Barron</em> · Farmacia y quirófano</span>
+      </div>
+    </div>
+
+    <nav class="views" aria-label="Vistas">
+      <a id="go-cedis" href="index.html">CEDIS 3D</a>
+      <a id="go-map" href="mapa.html">Red estatal</a>
+      <a class="active" href="unidad.html" aria-current="page">Unidad médica</a>
+    </nav>
+
+    <div class="sim">
+      <button id="btn-play" class="icon-btn primary" aria-label="Pausar"></button>
+      <div class="speed" role="group" aria-label="Velocidad">
+        <button data-speed="1">1×</button><button data-speed="10">10×</button><button data-speed="60">60×</button><button data-speed="300">300×</button>
+      </div>
+      <div class="clock-box">
+        <span id="clock" class="clock">—</span>
+        <span id="sim-status" class="sim-status">En vivo · simulado</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Unidad -->
+    <section class="card unit-head">
+      <div class="u-pick">
+        <label for="u-select">Unidad</label>
+        <select id="u-select"></select>
+      </div>
+      <div class="u-title">
+        <span id="u-type" class="eyebrow"></span>
+        <h1 id="u-name">Cargando…</h1>
+        <p id="u-meta" class="muted"></p>
+      </div>
+      <div id="u-chips" class="u-chips"></div>
+    </section>
+
+    <!-- Vista 3D -->
+    <section class="card u3d-card">
+      <div class="card-h wrap">
+        <h2>Unidad en 3D <small>toca a una persona para ver qué medicamento retira</small></h2>
+        <div id="u3d-views" class="seg">
+          <button data-v="general" class="active">General</button>
+          <button data-v="farmacia">Farmacia</button>
+          <button data-v="urgencias" class="h-only">Urgencias</button>
+          <button data-v="quirofanos" class="h-only">Quirófanos</button>
+          <button data-v="anden">Andén</button>
+        </div>
+      </div>
+      <div id="u3d" class="u3d"><div class="u3d-loading">Cargando modelo 3D…</div></div>
+      <div class="legend u3d-legend">
+        <span><i class="dot" style="background:#e2a64b"></i>Pacientes (colores variados)</span>
+        <span class="h-only"><i class="dot" style="background:#22a37a"></i>Enfermera de quirófano</span>
+        <span class="h-only"><i class="dot" style="background:#3b82f6"></i>Enfermera de urgencias</span>
+        <span><i class="dot" style="background:#f1f5f9"></i>Farmacia</span>
+        <span><i class="dot" style="background:#f59e0b"></i>Almacén</span>
+        <span><i class="dot bag"></i>Bolsa = ya recogió sus medicamentos</span>
+      </div>
+    </section>
+
+    <!-- Indicadores -->
+    <section id="kpis" class="kpis" aria-label="Indicadores"></section>
+
+    <!-- Movimiento y salidas en vivo -->
+    <div class="split">
+      <section class="card">
+        <div class="card-h">
+          <h2>Entradas y salidas por día <small>últimos 30 días + hoy · piezas</small></h2>
+          <div class="legend">
+            <span><i class="sw in"></i>Entradas del CEDIS</span>
+            <span><i class="sw rx"></i>Salidas a pacientes</span>
+            <span id="lg-or"><i class="sw or"></i>Salidas a quirófano y urgencias</span>
+          </div>
+        </div>
+        <div id="flow-chart" class="chart"></div>
+        <p class="note">Las barras hacia arriba son entradas; hacia abajo, salidas. Pasa el dedo o el cursor por un día para ver el detalle.</p>
+      </section>
+
+      <section class="card live">
+        <div class="card-h">
+          <h2>Movimientos de hoy</h2>
+          <div id="feed-tabs" class="seg">
+            <button data-feed="rx" class="active">Farmacia <em id="n-rx"></em></button>
+            <button data-feed="or" id="tab-or">Quirófano y urgencias <em id="n-or"></em></button>
+            <button data-feed="in">Entradas <em id="n-in"></em></button>
+            <button data-feed="al" id="tab-al">Alertas al CEDIS <em id="n-al"></em></button>
+            <button data-feed="pe">Recetas pendientes <em id="n-pe"></em></button>
+            <button data-feed="px" id="tab-px">Pedidos <em id="n-px"></em></button>
+          </div>
+        </div>
+        <div id="feed" class="feed"></div>
+      </section>
+    </div>
+
+    <!-- Recetas -->
+    <section class="card">
+      <div class="card-h wrap">
+        <h2>Recetas: completas, parciales y negadas <small id="rx-sub"></small></h2>
+        <div class="rx-tools">
+          <div id="rx-view" class="seg">
+            <button data-rv="day" class="active">Por día</button>
+            <button data-rv="med">Por medicamento</button>
+          </div>
+          <button id="rx-csv" class="seg-btn" type="button">Descargar CSV</button>
+        </div>
+      </div>
+      <div id="rx-sum" class="rx-sum"></div>
+      <div id="rx-table" class="m-table"></div>
+      <p class="note">Completa: se entregó todo lo recetado. Parcial: se entregó algo y lo demás quedó como receta pendiente. Negada: no se entregó nada. Se cuenta en el momento de la atención en ventanilla.</p>
+    </section>
+
+    <!-- Última milla -->
+    <section class="card" id="lm-card">
+      <div class="card-h wrap">
+        <h2>Entregas a pacientes <small>última milla · recetas pendientes surtidas y resurtibles de crónicos</small></h2>
+        <div id="lm-view" class="seg"><button data-lv="hoy" class="active">Hoy</button><button data-lv="30">30 días</button></div>
+      </div>
+      <div id="lm-kpis" class="px-sum lm-kpis"></div>
+      <div class="lm-grid">
+        <div><div id="lm-map" class="lm-map"></div>
+          <div class="legend"><span><i class="dot" style="background:#14b8a6"></i>Unidad (casillero 24 h)</span><span><i class="dot" style="background:#f59e0b;border-radius:2px"></i>Punto aliado</span><span><i class="dot" style="background:#60a5fa"></i>Por entregar</span><span><i class="dot" style="background:#34d399"></i>Entregado</span><span><i class="dot" style="background:#f472b6"></i>Moto</span></div></div>
+        <div id="lm-list" class="lm-list"></div>
+      </div>
+      <p class="note">Cuando llega el medicamento de una receta pendiente se avisa al paciente y se entrega por la vía que eligió: ventanilla, casillero 24 h en la unidad, punto aliado o domicilio en moto (2 salidas al día, rutas optimizadas con el mismo método del CEDIS). Los pacientes crónicos con receta resurtible pueden inscribirse para no hacer fila. Los controlados solo se entregan en ventanilla y la red fría no va a casillero. Domicilios simulados alrededor de la unidad.</p>
+    </section>
+
+    <!-- Medicamentos -->
+    <section class="card">
+      <div class="card-h wrap">
+        <h2>Medicamentos <small id="m-count"></small></h2>
+        <div id="m-view" class="seg">
+          <button data-view="table" class="active">Tabla</button>
+          <button data-view="cards">Gráficas</button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <input id="m-search" type="search" placeholder="Buscar clave o medicamento" autocomplete="off">
+        <select id="m-group" aria-label="Grupo terapéutico"><option value="all">Todos los grupos</option></select>
+        <div id="m-use" class="seg">
+          <button data-use="all" class="active">Todos</button>
+          <button data-use="F">Farmacia</button>
+          <button data-use="Q">Quirófano</button>
+        </div>
+        <div id="m-state" class="seg">
+          <button data-state="all" class="active">Todos</button>
+          <button data-state="zero">En cero</button>
+          <button data-state="low">Bajo mínimo</button>
+          <button data-state="over">Sobreabasto</button>
+        </div>
+      </div>
+      <div id="m-table" class="m-table"></div>
+      <div id="m-cards" class="m-cards" hidden></div>
+      <p class="src">Claves y descripciones: Compendio Nacional de Insumos para la Salud (CNIS) del Consejo de Salubridad General.
+        Movimientos, existencias y pacientes son simulados.</p>
+    </section>
+  </main>
+
+  <!-- Detalle de medicamento -->
+  <div id="detail" class="sheet" hidden>
+    <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="d-name">
+      <header>
+        <div>
+          <span id="d-clave" class="eyebrow"></span>
+          <h2 id="d-name"></h2>
+          <p id="d-desc" class="muted"></p>
+        </div>
+        <button id="d-close" class="icon-btn" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4 17.6 5 12 10.6z" fill="currentColor"/></svg>
+        </button>
+      </header>
+      <div class="sheet-body">
+        <div id="d-stats" class="d-stats"></div>
+        <h3>Lotes en existencia <small>caducidad y orden de salida</small></h3>
+        <div id="d-lots" class="kardex lots"></div>
+        <h3>Existencia al cierre de cada día <small>piezas</small></h3>
+        <div id="d-stock" class="chart"></div>
+        <h3>Entradas y salidas por día <small>piezas</small></h3>
+        <div class="legend">
+          <span><i class="sw in"></i>Entradas del CEDIS</span>
+          <span><i class="sw rx"></i>Salidas a pacientes</span>
+          <span id="d-lg-or"><i class="sw or"></i>Salidas a quirófano y urgencias</span>
+        </div>
+        <div id="d-flow" class="chart"></div>
+        <h3>Pronóstico de demanda <small>próximas 4 semanas · piezas por día</small></h3>
+        <div id="d-fc-stats" class="d-stats"></div>
+        <div class="legend"><span><i class="sw hist"></i>Demanda real (surtido + no surtido)</span><span><i class="sw fcl"></i>Pronóstico</span><span><i class="sw band"></i>Rango probable (80 %)</span></div>
+        <div id="d-fc" class="chart"></div>
+        <p class="note">Modelo de series de tiempo (Holt-Winters con estacionalidad semanal y tendencia amortiguada) entrenado con los últimos 30 días; la precisión se mide pronosticando la última semana. Es el componente que se sustituye por un modelo de IA cuando haya datos reales.</p>
+        <h3>Kárdex <small>movimientos recientes</small></h3>
+        <div id="d-kardex" class="kardex"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="qr-sheet" class="sheet" hidden>
+    <div class="sheet-card qr-card" role="dialog" aria-modal="true" aria-labelledby="qr-title">
+      <header><div><span class="eyebrow">Comprobante de entrega</span><h2 id="qr-title"></h2><p id="qr-sub" class="muted"></p></div>
+        <button id="qr-close" class="icon-btn" aria-label="Cerrar"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4 17.6 5 12 10.6z" fill="currentColor"/></svg></button></header>
+      <div class="sheet-body qr-body"><div id="qr-code" class="qr-code"></div><div id="qr-info"></div></div>
+    </div>
+  </div>
+
+  <div id="tip" class="tip" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="loading" class="loading">Cargando unidad…</div>
+
+  <script type="module" src="js/unidad.js"></script>
+</body>
+</html>

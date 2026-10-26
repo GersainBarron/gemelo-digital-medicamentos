@@ -1,0 +1,131 @@
+# Gemelo digital del abasto de medicamentos · Hidalgo
+
+**Autor:** Gersain Barron · [Licencia MIT](LICENSE)
+
+Gemelo digital de la cadena de abasto de medicamentos de las unidades **IMSS e ISSSTE de Hidalgo**: del almacén
+central (CEDIS) a las 60 unidades médicas y de ahí al paciente. Combina modelos 3D construidos con código en
+**Blender**, un visor web en **three.js** que funciona en PC y en iPad, y una simulación determinista de la operación
+diaria (recetas, cirugías, inventario, rutas, alertas, pedidos y entregas).
+
+El trabajo está organizado según la hoja de ruta del Consejo Asesor:
+
+| Hoja de ruta oficial | Qué hace el gemelo digital |
+|---|---|
+| **Meta 1.** Minimizar costos de distribución (rutas óptimas) | Optimizador de rutas con modelo de costos: −20 % en la semana, 15 → 10 viajes, 709 km menos |
+| **Meta 2.** Asignación eficiente según demanda real e inventario | Inventario del CEDIS por clave y lote; asignación que iguala días de cobertura con prioridad VEN |
+| **Meta 3.** Predicción de demanda | Holt-Winters con estacionalidad semanal y tendencia amortiguada, precisión de ~95 % a nivel estatal |
+| **Proyecto 1.** Solicitud de necesidades en tiempo real | Alertas de las unidades al CEDIS y pedido automático antes del desabasto, con flujo de aprobación |
+| **Proyecto 2.** Gestión de almacén e inventarios | CEDIS 3D, inventario por clave y lote, PEPS, caducidades, trazabilidad y almacén regional tipo |
+| **Proyecto 3.** Logística de última milla | Rutas del CEDIS a las unidades, y de la unidad al paciente (casillero 24 h, punto aliado y domicilio en moto) |
+
+> **Datos.** Las 60 unidades vienen del catálogo CLUES (DGIS, agosto 2026) y las 60 claves del
+> Compendio Nacional de Insumos para la Salud (CNIS). **Todo lo operativo es simulado**: existencias,
+> recetas, pacientes, rutas, tiempos y costos. Ver [docs/DATOS.md](docs/DATOS.md).
+
+![CEDIS en Blender](renders/Camera_Overview.png)
+
+## Las tres vistas
+
+| Vista | Archivo | Qué muestra |
+|---|---|---|
+| **CEDIS 3D** | `web/index.html` | Almacén con montacargas, AGV y picking animados. Pestañas: entradas, salidas, unidades, urgencias, inventario y bandeja de autorización. Capas de ocupación y de cobertura por clave |
+| **Red estatal** | `web/mapa.html` | Mapa de Hidalgo con semáforo de las 60 unidades, camionetas en ruta, desabasto, rutas y costos, inventario y asignación, alertas, redistribución, trazabilidad de lotes y pronóstico |
+| **Unidad médica** | `web/unidad.html` | Hospital 3D con pacientes y enfermeras: al tocar a una persona se ven sus medicamentos. Incluye indicadores, recetas completas, parciales y negadas, 60 claves con kárdex, lotes y pronóstico, alertas, pedidos extraordinarios y entregas a pacientes |
+
+Las tres vistas usan la misma simulación determinista, así que una alerta que ve la unidad en el iPad es la misma
+que ve el CEDIS en la PC, sin un servidor que las conecte.
+
+## Cómo correrlo
+
+```bash
+cd web
+python serve.py          # o doble clic en serve.bat (Windows)
+```
+
+- **PC:** `http://localhost:8080`
+- **iPad (misma red Wi-Fi):** la dirección `http://192.168.x.x:8080` que muestra la ventana del servidor.
+  Para usarlo como app: Safari → Compartir → *Agregar a pantalla de inicio*.
+
+No requiere internet ni instalación: three.js y el generador de QR están en `web/vendor/`.
+
+Parámetros de la URL, compartidos por las tres vistas:
+
+| Parámetro | Valores | Efecto |
+|---|---|---|
+| `esc` | `normal` · `contingencia` | Contingencia: el CEDIS se queda sin 6 claves y con existencia parcial de 4, y hay brote respiratorio |
+| `pol` | `minmax` · `forecast` | Método de pedido del CEDIS al proveedor |
+| `ped` | `0` | Apaga el pedido automático, para comparar |
+| `u` | CLUES | Unidad que abre `unidad.html` |
+| `t` | segundos | Instante de la simulación (día 0 = lunes 26 oct 2026) |
+
+## Resultados de la simulación
+
+| Fase | Indicador | Antes | Después |
+|---|---|---|---|
+| 1 · Rutas | Costo de distribución de la semana | $50,103 | $39,939 (−20 %) |
+| 2 · Pedido del CEDIS por pronóstico | Nivel de servicio del CEDIS (90 días) | 97.5 % | 99.6 % |
+| | Días-clave sin existencia | 16 | 1 |
+| | Inventario promedio | 27.6 días | 20.4 días |
+| 3 · Pedido automático en unidades | Alertas por clave agotada (30 días, red) | 334 | 38 |
+| | Recetas surtidas completas | 99.1 % | 99.9 % |
+| | Recetas completas en contingencia | 96.4 % | 97.9 % |
+| 4 · Última milla (HGZMF 1, 30 días) | Visitas a farmacia evitadas | — | 364 |
+| | Horas de pacientes ahorradas | — | ~529 |
+| | Costo por entrega a domicilio | — | ~$47 |
+
+Detalle y método en [docs/RESULTADOS.md](docs/RESULTADOS.md).
+
+## Estructura del repositorio
+
+```
+├── README.md                    este archivo
+├── PLAN_HOJA_DE_RUTA.md         plan por fases contra la hoja de ruta oficial (bitácora)
+├── docs/                        documentación técnica
+│   ├── ARQUITECTURA.md          módulos, flujo de datos y modelo de simulación
+│   ├── MODELOS_BLENDER.md       cómo se construye y exporta cada modelo 3D
+│   ├── DATOS.md                 fuentes, supuestos y contrato de datos
+│   └── RESULTADOS.md            indicadores por fase y cómo reproducirlos
+├── web/                         visor (HTML + JS, sin compilación)
+│   ├── index.html · mapa.html · unidad.html
+│   ├── js/                      simulación, optimización y vistas
+│   ├── css/  assets/  vendor/   estilos, modelos .glb y datos, librerías
+│   ├── docs/pedido-extraordinario.schema.json   contrato tipo FHIR SupplyRequest
+│   └── README.md                manual de uso del visor
+├── warehouse_builder.py         CEDIS en Blender (versión completa) + src/ por secciones
+├── cedis_claves.py              claves CNIS por ubicación y letreros del CEDIS
+├── unidad/                      hospital tipo (unidad_builder.py)
+├── vehiculos/                   camionetas seca y refrigerada y moto de reparto
+├── regional/                    almacén regional tipo
+├── recoleccion/                 casillero 24 h para entrega de medicamentos
+├── renders/                     vistas previas
+└── investigacion/               unidades CLUES de Hidalgo, contorno del estado y Excel de contingencia
+```
+
+Cada carpeta de Blender incluye el script que construye el modelo, el `.blend` y el `.glb` exportado.
+
+## Tecnología
+
+- **Blender 5.2**, con modelos generados en Python (`bpy` y `bmesh`) y exportados a glTF binario con propiedades `wh_*` en *extras*.
+- **three.js r169** (ES modules), `GLTFLoader` y `OrbitControls`, sin herramientas de compilación.
+- Simulación y optimización en JavaScript puro:
+  - números aleatorios con semilla (mulberry32);
+  - Holt-Winters;
+  - Clarke-Wright con 2-opt;
+  - asignación por llenado de niveles.
+- Generador de QR [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT).
+
+## Siguientes pasos
+
+- Conectar datos reales en los puntos marcados `>>> API`: WMS del CEDIS, farmacia de las unidades y órdenes de compra.
+- Sustituir las distancias en línea recta (× 1.35) por una matriz de carretera (OSRM).
+- Agregar el inventario propio de los almacenes regionales (el modelo 3D ya existe).
+- Sustituir Holt-Winters por un modelo de aprendizaje automático con clima, epidemiología y calendario.
+
+## Autoría y licencia
+
+Diseño, modelado y desarrollo: **Gersain Barron**.
+
+Publicado bajo la [licencia MIT](LICENSE): se puede usar, modificar y redistribuir conservando el aviso de
+copyright. Para citar este trabajo usa [CITATION.cff](CITATION.cff) (GitHub muestra el botón *Cite this repository*).
+three.js y qrcode-generator (en `web/vendor/`) conservan sus propias licencias MIT.
+

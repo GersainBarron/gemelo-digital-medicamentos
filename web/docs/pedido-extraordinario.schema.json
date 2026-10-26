@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gemelo-digital.example/schemas/pedido-extraordinario.json",
+  "$comment": "© 2026 Gersain Barron · Licencia MIT",
+  "title": "Pedido extraordinario de medicamentos (unidad médica → CEDIS)",
+  "description": "Contrato de datos para conectar el gemelo digital con sistemas reales de farmacia y del CEDIS. Sigue la estructura del recurso FHIR R4 SupplyRequest (un pedido con varias líneas se envía como un Bundle de SupplyRequest con el mismo groupIdentifier) y agrega campos de la operación mexicana (CLUES, clave CNIS, clasificación VEN) en extension. En el simulador lo genera supply.js → proposeOrder().",
+  "type": "object",
+  "required": ["resourceType", "identifier", "status", "priority", "authoredOn", "requester", "deliverTo", "item", "workflow"],
+  "properties": {
+    "resourceType": { "const": "SupplyRequest" },
+    "identifier": { "type": "string", "pattern": "^PEX-[0-9A-Z]{3}[0-9]{3,}$", "description": "Folio del pedido (PEX-<últimos 3 de CLUES><consecutivo>)" },
+    "groupIdentifier": { "type": "string", "description": "Mismo folio en todas las líneas del pedido" },
+    "status": { "enum": ["draft", "active", "suspended", "cancelled", "completed", "entered-in-error"], "description": "Estado FHIR. Mapeo: propuesto/validado = draft; autorizado/programado/en camino = active; entregado = completed; sin existencia en CEDIS = suspended" },
+    "priority": { "enum": ["routine", "urgent", "asap", "stat"], "description": "urgent si la cobertura mínima es menor a 1.5 días (viaje propio); routine si va en la ruta siguiente" },
+    "category": { "const": "pedido-extraordinario" },
+    "authoredOn": { "type": "string", "format": "date-time", "description": "Momento de la propuesta (07:00 aprox.)" },
+    "requester": {
+      "type": "object", "required": ["clues"],
+      "properties": {
+        "clues": { "type": "string", "pattern": "^[A-Z]{2}[A-Z]{3}[0-9]{6}$", "description": "CLUES de la unidad (Catálogo de Clave Única de Establecimientos de Salud)" },
+        "nombre": { "type": "string" },
+        "institucion": { "enum": ["IMSS", "ISSSTE", "IMSS-Bienestar", "SSA"] }
+      }
+    },
+    "supplier": { "type": "string", "description": "Almacén que surte: CEDIS estatal o almacén regional" },
+    "deliverTo": { "type": "string", "description": "CLUES destino (normalmente igual a requester.clues)" },
+    "item": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["clave", "cantidadSolicitada", "existencia", "consumoDiario", "coberturaDias"],
+        "properties": {
+          "clave": { "type": "string", "pattern": "^[0-9]{3}\\.[0-9]{3}\\.[0-9]{4}\\.[0-9]{2}$", "description": "Clave del Compendio Nacional de Insumos para la Salud (CNIS)" },
+          "descripcion": { "type": "string" },
+          "ven": { "enum": ["V", "E", "N"], "description": "Clasificación Vital / Esencial / No esencial" },
+          "presentacion": { "type": "string", "description": "caja, frasco, ampolleta, bolsa…" },
+          "existencia": { "type": "number", "minimum": 0, "description": "Piezas al momento de la propuesta" },
+          "consumoDiario": { "type": "number", "minimum": 0, "description": "Promedio móvil exponencial del consumo (piezas/día)" },
+          "coberturaDias": { "type": "number", "minimum": 0 },
+          "existenciaProyectada": { "type": "number", "description": "Existencia − consumo esperado hasta la próxima entrega ordinaria" },
+          "existenciaSeguridad": { "type": "number", "minimum": 0 },
+          "cantidadSolicitada": { "type": "integer", "minimum": 1 },
+          "cantidadAutorizada": { "type": "integer", "minimum": 0 },
+          "motivoAjuste": { "type": "string", "description": "p. ej. 'Reparto CEDIS 60 %' o 'Sin existencia en CEDIS'" },
+          "lote": { "type": "string", "pattern": "^LT[0-9]{4}-[0-9]+$" },
+          "caducidad": { "type": "string", "format": "date" }
+        }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "description": "Bitácora del flujo con tiempos medidos. Plazos: validación 2 h, autorización 4 h.",
+      "required": ["propuesto"],
+      "properties": {
+        "propuesto": { "$ref": "#/$defs/paso" },
+        "validado": { "$ref": "#/$defs/paso" },
+        "autorizado": { "$ref": "#/$defs/paso" },
+        "programado": { "allOf": [{ "$ref": "#/$defs/paso" }], "properties": { "ruta": { "type": "string" }, "vehiculo": { "type": "string" } } },
+        "entregado": { "allOf": [{ "$ref": "#/$defs/paso" }], "properties": { "antesDeAgotarse": { "type": "boolean" } } }
+      }
+    },
+    "kpi": {
+      "type": "object",
+      "properties": {
+        "tiempoCicloHoras": { "type": "number" },
+        "validadoEnPlazo": { "type": "boolean" },
+        "autorizadoEnPlazo": { "type": "boolean" },
+        "agotamientoEstimado": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "$defs": {
+    "paso": {
+      "type": "object", "required": ["en", "rol"],
+      "properties": {
+        "en": { "type": "string", "format": "date-time" },
+        "rol": { "enum": ["sistema", "jefatura-farmacia", "mesa-control-cedis", "ruta", "farmacia"] },
+        "usuario": { "type": "string", "description": "Identificador del usuario que firma (nunca contraseñas)" },
+        "nota": { "type": "string" }
+      }
+    }
+  },
+  "examples": [{
+    "resourceType": "SupplyRequest",
+    "identifier": "PEX-094401",
+    "groupIdentifier": "PEX-094401",
+    "status": "active",
+    "priority": "routine",
+    "category": "pedido-extraordinario",
+    "authoredOn": "2026-10-27T07:06:00-06:00",
+    "requester": { "clues": "HGIMS000094", "nombre": "UMF 32 PACHUCA", "institucion": "IMSS" },
+    "supplier": "CEDIS estatal Hidalgo",
+    "deliverTo": "HGIMS000094",
+    "item": [{
+      "clave": "010.000.2127.00", "descripcion": "Amoxicilina suspensión 500 mg/5 ml", "ven": "E", "presentacion": "frasco",
+      "existencia": 14, "consumoDiario": 9.6, "coberturaDias": 1.5, "existenciaProyectada": -24.4, "existenciaSeguridad": 14.4,
+      "cantidadSolicitada": 60, "cantidadAutorizada": 60, "lote": "LT2127-1999", "caducidad": "2028-02-14"
+    }],
+    "workflow": {
+      "propuesto": { "en": "2026-10-27T07:06:00-06:00", "rol": "sistema" },
+      "validado": { "en": "2026-10-27T08:01:00-06:00", "rol": "jefatura-farmacia" },
+      "autorizado": { "en": "2026-10-27T10:20:00-06:00", "rol": "mesa-control-cedis" },
+      "programado": { "en": "2026-10-27T10:40:00-06:00", "rol": "ruta", "ruta": "R3" }
+    },
+    "kpi": { "validadoEnPlazo": true, "autorizadoEnPlazo": true, "agotamientoEstimado": "2026-10-28T19:00:00-06:00" }
+  }]
+}

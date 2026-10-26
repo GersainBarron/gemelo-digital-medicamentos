@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Gersain Barron">
+  <meta name="copyright" content="© 2026 Gersain Barron · Licencia MIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d1117">
+  <title>Red estatal · Abasto de medicamentos Hidalgo</title>
+  <link rel="stylesheet" href="css/unidad.css">
+  <link rel="stylesheet" href="css/mapa.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <b>Red estatal · Hidalgo</b>
+        <span>Gemelo digital · <em class="author">Gersain Barron</em> · CEDIS y 60 unidades</span>
+      </div>
+    </div>
+    <nav class="views" aria-label="Vistas">
+      <a href="index.html">CEDIS 3D</a>
+      <a class="active" href="mapa.html" aria-current="page">Red estatal</a>
+      <a id="go-unit" href="unidad.html">Unidad médica</a>
+    </nav>
+    <div class="sim">
+      <button id="btn-play" class="icon-btn primary" aria-label="Pausar"></button>
+      <div class="speed" role="group" aria-label="Velocidad">
+        <button data-speed="1">1×</button><button data-speed="10">10×</button><button data-speed="60">60×</button><button data-speed="300">300×</button>
+      </div>
+      <div class="clock-box">
+        <span id="clock" class="clock">—</span>
+        <span id="sim-status" class="sim-status">En vivo · simulado</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="net">
+    <section class="card map-card">
+      <div class="card-h wrap">
+        <h2>Abasto en tiempo real <small id="map-sub"></small></h2>
+        <div class="legend">
+          <span><i class="lg ok"></i>Abasto normal</span>
+          <span><i class="lg warn"></i>Con faltantes</span>
+          <span><i class="lg crit"></i>Crítico / alerta urgente</span>
+          <span><i class="lg van"></i>Camioneta en ruta</span>
+          <span><i class="lg urg"></i>Reabasto urgente</span>
+        </div>
+      </div>
+      <div id="map" class="map">
+        <div class="map-tools">
+          <button id="z-in" class="icon-btn" aria-label="Acercar">+</button>
+          <button id="z-out" class="icon-btn" aria-label="Alejar">−</button>
+          <button id="z-reset" class="icon-btn" aria-label="Vista completa">⤢</button>
+        </div>
+        <div id="map-panel" class="map-panel" hidden></div>
+      </div>
+      <p class="note">Hospitales en cuadro, unidades de primer nivel en círculo. Toca una unidad o una camioneta para ver su detalle. Arrastra para mover y pellizca o usa la rueda para acercar.</p>
+    </section>
+
+    <aside class="card side">
+      <div id="kpis-net" class="kpis-net"></div>
+      <nav id="side-tabs" class="seg side-tabs">
+        <button data-tab="units" class="active">Unidades</button>
+        <button data-tab="short">Desabasto <em id="n-short"></em></button>
+        <button data-tab="vans">Camionetas</button>
+        <button data-tab="routes">Rutas y costos</button>
+        <button data-tab="alloc">Inventario y asignación</button>
+        <button data-tab="alerts">Alertas <em id="n-alerts"></em></button>
+        <button data-tab="redis">Redistribución <em id="n-redis" class="info"></em></button>
+        <button data-tab="trace">Trazabilidad</button>
+        <button data-tab="fc">Pronóstico</button>
+      </nav>
+      <div id="side-body" class="side-body"></div>
+    </aside>
+  </main>
+
+  <div id="loading" class="loading"><div><b>Calculando la red estatal…</b><div class="load-track"><i id="load-bar"></i></div><span id="load-msg">60 unidades</span></div></div>
+  <script type="module" src="js/mapa.js"></script>
+</body>
+</html>

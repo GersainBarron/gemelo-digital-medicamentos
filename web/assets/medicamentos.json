@@ -1,0 +1,812 @@
+{
+ "fuente": "Compendio Nacional de Insumos para la Salud (CNIS), Consejo de Salubridad General. Claves y descripciones tomadas del Cuadro Básico y Catálogo de Medicamentos (edición 2014, farmacopea.org.mx) y de la consulta del CNIS en vademecum.es (2026).",
+ "notas": "u: F = se surte a pacientes en farmacia (receta), Q = se entrega a quirófano. pack = piezas por envase que envía el CEDIS. pz = unidad de despacho en la unidad. w = peso relativo de prescripción (solo F). frio = red fría 2–8 °C. ctrl = medicamento controlado (estupefaciente o psicotrópico). ven: clasificación Vital / Esencial / No esencial (método VEN de la OMS) usada para priorizar. alt: alternativas del mismo grupo en el catálogo (la decisión de sustituir es del médico).",
+ "items": [
+  {
+   "c": "010.000.0104.00",
+   "n": "Paracetamol 500 mg",
+   "d": "Tableta. Paracetamol 500 mg. Envase con 10 tabletas.",
+   "g": "Analgesia",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 22,
+   "src": "CBCM 2014",
+   "ven": "E",
+   "alt": [
+    "010.000.0108.00",
+    "010.000.5941.00"
+   ]
+  },
+  {
+   "c": "010.000.0108.00",
+   "n": "Metamizol 500 mg",
+   "d": "Comprimido. Metamizol sódico 500 mg. Envase con 10 comprimidos.",
+   "g": "Analgesia",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 8,
+   "src": "CBCM 2014",
+   "ven": "N",
+   "alt": [
+    "010.000.0104.00",
+    "010.000.5941.00"
+   ]
+  },
+  {
+   "c": "010.000.5941.00",
+   "n": "Ibuprofeno 400 mg",
+   "d": "Tableta o cápsula. Ibuprofeno 400 mg. Envase con 10 tabletas o cápsulas.",
+   "g": "Analgesia",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 10,
+   "src": "CBCM 2014",
+   "ven": "N",
+   "alt": [
+    "010.000.0104.00",
+    "010.000.0108.00"
+   ]
+  },
+  {
+   "c": "010.000.0101.00",
+   "n": "Ácido acetilsalicílico 500 mg",
+   "d": "Tableta. Ácido acetilsalicílico 500 mg. Envase con 20 tabletas.",
+   "g": "Analgesia",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 4,
+   "src": "CBCM 2014",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.0109.00",
+   "n": "Metamizol 1 g inyectable",
+   "d": "Solución inyectable. Metamizol sódico 1 g. Envase con 3 ampolletas con 2 ml.",
+   "g": "Analgesia",
+   "u": "Q",
+   "pack": 3,
+   "pz": "ampolleta",
+   "src": "CBCM 2014",
+   "ven": "N",
+   "alt": [
+    "010.000.3422.00"
+   ]
+  },
+  {
+   "c": "010.000.3422.00",
+   "n": "Ketorolaco 30 mg inyectable",
+   "d": "Solución inyectable. Ketorolaco-trometamina 30 mg. Envase con 3 frascos ámpula o 3 ampolletas de 1 ml.",
+   "g": "Analgesia",
+   "u": "Q",
+   "pack": 3,
+   "pz": "ampolleta",
+   "src": "CBCM 2014",
+   "ven": "N",
+   "alt": [
+    "010.000.0109.00"
+   ]
+  },
+  {
+   "c": "040.000.2106.00",
+   "n": "Tramadol 100 mg inyectable",
+   "d": "Solución inyectable. Clorhidrato de tramadol 100 mg. Envase con 5 ampolletas de 2 ml.",
+   "g": "Analgesia",
+   "u": "Q",
+   "pack": 5,
+   "pz": "ampolleta",
+   "ctrl": true,
+   "src": "CBCM 2014",
+   "ven": "E",
+   "alt": [
+    "040.000.4026.00",
+    "040.000.2103.00"
+   ]
+  },
+  {
+   "c": "040.000.4026.00",
+   "n": "Buprenorfina 0.3 mg inyectable",
+   "d": "Solución inyectable. Clorhidrato de buprenorfina equivalente a 0.3 mg. Envase con 6 ampolletas o frascos ámpula con 1 ml.",
+   "g": "Analgesia",
+   "u": "Q",
+   "pack": 6,
+   "pz": "ampolleta",
+   "ctrl": true,
+   "src": "CBCM 2014",
+   "ven": "E",
+   "alt": [
+    "040.000.2106.00",
+    "040.000.2103.00"
+   ]
+  },
+  {
+   "c": "040.000.2103.00",
+   "n": "Morfina 10 mg inyectable",
+   "d": "Solución inyectable. Sulfato de morfina 10 mg. Envase con 5 ampolletas.",
+   "g": "Analgesia",
+   "u": "Q",
+   "pack": 5,
+   "pz": "ampolleta",
+   "ctrl": true,
+   "src": "CBCM 2014",
+   "ven": "E",
+   "alt": [
+    "040.000.2106.00",
+    "040.000.4026.00"
+   ]
+  },
+  {
+   "c": "040.000.0242.00",
+   "n": "Fentanilo 0.5 mg/10 ml",
+   "d": "Solución inyectable. Citrato de fentanilo equivalente a 0.5 mg. Envase con 6 ampolletas o frascos ámpula con 10 ml.",
+   "g": "Anestesia",
+   "u": "Q",
+   "pack": 6,
+   "pz": "ampolleta",
+   "ctrl": true,
+   "src": "CBCM 2014",
+   "ven": "V"
+  },
+  {
+   "c": "010.000.0262.00",
+   "n": "Lidocaína 2 % frasco 50 ml",
+   "d": "Solución inyectable al 2 %. Clorhidrato de lidocaína 1 g. Envase con 5 frascos ámpula con 50 ml.",
+   "g": "Anestesia",
+   "u": "Q",
+   "pack": 5,
+   "pz": "frasco",
+   "src": "CBCM 2014",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.0246.00",
+   "n": "Propofol 200 mg/20 ml",
+   "d": "Emulsión inyectable. Propofol 200 mg. Envase con 5 ampolletas o frascos ámpula de 20 ml.",
+   "g": "Anestesia",
+   "u": "Q",
+   "pack": 5,
+   "pz": "ampolleta",
+   "src": "CBCM 2014",
+   "ven": "V"
+  },
+  {
+   "c": "040.000.2108.00",
+   "n": "Midazolam 5 mg/5 ml",
+   "d": "Solución inyectable. Clorhidrato de midazolam equivalente a 5 mg. Envase con 5 ampolletas con 5 ml.",
+   "g": "Anestesia",
+   "u": "Q",
+   "pack": 5,
+   "pz": "ampolleta",
+   "ctrl": true,
+   "src": "CBCM 2014",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.0254.00",
+   "n": "Vecuronio 4 mg",
+   "d": "Solución inyectable. Bromuro de vecuronio 4 mg. Envase con 50 frascos ámpula y 50 ampolletas con 1 ml de diluyente.",
+   "g": "Anestesia",
+   "u": "Q",
+   "pack": 50,
+   "pz": "frasco",
+   "src": "CBCM 2014",
+   "ven": "E",
+   "alt": [
+    "010.000.4059.00"
+   ]
+  },
+  {
+   "c": "010.000.4059.00",
+   "n": "Rocuronio 50 mg",
+   "d": "Solución inyectable. Bromuro de rocuronio 50 mg. Envase con 12 ampolletas o frascos ámpula de 5 ml.",
+   "g": "Anestesia",
+   "u": "Q",
+   "pack": 12,
+   "pz": "ampolleta",
+   "src": "CBCM 2014",
+   "ven": "V",
+   "alt": [
+    "010.000.0254.00"
+   ]
+  },
+  {
+   "c": "010.000.0233.00",
+   "n": "Sevoflurano 250 ml",
+   "d": "Líquido o solución. Sevoflurano 250 ml. Envase con 250 ml.",
+   "g": "Anestesia",
+   "u": "Q",
+   "pack": 1,
+   "pz": "frasco",
+   "src": "CBCM 2014",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.0204.00",
+   "n": "Atropina 1 mg/ml",
+   "d": "Solución inyectable. Sulfato de atropina 1 mg. Envase con 50 ampolletas con 1 ml.",
+   "g": "Anestesia",
+   "u": "Q",
+   "pack": 50,
+   "pz": "ampolleta",
+   "src": "CBCM 2014",
+   "ven": "V"
+  },
+  {
+   "c": "010.000.0611.00",
+   "n": "Epinefrina 1 mg/ml",
+   "d": "Solución inyectable. Epinefrina 1 mg (1:1 000). Envase con 50 ampolletas con 1 ml.",
+   "g": "Cardiología",
+   "u": "Q",
+   "pack": 50,
+   "pz": "ampolleta",
+   "src": "CBCM 2014",
+   "ven": "V"
+  },
+  {
+   "c": "010.000.4246.00",
+   "n": "Clopidogrel 75 mg",
+   "d": "Gragea o tableta. Bisulfato de clopidogrel equivalente a 75 mg. Envase con 14 grageas o tabletas.",
+   "g": "Cardiología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 2,
+   "src": "CBCM 2014",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.2520.00",
+   "n": "Losartán 50 mg",
+   "d": "Gragea o comprimido recubierto. Losartán potásico 50 mg. Envase con 30 grageas o comprimidos recubiertos.",
+   "g": "Cardiología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 14,
+   "chron": true,
+   "src": "CBCM 2014",
+   "ven": "E",
+   "alt": [
+    "010.000.2501.00",
+    "010.000.0574.00"
+   ]
+  },
+  {
+   "c": "010.000.2501.00",
+   "n": "Enalapril 10 mg",
+   "d": "Cápsula o tableta. Maleato de enalapril 10 mg (o lisinopril o ramipril 10 mg). Envase con 30 cápsulas o tabletas.",
+   "g": "Cardiología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 8,
+   "chron": true,
+   "src": "CBCM 2014",
+   "ven": "E",
+   "alt": [
+    "010.000.2520.00",
+    "010.000.0574.00"
+   ]
+  },
+  {
+   "c": "010.000.0574.00",
+   "n": "Captopril 25 mg",
+   "d": "Tableta. Captopril 25 mg. Envase con 30 tabletas.",
+   "g": "Cardiología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 5,
+   "chron": true,
+   "src": "CBCM 2014",
+   "ven": "E",
+   "alt": [
+    "010.000.2520.00",
+    "010.000.2501.00"
+   ]
+  },
+  {
+   "c": "010.000.2111.00",
+   "n": "Amlodipino 5 mg",
+   "d": "Tableta o cápsula. Besilato o maleato de amlodipino equivalente a 5 mg. Envase con 10 tabletas o cápsulas.",
+   "g": "Cardiología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 7,
+   "chron": true,
+   "src": "CBCM 2014",
+   "ven": "E",
+   "alt": [
+    "010.000.0597.00"
+   ]
+  },
+  {
+   "c": "010.000.0572.00",
+   "n": "Metoprolol 100 mg",
+   "d": "Tableta. Tartrato de metoprolol 100 mg. Envase con 20 tabletas.",
+   "g": "Cardiología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 5,
+   "chron": true,
+   "src": "CBCM 2014",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.0597.00",
+   "n": "Nifedipino 10 mg",
+   "d": "Cápsula de gelatina blanda. Nifedipino 10 mg. Envase con 20 cápsulas.",
+   "g": "Cardiología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 3,
+   "chron": true,
+   "src": "CBCM 2014",
+   "ven": "E",
+   "alt": [
+    "010.000.2111.00"
+   ]
+  },
+  {
+   "c": "010.000.5165.00",
+   "n": "Metformina 850 mg",
+   "d": "Tableta. Metformina clorhidrato 850 mg. Envase con 30 tabletas.",
+   "g": "Endocrinología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 20,
+   "chron": true,
+   "src": "CNIS",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.1042.00",
+   "n": "Glibenclamida 5 mg",
+   "d": "Tableta. Glibenclamida 5 mg. Envase con 50 tabletas.",
+   "g": "Endocrinología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 7,
+   "chron": true,
+   "src": "CNIS",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.1050.00",
+   "n": "Insulina NPH 100 UI/ml",
+   "d": "Suspensión inyectable. Insulina humana isófana acción intermedia NPH 100 UI/ml. Envase con un frasco ámpula con 5 ml.",
+   "g": "Endocrinología",
+   "u": "F",
+   "pack": 1,
+   "pz": "frasco",
+   "w": 6,
+   "frio": true,
+   "chron": true,
+   "src": "CNIS",
+   "ven": "V",
+   "alt": [
+    "010.000.4158.00"
+   ]
+  },
+  {
+   "c": "010.000.1051.00",
+   "n": "Insulina rápida 100 UI/ml",
+   "d": "Solución inyectable. Insulina humana acción rápida regular 100 UI/ml. Envase con un frasco ámpula con 5 ml.",
+   "g": "Endocrinología",
+   "u": "F",
+   "pack": 1,
+   "pz": "frasco",
+   "w": 3,
+   "frio": true,
+   "chron": true,
+   "src": "CNIS",
+   "ven": "V"
+  },
+  {
+   "c": "010.000.4158.00",
+   "n": "Insulina glargina",
+   "d": "Solución inyectable. Insulina glargina 3.64 mg/ml. Envase con un frasco ámpula con 10 ml.",
+   "g": "Endocrinología",
+   "u": "F",
+   "pack": 1,
+   "pz": "frasco",
+   "w": 3,
+   "frio": true,
+   "chron": true,
+   "src": "CNIS",
+   "ven": "V",
+   "alt": [
+    "010.000.1050.00"
+   ]
+  },
+  {
+   "c": "010.000.1007.00",
+   "n": "Levotiroxina 100 mcg",
+   "d": "Tableta. Levotiroxina sódica anhidra 100 mcg. Envase con 100 tabletas.",
+   "g": "Endocrinología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 2,
+   "chron": true,
+   "src": "CNIS",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.3432.00",
+   "n": "Dexametasona 0.5 mg",
+   "d": "Tableta. Dexametasona 0.5 mg. Envase con 30 tabletas.",
+   "g": "Endocrinología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 1.5,
+   "src": "CNIS",
+   "ven": "N",
+   "alt": [
+    "010.000.0472.00"
+   ]
+  },
+  {
+   "c": "010.000.0472.00",
+   "n": "Prednisona 5 mg",
+   "d": "Tableta. Prednisona 5 mg. Envase con 20 tabletas.",
+   "g": "Endocrinología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 2,
+   "src": "CNIS",
+   "ven": "E",
+   "alt": [
+    "010.000.3432.00"
+   ]
+  },
+  {
+   "c": "010.000.2128.00",
+   "n": "Amoxicilina 500 mg",
+   "d": "Cápsula. Amoxicilina trihidratada 500 mg. Envase con 12 cápsulas.",
+   "g": "Infecciosas",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 9,
+   "src": "CNIS",
+   "ven": "E",
+   "alt": [
+    "010.000.2127.00"
+   ]
+  },
+  {
+   "c": "010.000.2127.00",
+   "n": "Amoxicilina suspensión 500 mg/5 ml",
+   "d": "Suspensión oral. Amoxicilina trihidratada. Envase con polvo para 75 ml (500 mg/5 ml).",
+   "g": "Infecciosas",
+   "u": "F",
+   "pack": 1,
+   "pz": "frasco",
+   "w": 4,
+   "src": "CNIS",
+   "ven": "E",
+   "alt": [
+    "010.000.2128.00"
+   ]
+  },
+  {
+   "c": "010.000.4255.00",
+   "n": "Ciprofloxacino 250 mg",
+   "d": "Cápsula o tableta. Ciprofloxacino clorhidrato monohidratado 250 mg. Envase con 8 cápsulas o tabletas.",
+   "g": "Infecciosas",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 4,
+   "src": "CNIS",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.1903.00",
+   "n": "Trimetoprima/sulfametoxazol 80/400 mg",
+   "d": "Comprimido o tableta. Trimetoprima/sulfametoxazol 80 mg/400 mg. Envase con 20 comprimidos o tabletas.",
+   "g": "Infecciosas",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 5,
+   "src": "CNIS",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.1308.00",
+   "n": "Metronidazol 500 mg",
+   "d": "Tableta. Metronidazol 500 mg. Envase con 20 tabletas.",
+   "g": "Infecciosas",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 3,
+   "src": "CNIS",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.1911.00",
+   "n": "Nitrofurantoína 100 mg",
+   "d": "Cápsula. Nitrofurantoína 100 mg. Envase con 40 cápsulas.",
+   "g": "Infecciosas",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 2,
+   "src": "CNIS",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.1937.00",
+   "n": "Ceftriaxona 1 g inyectable",
+   "d": "Solución inyectable. Ceftriaxona sódica 1 g/10 ml. Envase con un frasco ámpula y 10 ml de diluyente.",
+   "g": "Infecciosas",
+   "u": "Q",
+   "pack": 1,
+   "pz": "frasco",
+   "src": "CNIS",
+   "ven": "V",
+   "alt": [
+    "010.000.5256.00"
+   ]
+  },
+  {
+   "c": "010.000.5256.00",
+   "n": "Cefalotina 1 g inyectable",
+   "d": "Solución inyectable. Cefalotina sódica 1 g/5 ml. Envase con un frasco ámpula y 5 ml de diluyente.",
+   "g": "Infecciosas",
+   "u": "Q",
+   "pack": 1,
+   "pz": "frasco",
+   "src": "CNIS",
+   "ven": "E",
+   "alt": [
+    "010.000.1937.00"
+   ]
+  },
+  {
+   "c": "010.000.5186.01",
+   "n": "Omeprazol 20 mg",
+   "d": "Tableta, gragea o cápsula. Omeprazol 20 mg (o pantoprazol 40 mg o rabeprazol 20 mg). Envase con 14.",
+   "g": "Gastroenterología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 12,
+   "src": "CNIS",
+   "ven": "N"
+  },
+  {
+   "c": "010.000.1206.00",
+   "n": "Butilhioscina 10 mg",
+   "d": "Gragea o tableta. Butilhioscina bromuro 10 mg. Envase con 10 grageas o tabletas.",
+   "g": "Gastroenterología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 5,
+   "src": "CNIS",
+   "ven": "N"
+  },
+  {
+   "c": "010.000.1242.00",
+   "n": "Metoclopramida 10 mg",
+   "d": "Tableta. Metoclopramida clorhidrato 10 mg. Envase con 20 tabletas.",
+   "g": "Gastroenterología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 3,
+   "src": "CNIS",
+   "ven": "N"
+  },
+  {
+   "c": "010.000.1207.00",
+   "n": "Butilhioscina 20 mg inyectable",
+   "d": "Solución inyectable. Butilhioscina bromuro 20 mg. Envase con 3 ampolletas de 1 ml.",
+   "g": "Gastroenterología",
+   "u": "Q",
+   "pack": 3,
+   "pz": "ampolleta",
+   "src": "CNIS",
+   "ven": "N"
+  },
+  {
+   "c": "010.000.1241.00",
+   "n": "Metoclopramida 10 mg inyectable",
+   "d": "Solución inyectable. Metoclopramida clorhidrato 10 mg. Envase con 6 ampolletas de 2 ml.",
+   "g": "Gastroenterología",
+   "u": "Q",
+   "pack": 6,
+   "pz": "ampolleta",
+   "src": "CNIS",
+   "ven": "N"
+  },
+  {
+   "c": "010.000.0429.00",
+   "n": "Salbutamol aerosol 100 mcg",
+   "d": "Suspensión en aerosol. Salbutamol 20 mg. Envase con inhalador con 200 dosis de 100 mcg.",
+   "g": "Neumología",
+   "u": "F",
+   "pack": 1,
+   "pz": "inhalador",
+   "w": 6,
+   "src": "CNIS",
+   "ven": "V"
+  },
+  {
+   "c": "010.000.0477.00",
+   "n": "Beclometasona aerosol 50 mcg",
+   "d": "Suspensión en aerosol. Beclometasona dipropionato 50 mcg. Envase con dispositivo inhalador para 200 dosis.",
+   "g": "Neumología",
+   "u": "F",
+   "pack": 1,
+   "pz": "inhalador",
+   "w": 2,
+   "chron": true,
+   "src": "CNIS",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.2463.00",
+   "n": "Ambroxol solución 300 mg/100 ml",
+   "d": "Solución. Ambroxol clorhidrato 300 mg/100 ml. Envase con 120 ml y dosificador.",
+   "g": "Neumología",
+   "u": "F",
+   "pack": 1,
+   "pz": "frasco",
+   "w": 5,
+   "src": "CNIS",
+   "ven": "N"
+  },
+  {
+   "c": "010.000.2144.00",
+   "n": "Loratadina 10 mg",
+   "d": "Tableta o gragea. Loratadina 10 mg. Envase con 20 tabletas o grageas.",
+   "g": "Inmunoalergia",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 6,
+   "src": "CNIS",
+   "ven": "N",
+   "alt": [
+    "010.000.0402.00"
+   ]
+  },
+  {
+   "c": "010.000.0402.00",
+   "n": "Clorfenamina 4 mg",
+   "d": "Tableta. Clorfenamina maleato 4 mg. Envase con 20 tabletas.",
+   "g": "Inmunoalergia",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 4,
+   "src": "CNIS",
+   "ven": "N",
+   "alt": [
+    "010.000.2144.00"
+   ]
+  },
+  {
+   "c": "010.000.1703.00",
+   "n": "Sulfato ferroso 200 mg",
+   "d": "Tableta. Sulfato ferroso desecado 200 mg. Envase con 30 tabletas.",
+   "g": "Hematología",
+   "u": "F",
+   "pack": 1,
+   "pz": "caja",
+   "w": 7,
+   "src": "CNIS",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.1542.00",
+   "n": "Oxitocina 5 UI/ml",
+   "d": "Solución inyectable. Oxitocina 5 UI/ml. Envase con 50 ampolletas con 1 ml.",
+   "g": "Gineco-obstetricia",
+   "u": "Q",
+   "pack": 50,
+   "pz": "ampolleta",
+   "frio": true,
+   "src": "CNIS",
+   "ven": "V"
+  },
+  {
+   "c": "010.000.0622.00",
+   "n": "Heparina 25 000 UI/5 ml",
+   "d": "Solución inyectable. Heparina sódica 25 000 UI/5 ml. Envase con 50 frascos ámpula con 5 ml.",
+   "g": "Hematología",
+   "u": "Q",
+   "pack": 50,
+   "pz": "frasco",
+   "src": "CNIS",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.2154.00",
+   "n": "Enoxaparina 40 mg",
+   "d": "Solución inyectable. Enoxaparina sódica 40 mg/0.4 ml. Envase con 2 jeringas de 0.4 ml.",
+   "g": "Hematología",
+   "u": "Q",
+   "pack": 2,
+   "pz": "jeringa",
+   "src": "CNIS",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.3609.00",
+   "n": "Cloruro de sodio 0.9 % 500 ml",
+   "d": "Solución inyectable. Cloruro de sodio 0.9 g/100 ml. Envase con 500 ml.",
+   "g": "Soluciones",
+   "u": "Q",
+   "pack": 1,
+   "pz": "bolsa",
+   "src": "CNIS",
+   "ven": "V",
+   "alt": [
+    "010.000.3615.00"
+   ]
+  },
+  {
+   "c": "010.000.3615.00",
+   "n": "Solución Hartmann 500 ml",
+   "d": "Solución inyectable. Solución Hartmann (cloruro de sodio, cloruro de potasio, cloruro de calcio, lactato de sodio). Envase con 500 ml.",
+   "g": "Soluciones",
+   "u": "Q",
+   "pack": 1,
+   "pz": "bolsa",
+   "src": "CNIS",
+   "ven": "V",
+   "alt": [
+    "010.000.3609.00"
+   ]
+  },
+  {
+   "c": "010.000.3630.00",
+   "n": "Glucosa 5 % 500 ml",
+   "d": "Solución inyectable al 5 %. Glucosa. Envase con 500 ml.",
+   "g": "Soluciones",
+   "u": "Q",
+   "pack": 1,
+   "pz": "bolsa",
+   "src": "CNIS",
+   "ven": "E"
+  },
+  {
+   "c": "010.000.3607.00",
+   "n": "Glucosa 50 % 50 ml",
+   "d": "Solución inyectable al 50 %. Glucosa. Envase con 50 ml.",
+   "g": "Soluciones",
+   "u": "Q",
+   "pack": 1,
+   "pz": "frasco",
+   "src": "CNIS",
+   "ven": "V"
+  },
+  {
+   "c": "010.000.0524.00",
+   "n": "Cloruro de potasio 1.49 g/10 ml",
+   "d": "Solución inyectable. Cloruro de potasio 1.49 g/10 ml. Envase con 50 ampolletas con 10 ml.",
+   "g": "Soluciones",
+   "u": "Q",
+   "pack": 50,
+   "pz": "ampolleta",
+   "src": "CNIS",
+   "ven": "V"
+  }
+ ]
+}

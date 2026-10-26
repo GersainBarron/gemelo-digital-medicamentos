@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.blend1
+*.blend2
+.DS_Store
+Thumbs.db
+investigacion/_*.pkl
+investigacion/ESTABLECIMIENTO_SALUD_*.xlsx

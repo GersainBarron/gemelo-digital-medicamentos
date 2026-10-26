@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Gersain Barron">
+  <meta name="copyright" content="© 2026 Gersain Barron · Licencia MIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CEDIS 3D">
+  <meta name="theme-color" content="#0d1117">
+  <title>CEDIS Medicamentos · Gemelo digital</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/jsm/" } }
+  </script>
+</head>
+<body>
+  <div id="viewport"></div>
+  <div id="labels"></div>
+
+  <!-- Barra superior -->
+  <header class="topbar glass">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <b>CEDIS Medicamentos</b>
+        <span>Gemelo digital · <em class="author">Gersain Barron</em> · Cadena de abasto</span>
+      </div>
+    </div>
+
+    <div class="sim">
+      <button id="btn-play" class="icon-btn primary" aria-label="Pausar"></button>
+      <div class="speed" role="group" aria-label="Velocidad">
+        <button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button><button data-speed="8">8×</button>
+      </div>
+      <div class="clock-box">
+        <span id="clock" class="clock">08:00:00</span>
+        <span id="sim-status" class="sim-status">En vivo · simulado</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <a id="go-map" class="pill-btn" href="mapa.html" aria-label="Red estatal">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 3 3 5.5v15.5l6-2.5 6 2.5 6-2.5V3l-6 2.5L9 3zm0 2.2 6 2.5v11.1l-6-2.5V5.2z" fill="currentColor"/></svg>
+        <span>Red estatal</span>
+      </a>
+      <a id="go-unit" class="pill-btn" href="unidad.html" aria-label="Vista de unidad médica">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 21V8l8-5 8 5v13h-6v-6h-4v6H4zm7-11v2H9v2h2v2h2v-2h2v-2h-2v-2h-2z" fill="currentColor"/></svg>
+        <span>Unidad médica</span>
+      </a>
+      <button id="btn-layers" class="pill-btn" aria-label="Capas">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 3 2 8l10 5 10-5-10-5zm-8.2 9L2 13l10 5 10-5-1.8-1L12 16l-8.2-4zm0 4L2 17l10 5 10-5-1.8-1L12 20l-8.2-4z" fill="currentColor"/></svg>
+        <span>Capas</span>
+      </button>
+      <button id="btn-kpi" class="pill-btn active" aria-label="Indicadores">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 20V10h3v10H4zm6 0V4h3v16h-3zm6 0v-7h3v7h-3z" fill="currentColor"/></svg>
+        <span>Indicadores</span><em id="k-alert-count" class="badge"></em>
+      </button>
+      <button id="btn-fullscreen" class="icon-btn" aria-label="Pantalla completa">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4z" fill="currentColor"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Capas -->
+  <section id="layers-panel" class="panel glass popover closed">
+    <h3>Capas de visualización</h3>
+    <div id="layers-list"></div>
+  </section>
+
+  <!-- Indicadores (pestañas) -->
+  <aside id="kpi-panel" class="panel glass">
+    <nav id="kpi-tabs" class="tabs" aria-label="Paneles">
+      <button data-tab="almacen" class="active">Almacén</button>
+      <button data-tab="entradas">Entradas</button>
+      <button data-tab="salidas">Salidas</button>
+      <button data-tab="unidades">Unidades</button>
+      <button data-tab="urgencias">Urgencias<em id="urg-count" class="badge"></em></button>
+      <button data-tab="inventario">Inventario</button>
+      <button data-tab="autorizacion">Autorización<em id="aut-count" class="badge"></em></button>
+    </nav>
+
+    <div class="tab-page active" data-page="almacen">
+      <section class="card">
+        <h3>Flujo del turno</h3>
+        <div class="tiles">
+          <div class="tile"><b id="k-received">0</b><span>Pallets recibidos</span></div>
+          <div class="tile"><b id="k-putaway">0</b><span>Pallets ubicados</span></div>
+          <div class="tile"><b id="k-picked">0</b><span>Líneas surtidas</span></div>
+          <div class="tile"><b id="k-packed">0</b><span>Cajas empacadas</span></div>
+          <div class="tile"><b id="k-shipped">0</b><span>Pallets despachados</span></div>
+          <div class="tile"><b id="k-replenish">0</b><span>Reabastos</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Ocupación de almacén</h3>
+        <div class="big-row"><b id="k-occ" class="big">0 %</b><span id="k-occ-sub" class="muted"></span></div>
+        <div class="bar main"><i id="k-occ-bar"></i></div>
+        <div id="k-aisles" class="aisles"></div>
+        <div class="kv"><span>Ubicaciones de picking ocupadas</span><b id="k-shelf">0 %</b></div>
+      </section>
+
+      <section class="card">
+        <h3>Inventario <small>mes en curso</small></h3>
+        <div id="kg-inventario" class="kpi-grid"></div>
+      </section>
+
+      <section class="card">
+        <h3>Cuarto frío <small>rango 2–8 °C</small></h3>
+        <div class="temp-row">
+          <div class="temp"><b id="k-temp">4.3</b><span>°C</span></div>
+          <span id="k-temp-chip" class="chip ok">En rango</span>
+        </div>
+        <canvas id="k-spark" class="spark"></canvas>
+      </section>
+
+      <section class="card">
+        <h3>Andenes</h3>
+        <div id="k-docks" class="docks"></div>
+      </section>
+
+      <section class="card">
+        <h3>Equipos <small id="k-equip-sum"></small></h3>
+        <div id="k-equip" class="equip-list"></div>
+      </section>
+
+      <section class="card">
+        <h3>Alertas</h3>
+        <ul id="k-alerts" class="alerts"></ul>
+      </section>
+
+      <section class="card">
+        <h3>Bitácora</h3>
+        <ul id="k-log" class="log"></ul>
+      </section>
+  
+    </div>
+
+    <div class="tab-page" data-page="entradas">
+      <section class="card">
+        <h3>Indicadores de entrada <small>mes en curso</small></h3>
+        <div id="kg-entradas" class="kpi-grid"></div>
+      </section>
+      <section class="card">
+        <h3>Arribos de hoy <small id="arr-sum"></small></h3>
+        <div id="arr-list" class="arr-list"></div>
+      </section>
+    </div>
+
+    <div class="tab-page" data-page="salidas">
+      <section class="card">
+        <h3>Indicadores de salida <small>mes en curso</small></h3>
+        <div id="kg-salidas" class="kpi-grid"></div>
+      </section>
+      <section class="card">
+        <h3>Rutas de hoy</h3>
+        <p id="rt-sum" class="muted sub"></p>
+        <div id="rt-list" class="rt-list"></div>
+      </section>
+    </div>
+
+    <div class="tab-page" data-page="unidades">
+      <section class="card">
+        <h3>Unidades IMSS e ISSSTE · Hidalgo</h3>
+        <div class="u-filters">
+          <div id="u-inst" class="seg"><button data-inst="all" class="active">Todas</button><button data-inst="IMSS">IMSS</button><button data-inst="ISSSTE">ISSSTE</button></div>
+          <select id="u-route" aria-label="Ruta"><option value="all">Todas las rutas</option></select>
+        </div>
+        <input id="u-search" type="search" placeholder="Buscar unidad, municipio o CLUES" autocomplete="off">
+        <div id="u-map" class="u-map"></div>
+        <div id="u-legend" class="u-legend"></div>
+        <p id="u-count" class="muted sub"></p>
+        <div id="u-list" class="u-list"></div>
+        <p class="src">Fuente: catálogo CLUES de la Secretaría de Salud, corte agosto 2026.</p>
+      </section>
+    </div>
+
+    <div class="tab-page" data-page="inventario">
+      <section class="card">
+        <h3>Inventario del CEDIS <small id="inv-pol" class="muted"></small></h3>
+        <div class="tiles three">
+          <div class="tile"><b id="inv-fill">—</b><span>Nivel de servicio (90 días)</span></div>
+          <div class="tile"><b id="inv-short">—</b><span>Claves en reparto o sin existencia</span></div>
+          <div class="tile"><b id="inv-days">—</b><span>Inventario promedio (días)</span></div>
+        </div>
+        <a id="inv-map" class="pill-btn wide" href="mapa.html?tab=alloc"><span>Ver asignación y comparar métodos de pedido</span></a>
+        <p class="muted sub">Existencia por clave y lote, cobertura de la red (días), pedidos en tránsito y próximo arribo. La capa "Cobertura por clave" colorea los racks.</p>
+      </section>
+      <section class="card">
+        <div id="inv-list" class="inv-list"></div>
+      </section>
+    </div>
+
+    <div class="tab-page" data-page="autorizacion">
+      <section class="card">
+        <h3>Bandeja de autorización <small class="muted">pedidos extraordinarios de las unidades</small></h3>
+        <div class="tiles three">
+          <div class="tile"><b id="aut-pend">—</b><span>Por autorizar</span></div>
+          <div class="tile"><b id="aut-late">—</b><span>Fuera de plazo (4 h)</span></div>
+          <div class="tile"><b id="aut-ontime">—</b><span>Llegan antes de agotarse</span></div>
+        </div>
+        <p class="muted sub">Cada mañana las unidades proyectan su existencia hasta la próxima entrega; si una clave quedará bajo la existencia de seguridad se propone un pedido. Flujo: propuesto → validado por la jefatura de farmacia (2 h) → autorizado aquí (4 h) → programado en ruta → entregado. Ordenados por lo que se agota primero.</p>
+      </section>
+      <section class="card">
+        <div id="aut-list" class="inv-list"></div>
+      </section>
+    </div>
+
+    <div class="tab-page" data-page="urgencias">
+      <section class="card">
+        <h3>Solicitudes urgentes</h3>
+        <div class="tiles three">
+          <div class="tile"><b id="urg-open">0</b><span>Abiertas</span></div>
+          <div class="tile"><b id="urg-vital">0</b><span>Vitales abiertas</span></div>
+          <div class="tile"><b id="urg-ontime">0</b><span>En tiempo (mes)</span></div>
+        </div>
+        <button id="urg-sim" class="pill-btn wide"><span>Simular solicitud vital</span></button>
+        <p class="muted sub">N1 vital: viaje + 75 min · N2 urgente: 2 a 12 h según distancia · N3 prioritario: 24 h</p>
+      </section>
+      <section class="card">
+        <div id="urg-list" class="urg-list"></div>
+      </section>
+    </div>
+  </aside>
+
+  <!-- Inspector -->
+  <section id="inspector" class="panel glass closed">
+    <header>
+      <div>
+        <span id="insp-type" class="insp-type"></span>
+        <h2 id="insp-title"></h2>
+      </div>
+      <button id="insp-close" class="icon-btn" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4 17.6 5 12 10.6z" fill="currentColor"/></svg>
+      </button>
+    </header>
+    <div id="insp-body"></div>
+    <footer>
+      <button id="insp-focus" class="pill-btn"><span>Centrar vista</span></button>
+      <button id="insp-follow" class="pill-btn"><span>Seguir</span></button>
+      <a id="insp-open" class="pill-btn" href="unidad.html" hidden><span>Abrir vista de la unidad</span></a>
+    </footer>
+  </section>
+
+  <!-- Cámaras -->
+  <nav id="cameras" class="cameras glass" aria-label="Cámaras"></nav>
+
+  <div id="toast"></div>
+
+  <!-- Carga -->
+  <div id="loading">
+    <div class="load-card">
+      <svg class="logo big" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <b>CEDIS Medicamentos</b>
+      <div class="load-track"><i id="load-bar"></i></div>
+      <span id="load-msg">Iniciando…</span>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

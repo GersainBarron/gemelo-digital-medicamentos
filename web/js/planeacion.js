@@ -110,6 +110,7 @@ function side(r) {
     <a class="${on('asignacion') || on('asignar') || on('item')}" href="#/p/${P.id}/asignacion">Asignación de insumos</a>
     <a class="${on('programas')}" href="#/p/${P.id}/programas">Programas especiales</a>
     <a class="${on('aprobacion') || on('solicitar')}" href="#/p/${P.id}/aprobacion">Aprobación de insumos</a>
+    <a class="${on('seguimiento')}" href="#/p/${P.id}/seguimiento">Seguimiento y traza</a>
     <a class="${on('cierre')}" href="#/p/${P.id}/cierre">Cierre del plan</a>
     <a class="${on('simulacion')}" href="#/p/${P.id}/simulacion">Simulación del ciclo</a>
     <a class="${on('bitacora')}" href="#/p/${P.id}/bitacora">Bitácora</a></div>` : '';
@@ -771,6 +772,7 @@ function aprobUnidad(P, clues, base) {
     { h: 'Piezas asignadas', n: true, v: r => E.total(r.it), f: r => `<span class="${E.outOfRange(r.it) ? 'oor' : ''}" title="${E.outOfRange(r.it) ? 'Fuera del rango mínimo y máximo' : ''}">${n0(E.total(r.it))}</span>` },
     { h: 'Mín.', n: true, v: r => r.it.min, f: r => n0(r.it.min), opt: true }, { h: 'Máx.', n: true, v: r => r.it.max, f: r => n0(r.it.max), opt: true },
     { h: 'Unidad', v: r => r.it.st.um, f: r => dict(r.it.st.um) }, { h: 'Delegación', v: r => r.it.st.del, f: r => dict(r.it.st.del) }, { h: 'O. Central', v: r => r.it.st.oc, f: r => dict(r.it.st.oc) },
+    { h: 'La tiene', v: r => E.holderOf(U, P, r.it) || 'z', f: r => holderChip(P, r.it) },
     { h: 'Acciones', nosort: true, v: () => '', f: r => `<a class="btn sm ${lvl && E.needs(r.it, lvl) ? 'pri' : ''}" href="#/p/${P.id}/aprobacion/i/${encodeURIComponent(r.k)}">${lvl && E.needs(r.it, lvl) ? 'Dictaminar' : 'Ver detalle'}</a>` },
   ], rows, { empty: 'No se encontraron resultados' })}</section>`;
 }
@@ -783,6 +785,7 @@ function aprobDetalle(P, k, base) {
   const vers = it.versions.map((v, i) => `<tr><td>${i + 1}</td><td>${E.NIVEL_N[v.by] || v.by}</td><td class="n">día ${v.t}</td><td class="n">${n0(v.months.reduce((a, b) => a + b, 0))}</td><td>${esc(v.obs || '')}</td></tr>`).join('');
   return `${crumbs([...base, [u.nombre, `#/p/${P.id}/aprobacion/u/${u.clues}`], [c.nombre]])}
   <section class="card"><div class="pl-head"><div><span class="eyebrow">${esc(P.folio)} · ${esc(P.nombre)} · Aprobación de insumos</span><h1>${esc(c.nombre)}</h1><p>${esc(c.clave)} · ${esc(c.pz)} · ${esc(u.nombre)} · Unidad ${dict(it.st.um)} · Delegación ${dict(it.st.del)} · O. Central ${dict(it.st.oc)}</p></div><div class="pl-actions"><a class="btn" href="#/p/${P.id}/aprobacion/u/${u.clues}">Regresar</a></div></div>${alert}</section>
+  <section class="card"><div class="card-h"><h2>Traza de la petición <small>quién la tuvo, cuánto tiempo y qué decidió</small></h2></div>${trazaItem(P, it)}</section>
   <div class="pl-detail">
     <section class="card"><div class="card-h"><h2>Planeación ${it.tipo === 'anual' ? 'anual' : 'mensual'} <small>versión vigente</small></h2></div>
       <div class="pl-kv"><div><span>Propuesta mínima</span><b>${n0(it.min)}</b></div><div><span>Propuesta máxima</span><b>${n0(it.max)}</b></div><div><span>Piezas asignadas</span><b class="${E.outOfRange(it) ? 'oor' : ''}">${n0(E.total(it))}</b></div><div><span>Rondas de negociación</span><b>${it.round}</b></div></div>
@@ -888,6 +891,180 @@ BIND.solicitar = ({ P, a }) => {
     S.solw = null; go(`#/p/${P.id}/aprobacion`); toast('Insumos solicitados exitosamente');
   });
 };
+
+// ---------- Traza y seguimiento (gemelo): quién tiene la petición, plazos y desviaciones
+const ACT = { um: 'Unidad', del: 'Delegación', oc: 'O. Central' };
+const ACTC = { um: '#5eead4', del: '#60a5fa', oc: '#f472b6' };
+const DEC = { asignar: ['Asignó', '#94a3b8'], solicitar: ['Solicitó', '#c084fc'], aprobar: ['Aprobó', '#34d399'], rechazar: ['Rechazó', '#f87171'], negociar: ['Negoció', '#c084fc'] };
+function holderChip(P, it) {
+  const h = E.holderOf(S.U, P, it);
+  if (!h) return '<span class="muted" style="font-size:12px">—</span>';
+  const age = P.day - (it.holder === h ? it.since : P.day), sla = P.sla[h];
+  return `<span class="st ${age >= sla ? 'rechazado' : age >= sla - 1 ? 'pendiente' : 'revision'}" title="Plazo de ${sla} días hábiles">${ACT[h]} · ${age} d</span>`;
+}
+const fdate = d => `${d.getUTCDate()} ${E.MESES[d.getUTCMonth()]}`;
+function trazaItem(P, it) {
+  const ev = it.ev || [], L = E.plazos(P), now = P.day;
+  const h = E.holderOf(S.U, P, it);
+  const lastT = Math.max(now, ...ev.map(e => e.t), 1);
+  const maxD = Math.max(lastT + 1, Math.min(L.D, lastT + 4));
+  const W = 900, H = 200, pl = 104, pr = 20, lane = { um: 52, del: 104, oc: 156 };
+  const X = d => pl + (W - pl - pr) * d / maxD;
+  let g = '';
+  for (const [k, y] of Object.entries(lane)) g += `<line x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}" stroke="rgba(148,163,184,.18)" stroke-width="22" stroke-linecap="round"/><text x="12" y="${y + 4}" fill="#e6edf3" font-size="12.5" font-weight="600">${ACT[k]}</text><text x="12" y="${y + 18}" fill="#8b98a5" font-size="10.5">la tuvo ${it.hold[k]} d · plazo ${P.sla[k]} d</text>`;
+  for (let d = 0; d <= maxD; d += maxD > 30 ? 5 : maxD > 12 ? 2 : 1) g += `<text x="${X(d)}" y="${H - 8}" fill="#5b6773" font-size="10.5" text-anchor="middle">${d === 0 ? fdate(E.dateOfDay(P, 0)) : `día ${d}`}</text>`;
+  for (const [k, lab] of [['um', 'límite unidades'], ['del', 'límite delegaciones'], ['oc', 'límite O. Central']]) if (L[k] <= maxD) g += `<line x1="${X(L[k])}" x2="${X(L[k])}" y1="30" y2="${H - 22}" stroke="${ACTC[k]}" stroke-dasharray="3 4" opacity=".7"/><text x="${X(L[k]) + 3}" y="26" fill="${ACTC[k]}" font-size="10">${lab}</text>`;
+  // tramos: entre un evento y el siguiente, la petición la tuvo quien actuó después
+  const segs = [];
+  for (let i = 1; i < ev.length; i++) segs.push({ lvl: ev[i].lvl, a: ev[i - 1].t, b: ev[i].t });
+  if (h && ev.length) segs.push({ lvl: h, a: ev.at(-1).t, b: now, open: true });
+  for (const sg of segs) {
+    const y = lane[sg.lvl], dur = sg.b - sg.a, sla = P.sla[sg.lvl];
+    const okEnd = Math.min(sg.b, sg.a + sla);
+    g += `<rect x="${X(sg.a)}" y="${y - 7}" width="${Math.max(3, X(okEnd) - X(sg.a))}" height="14" rx="7" fill="${ACTC[sg.lvl]}" opacity=".55"><title>${ACT[sg.lvl]} la tuvo ${dur} días hábiles</title></rect>`;
+    if (sg.b > okEnd) g += `<rect x="${X(okEnd)}" y="${y - 7}" width="${X(sg.b) - X(okEnd)}" height="14" rx="7" fill="#f87171" opacity=".8"><title>${sg.b - okEnd} días fuera de plazo</title></rect>`;
+    if (sg.open) g += `<text x="${X(sg.b) + 6}" y="${y + 4}" fill="#e6edf3" font-size="11">la tiene hace ${dur} d</text>`;
+  }
+  // eventos y flechas de envío
+  ev.forEach((e, i) => {
+    const x = X(e.t) + (i && ev[i - 1].t === e.t ? 0 : 0), y = lane[e.lvl], [txt, col] = DEC[e.d] || [e.d, '#94a3b8'];
+    if (i) { const p = ev[i - 1]; g += `<path d="M${X(p.t)} ${lane[p.lvl]} C ${X(p.t) + 18} ${lane[p.lvl]}, ${x - 18} ${y}, ${x} ${y}" fill="none" stroke="${col}" stroke-width="1.4" opacity=".8" marker-end="url(#tz-a)"/>`; }
+    g += `<circle cx="${x}" cy="${y}" r="7" fill="${col}" stroke="#0d1117" stroke-width="2"><title>Día ${e.t} · ${ACT[e.lvl]} ${txt.toLowerCase()} · ${n0(e.q)} piezas</title></circle><text x="${x}" y="${y - 12}" fill="${col}" font-size="10.5" text-anchor="middle">${txt} ${e.d === 'rechazar' ? '' : n0(e.q)}</text>`;
+  });
+  const lateTot = it.late.um + it.late.del + it.late.oc;
+  const quien = lateTot ? Object.keys(it.late).reduce((a, b) => (it.late[b] > it.late[a] ? b : a)) : null;
+  return `<div class="pl-chart" style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="min-width:640px" role="img" aria-label="Traza de la petición"><defs><marker id="tz-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#94a3b8"/></marker></defs>${g}</svg></div>
+    <p class="note">${ev.length} movimientos · ${it.round} ronda${it.round === 1 ? '' : 's'} de negociación · días con la petición: unidad ${it.hold.um}, delegación ${it.hold.del}, Oficina Central ${it.hold.oc}${lateTot ? ` · <b style="color:var(--crit)">${lateTot} días fuera de plazo, sobre todo de ${ACT[quien].toLowerCase()}</b>` : ' · sin días fuera de plazo'}${h ? ` · ahora la tiene <b>${ACT[h].toLowerCase()}</b>` : ' · ya concluyó'}.</p>`;
+}
+
+VIEWS.seguimiento = ({ P }) => {
+  const base = [['Planes de necesidad', '#/'], [P.folio, `#/p/${P.id}`], ['Seguimiento y traza']];
+  if (!['validacion', 'finalizado', 'cerrado'].includes(P.status)) return `${crumbs(base)}<div class="card"><p class="empty">El seguimiento arranca en la etapa de aprobación, cuando las peticiones empiezan a circular entre unidades, delegaciones y Oficina Central.</p></div>`;
+  const G = E.seguimiento(S.U, P), L = G.L;
+  const pp = x => `${x >= 0 ? '+' : ''}${Math.round(x * 100)} pp`;
+  const lateP = a => (G.lateTot ? G.late[a] / G.lateTot : 0);
+  const c = (n, v, u, s2, sem) => `<div class="kpi ${sem || ''}"><span>${n}</span><b>${v}${u ? `<i>${u}</i>` : ''}</b><small><i class="dot"></i>${s2}</small></div>`;
+  const avance = G.done.oc / G.N, plan = G.plan.oc, pres = G.costo0 * P.sim.presupuesto;
+  const kp = [
+    c('Avance de Oficina Central contra lo programado', pct(avance), '', `programado ${pct(plan)} · ${pp(avance - plan)}`, avance >= plan - 0.02 ? 'ok' : avance >= plan - 0.15 ? 'warn' : 'crit'),
+    c('Cierre estimado', G.estimado == null ? '—' : fdate(E.dateOfDay(P, G.estimado)), '', G.holgura == null ? 'sin ritmo suficiente para estimar' : G.holgura >= 0 ? `${G.holgura} días hábiles antes del límite (${fdate(E.dateOfDay(P, L.D))})` : `${-G.holgura} días hábiles tarde (límite ${fdate(E.dateOfDay(P, L.D))})`, G.holgura == null ? '' : G.holgura >= 2 ? 'ok' : G.holgura >= 0 ? 'warn' : 'crit'),
+    c('Peticiones fuera de plazo ahora', n0(G.vencidos.um + G.vencidos.del + G.vencidos.oc), '', `unidad ${n0(G.vencidos.um)} · delegación ${n0(G.vencidos.del)} · central ${n0(G.vencidos.oc)}`, G.vencidos.um + G.vencidos.del + G.vencidos.oc ? 'crit' : 'ok'),
+    c('Cuello de botella ahora', G.vencidos[G.cuello] ? ACT[G.cuello] : 'Ninguno', '', G.vencidos[G.cuello] ? `${n0(G.pend[G.cuello])} peticiones en su escritorio` : 'nada vencido', G.vencidos[G.cuello] ? 'crit' : 'ok'),
+    c('¿De quién es el retraso?', G.culpable ? ACT[G.culpable] : 'Nadie', '', G.lateTot ? `${pct(lateP(G.culpable))} de ${n0(G.lateTot)} días-petición fuera de plazo` : 'todos dentro de plazo', G.culpable ? 'warn' : 'ok'),
+    c('Desviación de piezas contra la propuesta', `${G.q0 ? (G.q / G.q0 - 1 >= 0 ? '+' : '') + pct(G.q / G.q0 - 1, 1) : '—'}`, '', `${n0(G.q)} contra ${n0(G.q0)} propuestas`, Math.abs(G.q / G.q0 - 1) <= 0.05 ? 'ok' : Math.abs(G.q / G.q0 - 1) <= 0.15 ? 'warn' : 'crit'),
+    c('Costo contra presupuesto', money(G.costo), '', `presupuesto ${money(pres)} · ${G.costo <= pres ? 'dentro' : `${pct(G.costo / pres - 1, 1)} arriba`}`, G.costo <= pres ? 'ok' : 'crit'),
+    c('Fuera de rango y rondas de más', n0(G.fuera), '', `${n0(G.rondas3)} insumos con más de 2 rondas`, G.fuera / Math.max(1, G.n) < 0.1 ? 'ok' : 'warn'),
+  ];
+  const f = S.f_seg ||= { tipo: '' };
+  const ent = G.ent.filter(e => !f.tipo || e.tipo === f.tipo);
+  const dels = G.byDel.filter(r => r.d.units.length).map(r => ({ ...r, lateTot: r.late.um + r.late.del + r.late.oc, pendTot: r.pend.um + r.pend.del + r.pend.oc, st: E.delegStats ? null : null }));
+  return `${crumbs(base)}${simBar(P)}
+  <section class="card"><div class="pl-head"><div><span class="eyebrow">${esc(P.folio)} · Seguimiento</span><h1>¿Cómo va el plan y dónde está atorado?</h1><p>La aprobación es secuencial: Unidad → Delegación → Oficina Central → Cierre. Cada día que una petición espera se carga a quien la tiene; pasado su plazo cuenta como día fuera de plazo. Los programas especiales corren aparte.</p></div></div></section>
+  <section class="kpis">${kp.join('')}</section>
+  <section class="card"><div class="card-h"><h2>Etapas: programado contra real <small>periodo de aprobación ${fdate(E.dateOfDay(P, 0))} a ${fdate(E.dateOfDay(P, L.D))} · días hábiles</small></h2></div>${gantt(P, G)}</section>
+  <div class="split">
+    <section class="card"><div class="card-h"><h2>Avance por nivel <small>unidades con verificación finalizada</small></h2></div>${curvaNiveles(P, G)}</section>
+    <section class="card"><div class="card-h"><h2>Dónde está atorado <small>peticiones pendientes por quién las tiene</small></h2></div>${atorado(P, G)}</section>
+  </div>
+  <section class="card"><div class="card-h wrap"><h2>¿De quién es el retraso? <small>días-petición fuera de plazo por delegación y actor</small></h2>
+    <div class="legend"><span><i class="sw" style="background:${ACTC.um}"></i>Unidades</span><span><i class="sw" style="background:${ACTC.del}"></i>Delegación</span><span><i class="sw" style="background:${ACTC.oc}"></i>Oficina Central</span></div></div>
+    <div class="pl-kv" style="margin-bottom:12px">${['um', 'del', 'oc'].map(a => `<div><span>${ACT[a]}</span><b style="color:${ACTC[a]}">${pct(lateP(a))}</b><span>${n0(G.late[a])} días fuera de plazo · ${n0(G.hold[a])} días con peticiones</span></div>`).join('')}</div>
+    ${table('culpa', [
+      { h: 'Delegación', v: r => r.d.nombre, f: r => `<a href="#/p/${P.id}/aprobacion/del/${r.d.cve}" style="color:var(--accent)">${esc(r.d.nombre)}</a>` },
+      { h: 'Pendientes', n: true, v: r => r.pendTot },
+      { h: 'Días fuera de plazo', n: true, v: r => r.lateTot, f: r => n0(r.lateTot) },
+      { h: 'Reparto del retraso', nosort: true, v: () => '', f: r => stackBar(r.late, r.lateTot) },
+      { h: 'Mayor responsable', v: r => (r.lateTot ? ACT[Object.keys(r.late).reduce((a, b) => (r.late[b] > r.late[a] ? b : a))] : '—'), f: r => (r.lateTot ? (k => `<span style="color:${ACTC[k]};font-weight:650">${ACT[k]}</span>`)(Object.keys(r.late).reduce((a, b) => (r.late[b] > r.late[a] ? b : a))) : '<span class="muted">—</span>') },
+    ], dels.sort((a, b) => b.lateTot - a.lateTot))}</section>
+  <section class="card"><div class="card-h wrap"><h2>¿A quién se le acaba el tiempo? <small>fecha límite de cada responsable con peticiones abiertas</small></h2>
+    <div class="seg" id="sg-tipo"><button data-t="" class="${!f.tipo ? 'active' : ''}">Todos</button><button data-t="um" class="${f.tipo === 'um' ? 'active' : ''}">Unidades</button><button data-t="del" class="${f.tipo === 'del' ? 'active' : ''}">Delegaciones</button><button data-t="oc" class="${f.tipo === 'oc' ? 'active' : ''}">Central</button></div></div>
+    ${table('tiempo', [
+      { h: 'Responsable', v: e => ACT[e.tipo], f: e => `<span style="color:${ACTC[e.tipo]};font-weight:650">${ACT[e.tipo]}</span>` },
+      { h: 'Quién', v: e => e.nombre, f: e => (e.tipo === 'um' ? `<a href="#/p/${P.id}/aprobacion/u/${e.clues}" style="color:var(--accent)">${esc(e.nombre)}</a>` : e.tipo === 'del' ? `<a href="#/p/${P.id}/aprobacion/del/${e.cve}" style="color:var(--accent)">${esc(e.nombre)}</a>` : esc(e.nombre)) },
+      { h: 'Peticiones abiertas', n: true, v: e => e.pend },
+      { h: 'Fecha límite', v: e => e.lim, f: e => `${fdate(E.dateOfDay(P, e.lim))} <small class="muted">· ${esc(e.motivo)}</small>` },
+      { h: 'Tiempo restante', n: true, v: e => e.left, f: e => (e.left < 0 ? `<span class="st rechazado">vencido hace ${-e.left} d</span>` : e.left <= 3 ? `<span class="st pendiente">${e.left} d</span>` : `<span class="st aprobado">${e.left} d</span>`) },
+    ], ent, { empty: 'Nadie tiene peticiones abiertas.' })}</section>
+  <section class="card"><div class="card-h"><h2>Plazos <small>días hábiles; cambian los vencimientos y las fechas límite</small></h2></div>
+    <div class="pl-form">${['um', 'del', 'oc'].map(a => `<label>Plazo por ronda · ${ACT[a]}<input type="number" min="1" max="20" id="sla-${a}" value="${P.sla[a]}"></label>`).join('')}${['um', 'del', 'oc'].map(a => `<label>Fecha límite · ${ACT[a]} (día del periodo)<input type="number" min="1" max="${L.D}" id="hito-${a}" value="${L[a]}"></label>`).join('')}</div>
+    <div class="pl-actions" style="justify-content:flex-end;margin-top:10px"><button class="btn pri" id="sla-save" ${S.role === 'oc' ? '' : 'disabled title="Solo el Área central"'}>Guardar plazos</button></div></section>`;
+};
+BIND.seguimiento = ({ P }) => {
+  $('#sg-tipo')?.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.f_seg.tipo = b.dataset.t; resetPage('tiempo'); render(); });
+  $('#sla-save')?.addEventListener('click', () => {
+    const L = E.plazos(P);
+    const sla = Object.fromEntries(['um', 'del', 'oc'].map(a => [a, Math.max(1, +$('#sla-' + a).value || 1)]));
+    const hitos = Object.fromEntries(['um', 'del', 'oc'].map(a => [a, Math.max(1, Math.min(L.D, +$('#hito-' + a).value || 1)) / L.D]));
+    commit({ plan: P.id, a: 'plazos', sla, hitos }, { toast: 'Plazos guardados' });
+  });
+};
+function stackBar(o, tot) {
+  if (!tot) return '<span class="muted" style="font-size:12px">sin retraso</span>';
+  return `<span style="display:flex;height:10px;border-radius:5px;overflow:hidden;min-width:140px;background:rgba(255,255,255,.06)">${['um', 'del', 'oc'].map(a => `<i style="width:${(100 * o[a] / tot).toFixed(1)}%;background:${ACTC[a]}" title="${ACT[a]}: ${n0(o[a])} días"></i>`).join('')}</span>`;
+}
+function gantt(P, G) {
+  const L = G.L, now = G.now;
+  const fin = P.finDay ?? null, cierre = P.cierre?.t ?? null;
+  const firstDone = lvl => { for (let d = 0; d < P.hist.length; d++) if (P.hist[d]?.[lvl + 'Done'] > 0) return d; return null; };
+  const allDone = lvl => { for (let d = 0; d < P.hist.length; d++) if (P.hist[d]?.[lvl + 'Done'] >= G.N) return d; return null; };
+  const rows = [
+    { n: 'Configuración de catálogos', plan: null, txt: P.periodos?.catalogos ? `${P.periodos.catalogos[0]} a ${P.periodos.catalogos[1]}` : '', done: true },
+    { n: 'Asignación de insumos', plan: null, txt: P.periodos?.asignacion ? `${P.periodos.asignacion[0]} a ${P.periodos.asignacion[1]}` : '', done: true },
+    { n: 'Verificación de las unidades', a: ACTC.um, plan: [0, L.um], real: [firstDone('um') ?? now, allDone('um') ?? now], ok: allDone('um') != null, share: G.done.um / G.N },
+    { n: 'Verificación de las delegaciones', a: ACTC.del, plan: [3, L.del], real: [firstDone('del') ?? now, allDone('del') ?? now], ok: allDone('del') != null, share: G.done.del / G.N },
+    { n: 'Autorización de Oficina Central', a: ACTC.oc, plan: [6, L.oc], real: [firstDone('oc') ?? now, allDone('oc') ?? now], ok: allDone('oc') != null, share: G.done.oc / G.N, est: G.estimado },
+    { n: 'Cierre del plan (firmante)', a: '#fbbf24', plan: [L.oc, L.D], real: fin != null ? [fin, cierre ?? now] : null, ok: cierre != null, share: cierre != null ? 1 : 0 },
+  ];
+  const maxD = Math.max(L.D + 2, now + 1, G.estimado ?? 0, cierre ?? 0);
+  const W = 900, rh = 34, pl = 220, pr = 16, H = 30 + rows.length * rh + 22;
+  const X = d => pl + (W - pl - pr) * d / maxD;
+  let g = '';
+  for (let d = 0; d <= maxD; d += 5) g += `<line x1="${X(d)}" x2="${X(d)}" y1="22" y2="${H - 22}" stroke="rgba(148,163,184,.1)"/><text x="${X(d)}" y="${H - 6}" fill="#5b6773" font-size="10.5" text-anchor="middle">${fdate(E.dateOfDay(P, d))}</text>`;
+  g += `<line x1="${X(L.D)}" x2="${X(L.D)}" y1="16" y2="${H - 22}" stroke="#f87171" stroke-dasharray="4 4"/><text x="${X(L.D) - 4}" y="14" fill="#f87171" font-size="10.5" text-anchor="end">fecha límite</text>`;
+  g += `<line x1="${X(now)}" x2="${X(now)}" y1="16" y2="${H - 22}" stroke="#e6edf3"/><text x="${X(now) + 4}" y="14" fill="#e6edf3" font-size="10.5">hoy · día ${now}</text>`;
+  rows.forEach((r, i) => {
+    const y = 30 + i * rh;
+    g += `<text x="10" y="${y + 15}" fill="#e6edf3" font-size="12.5">${r.n}</text>`;
+    if (r.done && !r.plan) { g += `<text x="${pl}" y="${y + 15}" fill="#34d399" font-size="12">✓ concluida · ${esc(r.txt)}</text>`; return; }
+    g += `<rect x="${X(r.plan[0])}" y="${y + 3}" width="${Math.max(2, X(r.plan[1]) - X(r.plan[0]))}" height="8" rx="4" fill="none" stroke="${r.a}" stroke-dasharray="3 3"><title>Programado: día ${r.plan[0]} a ${r.plan[1]}</title></rect>`;
+    if (r.real) {
+      const late = r.real[1] > r.plan[1];
+      g += `<rect x="${X(r.real[0])}" y="${y + 14}" width="${Math.max(3, X(r.real[1]) - X(r.real[0]))}" height="10" rx="5" fill="${r.a}" opacity=".85"><title>Real: día ${r.real[0]} a ${r.real[1]}${r.ok ? '' : ' (en curso)'}</title></rect>`;
+      if (late) g += `<rect x="${X(r.plan[1])}" y="${y + 14}" width="${Math.max(0, X(r.real[1]) - X(r.plan[1]))}" height="10" rx="5" fill="#f87171" opacity=".85"/>`;
+      g += `<text x="${X(Math.max(r.real[1], r.plan[1])) + 6}" y="${y + 23}" fill="${late ? '#f87171' : '#8b98a5'}" font-size="11">${r.ok ? (late ? `${r.real[1] - r.plan[1]} d tarde` : 'a tiempo') : `${pct(r.share)}${late ? ` · ${r.real[1] - r.plan[1]} d tarde` : ''}`}</text>`;
+    }
+    if (r.est != null && !r.ok) g += `<path d="M${X(r.est)} ${y + 12} l5 7 l-5 7 l-5 -7z" fill="#fbbf24"><title>Estimado: día ${r.est}</title></path>`;
+  });
+  return `<div class="pl-chart" style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="min-width:680px" role="img" aria-label="Etapas programadas contra reales">${g}</svg></div><div class="legend" style="margin-top:6px"><span><i class="sw" style="border:1px dashed #94a3b8"></i>Programado</span><span><i class="sw" style="background:#94a3b8"></i>Real</span><span><i class="sw" style="background:#f87171"></i>Tarde</span><span><i class="sw" style="background:#fbbf24;transform:rotate(45deg)"></i>Cierre estimado al ritmo actual</span></div>`;
+}
+function curvaNiveles(P, G) {
+  const L = G.L, n = Math.max(P.hist.length, 2), maxD = Math.max(L.D, n);
+  const W = 640, H = 230, pl = 40, pr = 10, pt = 10, pb = 26;
+  const X = d => pl + (W - pl - pr) * d / maxD, Y = v => pt + (H - pt - pb) * (1 - v);
+  let g = '';
+  for (const v of [0, 0.5, 1]) g += `<line x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(148,163,184,.12)"/><text x="${pl - 6}" y="${Y(v) + 3}" fill="#5b6773" font-size="10.5" text-anchor="end">${pct(v)}</text>`;
+  const starts = { um: 0, del: 3, oc: 6 };
+  for (const a of ['um', 'del', 'oc']) {
+    g += `<polyline fill="none" stroke="${ACTC[a]}" stroke-dasharray="4 4" opacity=".7" points="${X(0)},${Y(0)} ${X(starts[a])},${Y(0)} ${X(L[a])},${Y(1)} ${X(maxD)},${Y(1)}"/>`;
+    const pts = P.hist.map((h, d) => (h ? `${X(d + 1).toFixed(1)},${Y(h[a + 'Done'] / G.N).toFixed(1)}` : null)).filter(Boolean);
+    if (pts.length) g += `<polyline fill="none" stroke="${ACTC[a]}" stroke-width="2.2" points="${X(0)},${Y(0)} ${pts.join(' ')}"/>`;
+  }
+  g += `<line x1="${X(G.now)}" x2="${X(G.now)}" y1="${pt}" y2="${H - pb}" stroke="#e6edf3" opacity=".6"/>`;
+  for (let d = 0; d <= maxD; d += 10) g += `<text x="${X(d)}" y="${H - 8}" fill="#5b6773" font-size="10.5" text-anchor="middle">día ${d}</text>`;
+  const dev = a => G.done[a] / G.N - G.plan[a];
+  return `<div class="pl-chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Avance por nivel">${g}</svg></div><div class="legend" style="margin-top:6px">${['um', 'del', 'oc'].map(a => `<span><i class="sw" style="background:${ACTC[a]}"></i>${ACT[a]} ${pct(G.done[a] / G.N)} · ${dev(a) >= 0 ? '+' : ''}${Math.round(dev(a) * 100)} pp</span>`).join('')}<span>línea punteada = programado</span></div>`;
+}
+function atorado(P, G) {
+  const max = Math.max(1, ...['um', 'del', 'oc'].map(a => G.pend[a]));
+  const rows = ['um', 'del', 'oc'].map(a => {
+    const [ok, v1, v2] = G.aging[a], w = x => (100 * x / max).toFixed(1);
+    return `<div style="display:grid;grid-template-columns:110px 1fr 64px;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)"><b style="color:${ACTC[a]}">${ACT[a]}</b><span style="display:flex;height:16px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,.04)"><i style="width:${w(ok)}%;background:${ACTC[a]};opacity:.7" title="Dentro de plazo: ${ok}"></i><i style="width:${w(v1)}%;background:#fbbf24" title="Vencidas: ${v1}"></i><i style="width:${w(v2)}%;background:#f87171" title="Más del doble del plazo: ${v2}"></i></span><span class="n" style="text-align:right;font-variant-numeric:tabular-nums">${n0(G.pend[a])}</span></div>`;
+  }).join('');
+  const tot = G.pend.um + G.pend.del + G.pend.oc;
+  const top = ['um', 'del', 'oc'].reduce((a, b) => (G.pend[b] > G.pend[a] ? b : a));
+  return `${rows}<div class="legend" style="margin-top:8px"><span><i class="sw" style="background:#94a3b8"></i>Dentro de plazo</span><span><i class="sw" style="background:#fbbf24"></i>Vencida</span><span><i class="sw" style="background:#f87171"></i>Más del doble del plazo</span></div>
+    <p class="note">${tot ? `${pct(G.pend[top] / tot)} de las ${n0(tot)} peticiones abiertas están con ${ACT[top].toLowerCase()}.` : 'No hay peticiones abiertas.'} Una petición pasa a la delegación hasta que la unidad finaliza su verificación, y a Oficina Central hasta que la delegación finaliza la de esa unidad.</p>`;
+}
 
 // ---------- Programas especiales (HU26 a HU31)
 VIEWS.programas = ({ P, a }) => {

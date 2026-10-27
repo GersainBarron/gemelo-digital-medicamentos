@@ -18,6 +18,7 @@ El prototipo responde dos preguntas:
 | **Programas especiales** | Bandeja, alta en 4 pasos (datos, kits, insumos, piezas), detalle y edición de piezas | HU26 a HU31 S3 |
 | **Cierre del plan** | El aprobador firmante descarga el plan consolidado nacional y sube el oficio en PDF; el plan pasa a "Cerrado" | HU24 S3 |
 | **Notificaciones y bitácora** | Campana por rol (la unidad solo ve las suyas, la delegación las de sus unidades) y registro de movimientos con descarga | HU02 y HU25 S3, REQ_NOFUN_07 |
+| **Seguimiento y traza** | Indicadores de desviación (avance contra lo programado, cierre estimado contra la fecha límite, peticiones vencidas por actor, cuello de botella, de quién es el retraso, piezas y costo contra la propuesta y el presupuesto, fuera de rango y rondas de más); etapas programadas contra reales; avance por nivel; dónde está atorado (antigüedad por actor); reparto del retraso por delegación; a quién se le acaba el tiempo; plazos editables. En el detalle de cada insumo, la traza de la petición por carriles | Gemelo |
 | **Simulación del ciclo** | Indicadores, avance diario, mapa de delegaciones, reglas de los actores, tabla por delegación y comparación de métodos | Gemelo |
 
 La barra lateral "Sistema Integral de Abasto" enlaza los demás módulos con las vistas del gemelo que ya los representan:
@@ -47,6 +48,22 @@ Cada rol ve sus bandejas y acciones (RN_02, RN_03, RN_06).
   - La respuesta de la unidad vuelve a subir por la delegación y Central.
   - Toda propuesta queda versionada.
 - **Verificación por unidad:** la unidad finaliza, luego la delegación, luego Oficina Central. Una negociación reabre la verificación de los niveles que ya la habían cerrado.
+
+## Traza y seguimiento
+
+La aprobación es secuencial: Unidad → Delegación → Oficina Central → Cierre. Los programas especiales van aparte.
+- **Quién tiene la petición:** la unidad mientras su insumo esté pendiente o en revisión. Pasa a la delegación cuando la unidad finaliza su verificación, y a Oficina Central cuando la delegación finaliza la de esa unidad.
+- **Plazos:** cada actor tiene un plazo por ronda (unidad 5, delegación 5 y Central 3 días hábiles) y una fecha límite de fase (35 %, 60 % y 85 % del periodo de aprobación). Se editan en pantalla.
+- **Culpa:** cada día hábil se suma un día-petición a quien la tiene. Pasado su plazo, cuenta como día fuera de plazo.
+- **Cierre estimado:** al ritmo de Central de los últimos días, contra la fecha límite del periodo.
+- **Traza de la petición:** carriles Unidad, Delegación y O. Central sobre días hábiles. Muestra cada decisión con sus piezas, flechas de quién la mandó a quién, el tiempo en cada escritorio (en rojo lo fuera de plazo) y las fechas límite.
+- **En las tablas:** la de insumos de cada unidad tiene la columna "La tiene", con quién y cuántos días.
+
+Con el ejemplo (método pronóstico):
+- **Día 15:** Central va 5 pp arriba de lo programado, pero tiene 18,313 peticiones en su escritorio, 17,531 de ellas vencidas.
+- **Retraso acumulado:** 65 % es de Central, 22 % de las delegaciones y 13 % de las unidades.
+- **Jalisco y Ciudad de México:** el retraso es sobre todo de la delegación.
+- **Ciclo completo:** termina en el día hábil 41, contra una fecha límite de 39.
 
 ## Simulación del ciclo
 

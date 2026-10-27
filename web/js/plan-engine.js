@@ -125,6 +125,7 @@ export function newPlan(cfg) {
     unitsOut: new Set(), clavesOut: new Set(), unitsDone: false, clavesDone: false, kitsDone: false, kits: [], programas: [],
     items: new Map(), byUnit: new Map(), unitSt: new Map(), log: [], notif: [], cierre: null, cancel: null, day: 0, metodo: cfg.metodo || 'pronostico',
     sim: { colchon: 0.15, capDel: 8, capOC: 60, tolOC: 0.10, presupuesto: 1.05, ...(cfg.sim || {}) }, hist: [],
+    sla: { um: 5, del: 5, oc: 3, ...(cfg.sla || {}) }, hitos: { um: 0.35, del: 0.6, oc: 0.85, ...(cfg.hitos || {}) },
   };
 }
 export function unitsIn(U, P) { return U.units.filter(u => !P.unitsOut.has(u.clues)); }
@@ -144,7 +145,7 @@ function assign(U, P, u, c, prop, origin, who) {
   let it = P.items.get(k);
   if (!it) {
     const s = seriesFor(U, u, c);
-    it = { u: u.i, k: c.k, origin, hist: s.hist, real: s.real, cambio: s.cambio, motivo: s.motivo, versions: [], st: { um: 'pendiente', del: 'pendiente', oc: 'pendiente' }, obs: { um: '', del: '', oc: '' }, round: 0, decidedAt: {}, asig: 'pendiente' };
+    it = { u: u.i, k: c.k, origin, hist: s.hist, real: s.real, cambio: s.cambio, motivo: s.motivo, versions: [], ev: [], hold: { um: 0, del: 0, oc: 0 }, late: { um: 0, del: 0, oc: 0 }, holder: null, since: 0, st: { um: 'pendiente', del: 'pendiente', oc: 'pendiente' }, obs: { um: '', del: '', oc: '' }, round: 0, decidedAt: {}, asig: 'pendiente' };
     P.items.set(k, it);
     if (!P.byUnit.has(u.clues)) P.byUnit.set(u.clues, []);
     P.byUnit.get(u.clues).push(k);
@@ -152,6 +153,7 @@ function assign(U, P, u, c, prop, origin, who) {
   if (prop) {
     it.tipo = prop.tipo; it.min = prop.min; it.max = prop.max; it.months = prop.months.slice(); it.prop0 = it.prop0 || { min: prop.min, max: prop.max, months: prop.months.slice() };
     it.versions.push({ by: who, t: P.day, min: prop.min, max: prop.max, months: prop.months.slice(), obs: prop.obs || '' });
+    it.ev.push({ t: P.day, lvl: who, d: who === 'um' ? 'solicitar' : 'asignar', q: prop.months.reduce((a, b) => a + b, 0) });
     it.asig = prop.validar ? 'confirmado' : 'porconfirmar';
   }
   return it;
@@ -238,6 +240,7 @@ export const ACTIONS = {
       if (['revision', 'negociacion'].includes(it.st.del)) it.st.del = 'pendiente';
       if (['revision', 'negociacion'].includes(it.st.oc)) it.st.oc = 'pendiente';
     }
+    it.ev.push({ t: P.day, lvl, d: a.d, q: a.d === 'rechazar' ? 0 : total(it) });
     if (!a.sim) note(P, NIVEL_N[lvl], `${DICT[it.st[lvl]]}: ${c.nombre} · ${u.nombre}${a.obs ? ` · "${a.obs.slice(0, 80)}"` : ''}`, { key: a.key });
   },
   solicitar(U, P, a) {
@@ -271,6 +274,7 @@ export const ACTIONS = {
   editarConfig(U, P, a) { Object.assign(P, a.cambios); note(P, 'Área central', `Configuración inicial editada: ${a.motivo}`); },
   sim(U, P, a) { for (let d = 0; d < a.days; d++) simDay(U, P); },
   simCfg(U, P, a) { Object.assign(P.sim, a.cfg); },
+  plazos(U, P, a) { Object.assign(P.sla, a.sla || {}); Object.assign(P.hitos, a.hitos || {}); note(P, 'Área central', 'Plazos del periodo de aprobación actualizados'); },
 };
 function kitOf(P, clave) { return P.kits.find(k => k.claves.includes(clave)); }
 function checkPlanDone(U, P) {
@@ -323,6 +327,7 @@ function scaleMonths(months, target) {
 function simDay(U, P) {
   if (P.status !== 'validacion') { if (P.status === 'finalizado' && !P.cierre && P.day - (P.finDay ?? P.day) >= 2) ACTIONS.cerrar(U, P, { archivo: 'oficio_cierre_plan.pdf', por: 'Aprobador firmante (simulado)' }); P.day++; return; }
   const day = P.day;
+  tickHolders(U, P);
   const cap = { del: {}, oc: 0 };
   for (const u of unitsIn(U, P)) {
     const s = P.unitSt.get(u.clues); if (!s) continue;
@@ -409,6 +414,103 @@ function committedCost(U, P) {
   for (const it of P.items.values()) if (it.prop0 && it.st.oc === 'aprobado') x += Math.max(0, total(it) - it.prop0.min) * U.claves[it.k].precio;
   return x;
 }
+// ---------------------------------------------------------------- quién tiene la petición (secuencia Unidad → Delegación → O. Central)
+export function holderOf(U, P, it) {
+  if (!it.months && !it.solicitado) return null;
+  if (it.st.oc === 'aprobado' || it.st.oc === 'rechazado') return null;
+  const s = P.unitSt.get(U.units[it.u].clues); if (!s) return null;
+  if (needs(it, 'um')) return 'um';
+  if (needs(it, 'del')) return s.um ? 'del' : 'um';          // la unidad aún no finaliza su verificación
+  if (needs(it, 'oc')) return s.del ? 'oc' : 'del';           // la delegación aún no finaliza la de la unidad
+  return 'um';
+}
+function tickHolders(U, P) {
+  for (const it of P.items.values()) {
+    const h = holderOf(U, P, it);
+    if (h !== it.holder) { it.holder = h; it.since = P.day; }
+    if (!h) continue;
+    it.hold[h]++;
+    if (P.day - it.since >= P.sla[h]) it.late[h]++;
+  }
+}
+// días hábiles entre dos fechas ISO (fin incluido)
+export function bizDays(a, b) {
+  const x = new Date(a + 'T00:00:00Z'), y = new Date(b + 'T00:00:00Z'); let n = 0;
+  while (x < y) { x.setUTCDate(x.getUTCDate() + 1); const w = x.getUTCDay(); if (w && w !== 6) n++; }
+  return n;
+}
+export function dateOfDay(P, d) {
+  const ini = P.periodos?.aprobacion?.[0] || '2026-12-07';
+  const x = new Date(ini + 'T00:00:00Z'); let n = 0;
+  while (n < d) { x.setUTCDate(x.getUTCDate() + 1); const w = x.getUTCDay(); if (w && w !== 6) n++; }
+  return x;
+}
+export function plazos(P) {
+  const per = P.periodos?.aprobacion || ['2026-12-07', '2027-01-29'];
+  const D = Math.max(5, bizDays(per[0], per[1]));
+  return { D, um: Math.round(D * P.hitos.um), del: Math.round(D * P.hitos.del), oc: Math.round(D * P.hitos.oc), fin: per[1], ini: per[0] };
+}
+const plannedShare = (d, start, end) => Math.max(0, Math.min(1, (d - start) / Math.max(1, end - start)));
+
+// seguimiento del proyecto: avance contra lo programado, cuellos de botella, culpables y plazos
+export function seguimiento(U, P) {
+  const L = plazos(P), now = P.day;
+  const actors = ['um', 'del', 'oc'];
+  const pend = { um: 0, del: 0, oc: 0 }, aging = { um: [0, 0, 0], del: [0, 0, 0], oc: [0, 0, 0] }, hold = { um: 0, del: 0, oc: 0 }, late = { um: 0, del: 0, oc: 0 }, vencidos = { um: 0, del: 0, oc: 0 };
+  let n = 0, rondas3 = 0, fuera = 0, q = 0, q0 = 0, costo = 0, costo0 = 0;
+  const byDel = new Map(U.delegaciones.map(d => [d.cve, { d, hold: { um: 0, del: 0, oc: 0 }, late: { um: 0, del: 0, oc: 0 }, pend: { um: 0, del: 0, oc: 0 }, oldest: { um: null, del: null, oc: null } }]));
+  const byUnit = new Map();
+  for (const it of P.items.values()) {
+    if (!it.months) continue;
+    n++;
+    const u = U.units[it.u], c = U.claves[it.k], R = byDel.get(u.cve);
+    for (const a of actors) { hold[a] += it.hold[a]; late[a] += it.late[a]; R.hold[a] += it.hold[a]; R.late[a] += it.late[a]; }
+    if (it.round > 2) rondas3++;
+    if (outOfRange(it)) fuera++;
+    const tq = it.st.oc === 'rechazado' ? 0 : total(it);
+    q += tq; q0 += it.prop0?.min || 0; costo += tq * c.precio; costo0 += (it.prop0?.min || 0) * c.precio;
+    const h = holderOf(U, P, it);
+    if (!h) continue;
+    const age = now - (it.holder === h ? it.since : now);
+    pend[h]++; R.pend[h]++;
+    aging[h][age < P.sla[h] ? 0 : age < 2 * P.sla[h] ? 1 : 2]++;
+    if (age >= P.sla[h]) vencidos[h]++;
+    const since = it.holder === h ? it.since : now;
+    if (R.oldest[h] == null || since < R.oldest[h]) R.oldest[h] = since;
+    const bu = byUnit.get(u.clues) || { u, pend: { um: 0, del: 0, oc: 0 }, oldest: { um: null, del: null, oc: null } };
+    bu.pend[h]++; if (bu.oldest[h] == null || since < bu.oldest[h]) bu.oldest[h] = since;
+    byUnit.set(u.clues, bu);
+  }
+  // avance por nivel contra lo programado
+  const us = [...P.unitSt.values()], N = us.length || 1;
+  const done = { um: us.filter(s => s.um).length, del: us.filter(s => s.del).length, oc: us.filter(s => s.oc).length };
+  const plan = { um: plannedShare(now, 0, L.um), del: plannedShare(now, 3, L.del), oc: plannedShare(now, 6, L.oc) };
+  // cierre estimado con el ritmo de Oficina Central de los últimos 5 días
+  const h5 = P.hist[Math.max(0, now - 6)]?.ocDone ?? 0, h1 = P.hist[now - 1]?.ocDone ?? done.oc;
+  const rate = Math.max(0, (h1 - h5) / Math.min(5, Math.max(1, now - 1)));
+  const restante = N - done.oc;
+  const estimado = P.status !== 'validacion' ? (P.finDay ?? now) : rate > 0 ? Math.ceil(now + restante / rate) : null;
+  // quién se queda sin tiempo
+  const ent = [];
+  for (const [, b] of byUnit) {
+    const s = P.unitSt.get(b.u.clues);
+    if (b.pend.um) { const hito = s.umDay == null ? L.um : Infinity; const lim = Math.min(hito, b.oldest.um + P.sla.um); ent.push({ tipo: 'um', nombre: b.u.nombre, cve: b.u.cve, clues: b.u.clues, pend: b.pend.um, lim, left: lim - now, motivo: lim === hito ? 'fecha límite de las unidades' : `plazo de ${P.sla.um} días por ronda` }); }
+  }
+  for (const [, R] of byDel) {
+    if (R.pend.del) { const lim = Math.min(L.del, R.oldest.del + P.sla.del); ent.push({ tipo: 'del', nombre: `Delegación ${R.d.nombre}`, cve: R.d.cve, pend: R.pend.del, lim, left: lim - now, motivo: lim === L.del ? 'fecha límite de las delegaciones' : `plazo de ${P.sla.del} días por unidad` }); }
+  }
+  const ocOld = [...byDel.values()].map(R => R.oldest.oc).filter(v => v != null);
+  if (pend.oc) { const lim = Math.min(L.oc, Math.min(...ocOld) + P.sla.oc); ent.push({ tipo: 'oc', nombre: 'Oficina Central', pend: pend.oc, lim, left: lim - now, motivo: lim === L.oc ? 'fecha límite de Oficina Central' : `plazo de ${P.sla.oc} días por unidad` }); }
+  ent.sort((a, b) => a.left - b.left || b.pend - a.pend);
+  const lateTot = late.um + late.del + late.oc;
+  const culpable = lateTot ? actors.reduce((a, b) => (late[b] > late[a] ? b : a)) : null;
+  const cuello = actors.reduce((a, b) => (vencidos[b] > vencidos[a] ? b : a));
+  return {
+    L, now, n, pend, aging, hold, late, lateTot, vencidos, culpable, cuello, done, plan, N, rate, estimado,
+    holgura: estimado == null ? null : L.D - estimado, rondas3, fuera, q, q0, costo, costo0, byDel: [...byDel.values()], ent,
+  };
+}
+
 // foto diaria para las gráficas de avance
 function snapshot(U, P) {
   const c = { aprobado: 0, rechazado: 0, negociacion: 0, pendiente: 0, umDone: 0, delDone: 0, ocDone: 0 };

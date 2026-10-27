@@ -189,3 +189,30 @@ textarea { font: inherit; }
   .fl-wrap { grid-template-columns: minmax(0, 1fr); }
   .fl-3d { height: 58vh; min-height: 340px; }
 }
+
+/* ---------- Integridad del plan */
+.ig-datos { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.ig-dato { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: rgba(255,255,255,.02); }
+.ig-dato.on { border-color: rgba(52,211,153,.5); background: rgba(52,211,153,.07); }
+.ig-dato input { margin-top: 3px; accent-color: #34d399; }
+.ig-dato b { display: block; font-size: 13px; }
+.ig-dato small { display: block; color: var(--muted); font-size: 11.5px; }
+.ig-dato em { display: block; font-style: normal; font-size: 11.5px; margin-top: 4px; color: #fbbf24; }
+.ig-dato.on em { color: #34d399; }
+.ig-cond { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 12px; font-size: 13px; }
+.ig-cond label { display: flex; gap: 6px; align-items: center; }
+.ig-cond span { font-size: 11px; font-weight: 650; }
+.ig-sug { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.ig-sug .n { text-align: right; color: #34d399; }
+.ig-rg { display: inline-block; font-size: 11.5px; padding: 2px 7px; margin: 2px 4px 2px 0; border-radius: 8px; background: rgba(148,163,184,.12); color: #8b98a5; }
+.ig-rg.on { background: rgba(52,211,153,.13); color: #34d399; }
+.ig-rg i { font-style: normal; color: #fbbf24; }
+.ig-mx th, .ig-mx td { text-align: center; font-size: 12px; white-space: nowrap; }
+.ig-mx td:first-child, .ig-mx th:first-child { text-align: left; }
+.ig-mx th.on { color: #34d399; }
+.ig-mx td.ok { color: #34d399; background: rgba(52,211,153,.1); }
+.ig-mx td.no { color: #f87171; background: rgba(248,113,113,.08); }
+@media (max-width: 700px) {
+  .ig-sug { grid-template-columns: minmax(0, 1fr) auto; }
+  .ig-sug .muted { display: none; }
+}

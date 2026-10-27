@@ -15,6 +15,7 @@
 //  de la plataforma con las mismas acciones.
 // =====================================================================
 import * as E from './plan-engine.js';
+import * as I from './integridad.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -112,6 +113,7 @@ function side(r) {
     <a class="${on('aprobacion') || on('solicitar')}" href="#/p/${P.id}/aprobacion">Aprobación de insumos</a>
     <a class="${on('seguimiento')}" href="#/p/${P.id}/seguimiento">Seguimiento y traza</a>
     <a class="${on('flujo')}" href="#/p/${P.id}/flujo">Flujo nacional 3D</a>
+    <a class="${on('integridad')}" href="#/p/${P.id}/integridad">Integridad del plan</a>
     <a class="${on('cierre')}" href="#/p/${P.id}/cierre">Cierre del plan</a>
     <a class="${on('simulacion')}" href="#/p/${P.id}/simulacion">Simulación del ciclo</a>
     <a class="${on('bitacora')}" href="#/p/${P.id}/bitacora">Bitácora</a></div>` : '';
@@ -1213,6 +1215,137 @@ function flFicha(V, P) {
     <div class="legend" style="margin:6px 0 10px"><span><i class="sw" style="background:${AGEC[0]}"></i>En plazo</span><span><i class="sw" style="background:${AGEC[1]}"></i>Vencida</span><span><i class="sw" style="background:${AGEC[2]}"></i>Más del doble</span></div>
     ${sel || `<h3 class="fl-h3">Dónde se atora más</h3>${rank.map(r => `<div class="fl-row"><button class="fl-link" data-pick="del:${r.i}">${esc(r.dl.nombre)}</button><span class="fl-who" style="color:${ACTC[r.who]}">la tiene ${ACT[r.who].toLowerCase()}</span><span class="n">${n0(r.open)}${r.v ? `<small style="display:block;color:var(--crit)">${n0(r.v)} venc.</small>` : ''}</span></div>`).join('') || '<p class="muted">Nada pendiente.</p>'}<p class="note">Peticiones abiertas por estado (en sus unidades, su delegación y en Central), ordenadas por vencidas, y quién tiene la mayoría.</p>`}`;
 }
+
+// ---------- Integridad del plan: qué datos debe crear la plataforma para que nadie manipule el plan
+const DCORTO = { consumo: 'Consumo', vales: 'Vales', dh: 'Padrón', plantilla: 'Plantilla', cuadro: 'Cuadro básico', clues: 'CLUES', kardex: 'Kárdex', identidad: 'Identidad', bitacora: 'Bitácora', tiempos: 'Tiempos', motivo: 'Motivo', contratos: 'Contratos', surtido: 'Surtido' };
+const EST = { frenado: ['Frenado a tiempo', 'aprobado'], tarde: ['Se ve tarde', 'pendiente'], escapado: ['Se escapa', 'rechazado'] };
+function integCfg() {
+  if (!S.integ) { try { S.integ = { ...I.defaultCfg(), ...JSON.parse(localStorage.getItem('planeacion.integridad.v1') || '{}') }; } catch { S.integ = I.defaultCfg(); } }
+  return S.integ;
+}
+function integSave() { try { localStorage.setItem('planeacion.integridad.v1', JSON.stringify(S.integ)); } catch { /* nada */ } }
+function casoDetalle(cs) {
+  const cl = k => esc(S.U.claves[k]?.nombre || '');
+  switch (cs.c) {
+    case 'inflar': return `${cl(cs.k)} · ${cs.f.toFixed(1)} veces su necesidad${cs.cens ? ' · tuvo meses de desabasto' : ''}${cs.stock ? ' · con existencia' : ''}`;
+    case 'dhFalso': return `todo el pedido +${Math.round((cs.f - 1) * 100)} % con "más derechohabientes"`;
+    case 'servicio': return `${cs.n} claves × ${cs.f.toFixed(1)} con "servicio nuevo"`;
+    case 'acaparar': return `${cs.n} claves con ${cs.meses.toFixed(0)} meses de existencia`;
+    case 'nivel': return `${cs.n} claves hospitalarias en una unidad de 1er nivel`;
+    case 'fantasma': return `la unidad está ${cs.estatus}`;
+    case 'bloque': return `${n0(cs.n)} peticiones aprobadas sin revisar`;
+    case 'inflarDel': return `+${Math.round((cs.f - 1) * 100)} % a ${cs.unidades} unidades favoritas (${cs.n} insumos)`;
+    case 'colusion': return `con ${esc(cs.socio)} · ${cs.n} insumos × ${cs.f.toFixed(1)}`;
+    case 'discrecional': return `+${Math.round(cs.f * 100)} % a ${esc(cs.del)} sin motivo`;
+    case 'proveedor': return `+${Math.round(cs.f * 100)} % en ${cs.claves.map(esc).join(', ')} (${cs.prov})`;
+    case 'postFirma': return 'piezas cambiadas con el plan ya cerrado';
+    case 'dobleRol': return `${cs.n} insumos × ${cs.f.toFixed(1)} aprobados por la misma persona`;
+    case 'borrado': return `versión original borrada; ${cs.n} insumos × ${cs.f.toFixed(1)}`;
+  }
+  return '';
+}
+function igValor(v, sug = false) {
+  const fp = v.dFp > 0 ? `evita ${n0(v.dFp)} falsas alarmas` : v.dFp < 0 ? `<span style="color:#fbbf24">acusa a ${n0(-v.dFp)} insumos honestos si va solo</span>` : '';
+  if (!v.dFrenado && !v.dFp) return sug ? '<span class="muted">solo no cambia nada; sirve junto con otro</span>' : 'en esta corrida no cambia nada solo';
+  const m = v.dFrenado ? (v.con && !sug ? `sin él se escapan ${money(v.dFrenado)}` : `${sug ? 'frena' : 'crearlo frena'} ${money(v.dFrenado)}`) : '';
+  return [m, fp].filter(Boolean).join(' · ');
+}
+function integMD(R, cfg) {
+  const L = [];
+  L.push('# Datos que debe crear la plataforma para la integridad del plan de necesidades', '');
+  L.push('Resultado del gemelo digital del abasto (Módulo 1, Planeación). Los datos de la simulación son sintéticos; lo que se pide a la ATDT es crear estas entidades, con estos campos, dentro de la plataforma, para que las reglas de alerta puedan correr.', '');
+  L.push(`Simulación: ${n0(R.casos.length)} casos de mala fe sembrados en el plan (${pct(cfg.pct.um)} de las unidades, ${pct(cfg.pct.del)} de las delegaciones y ${pct(cfg.pct.oc)} de los analistas de Oficina Central), ${money(R.riesgo)} en riesgo.`, '');
+  L.push(`- Con todos los datos: se frena a tiempo ${money(R.todo.frenado)} (${pct(R.todo.frenado / R.riesgo)}), se ve tarde ${money(R.todo.tarde)} y se escapa ${money(R.todo.escapado)}; ${n0(R.todo.fp)} falsas alarmas.`);
+  L.push(`- Con los datos de esta corrida (${cfg.datos.map(d => I.DATO[d].n).join(', ') || 'ninguno'}): se frena ${money(R.frenado)} (${pct(R.riesgo ? R.frenado / R.riesgo : 0)}), se ve tarde ${money(R.tarde)} y se escapa ${money(R.escapado)}; ${n0(R.fp)} falsas alarmas.`, '');
+  L.push('## Datos', '', '| Dato | Área que lo genera | Frecuencia | Campos mínimos | Para qué |', '|---|---|---|---|---|');
+  for (const d of I.DATOS) L.push(`| ${d.n} | ${d.area} | ${d.frec} | ${d.campos} | ${d.desc} |`);
+  L.push('', '## Reglas de alerta y datos que necesita cada una', '', '| Regla | Datos | Momento |', '|---|---|---|');
+  for (const r of I.REGLAS) L.push(`| ${r.n} | ${r.datos.map(d => I.DATO[d].n).join(' + ')} | ${r.tarde ? 'Al cierre del año (tarde)' : 'Durante la aprobación'} |`);
+  L.push('', '## Conductas que se buscan', '', '| Conducta | Quién | Cómo | Reglas que la detectan |', '|---|---|---|---|');
+  for (const c of I.CONDUCTAS) L.push(`| ${c.n} | ${I.ACTOR_N[c.actor]} | ${c.desc} | ${c.reglas.map(x => I.REGLA[x].n).join('; ')} |`);
+  L.push('', '## Valor de cada dato en esta simulación', '', 'Frena a tiempo: lo que se pierde al quitarlo (si está creado) o lo que se gana al crearlo. Falsas alarmas: negativo quiere decir que, sin los datos que lo complementan, acusa a insumos de unidades honestas.', '', '| Dato | Creado | Frena a tiempo | Falsas alarmas que evita |', '|---|---|---|---|');
+  for (const v of [...R.valor].sort((a, b) => b.dFrenado - a.dFrenado)) L.push(`| ${I.DATO[v.id].n} | ${v.con ? 'Sí' : 'No'} | ${money(v.dFrenado)} | ${n0(v.dFp)} |`);
+  return L.join('\n');
+}
+VIEWS.integridad = ({ P }) => {
+  const base = [['Planes de necesidad', '#/'], [P.folio, `#/p/${P.id}`], ['Integridad del plan']];
+  if (!P.items.size) return `${crumbs(base)}<div class="card"><p class="empty">La integridad se mide sobre las piezas asignadas. Finaliza la asignación de insumos para verla.</p></div>`;
+  const cfg = integCfg();
+  const R = S.integR = I.simular(S.U, P, cfg);
+  const c = (n, v, s2, sem) => `<div class="kpi ${sem || ''}"><span>${n}</span><b>${v}</b><small><i class="dot"></i>${s2}</small></div>`;
+  const kp = [
+    c('Monto en riesgo', money(R.riesgo), `${n0(R.casos.length)} casos · ${pct(R.riesgo / R.planCost, 1)} del plan`, ''),
+    c('Se frena a tiempo', pct(R.riesgo ? R.frenado / R.riesgo : 0), `${money(R.frenado)} · ${n0(R.nF)} casos antes de autorizar`, R.frenado / R.riesgo > 0.8 ? 'ok' : R.frenado / R.riesgo > 0.4 ? 'warn' : 'crit'),
+    c('Solo se ve tarde', money(R.tarde), `${n0(R.nT)} casos: ya se compró`, R.tarde ? 'warn' : 'ok'),
+    c('Se escapa', money(R.escapado), `${n0(R.nE)} casos sin ninguna alerta`, R.escapado ? 'crit' : 'ok'),
+    c('Falsas alarmas', n0(R.fp), R.fp ? 'insumos de unidades honestas señalados' : 'ningún honesto señalado', R.fp > 500 ? 'crit' : R.fp ? 'warn' : 'ok'),
+    c('Datos que crea la plataforma', `${cfg.datos.length} de ${I.DATOS.length}`, `con todos se frenaría ${pct(R.todo.frenado / R.riesgo)}`, cfg.datos.length === I.DATOS.length ? 'ok' : ''),
+  ];
+  // por conducta
+  const porC = I.CONDUCTAS.map(cd => { const cs = R.casos.filter(x => x.c === cd.id); const m = st => cs.filter(x => x.estado === st).reduce((a, b) => a + b.monto, 0); return { cd, n: cs.length, monto: cs.reduce((a, b) => a + b.monto, 0), f: m('frenado'), t: m('tarde'), e: m('escapado') }; });
+  const maxM = Math.max(1, ...porC.map(r => r.monto));
+  const has = new Set(cfg.datos);
+  const sugeridos = R.valor.filter(v => !v.con).sort((a, b) => b.dFrenado - a.dFrenado || b.dFp - a.dFp);
+  return `${crumbs(base)}
+  <section class="card"><div class="pl-head"><div><span class="eyebrow">${esc(P.folio)} · Integridad</span><h1>¿Qué datos necesita la plataforma para que nadie manipule el plan?</h1><p>El gemelo siembra unidades, delegaciones y analistas de Central de mala fe con conductas conocidas. Cada regla de alerta necesita ciertos datos: si la plataforma no los crea, la regla no corre y el caso se escapa. Los datos aquí son sintéticos; lo que se entrega a la ATDT es la lista de datos y campos que deben crear.</p></div>
+    <div class="pl-actions"><button class="btn pri" id="ig-md">Ficha para la ATDT</button><button class="btn" id="ig-csv">Requerimiento de datos (CSV)</button></div></div></section>
+  <section class="kpis">${kp.join('')}</section>
+  <div class="split">
+    <section class="card"><div class="card-h wrap"><h2>Datos que crea la plataforma <small>enciende o apaga cada uno</small></h2>
+      <div class="seg" id="ig-pre"><button data-p="nada">Ninguno</button><button data-p="req">Los del requerimiento</button><button data-p="todo">Todos</button></div></div>
+      <div class="ig-datos">${I.DATOS.map(d => { const v = R.valor.find(x => x.id === d.id); return `<label class="ig-dato ${has.has(d.id) ? 'on' : ''}"><input type="checkbox" data-d="${d.id}" ${has.has(d.id) ? 'checked' : ''}><span><b>${esc(d.n)}</b><small>${esc(d.area)}</small><em>${igValor(v)}</em></span></label>`; }).join('')}</div>
+      <p class="note">"Los del requerimiento": lo que ya trae el Módulo 1 (Llave MX, catálogo de unidades y catálogo de insumos por nivel). La bitácora del requerimiento registra movimientos, pero no está sellada ni guarda el valor anterior.</p></section>
+    <section class="card"><div class="card-h"><h2>Actores de mala fe <small>porcentaje sembrado</small></h2><button class="btn sm" id="ig-seed">Otra corrida</button></div>
+      <div class="pl-form">
+        <label>Unidades <b id="ig-pum">${pct(cfg.pct.um)}</b><input type="range" min="0" max="0.2" step="0.01" id="ig-um" value="${cfg.pct.um}"></label>
+        <label>Delegaciones <b id="ig-pdel">${pct(cfg.pct.del)}</b><input type="range" min="0" max="0.5" step="0.03125" id="ig-del" value="${cfg.pct.del}"></label>
+        <label>Analistas de Oficina Central (de ${I.ANALISTAS}) <b id="ig-poc">${pct(cfg.pct.oc)}</b><input type="range" min="0" max="1" step="0.2" id="ig-oc" value="${cfg.pct.oc}"></label>
+      </div>
+      <h3 class="fl-h3" style="margin-top:12px">Conductas</h3>
+      <div class="ig-cond">${I.CONDUCTAS.map(cd => `<label title="${esc(cd.desc)}"><input type="checkbox" data-c="${cd.id}" ${cfg.off.includes(cd.id) ? '' : 'checked'}><span style="color:${ACTC[cd.actor] || '#fbbf24'}">${I.ACTOR_N[cd.actor]}</span> ${esc(cd.n)}</label>`).join('')}</div>
+      <p class="note">Corrida ${cfg.seed}: ${n0(R.nUnits)} unidades, ${n0(R.nDel)} delegaciones y ${Math.round(cfg.pct.oc * I.ANALISTAS)} analistas de mala fe.</p></section>
+  </div>
+  ${sugeridos.length ? `<section class="card"><div class="card-h"><h2>Qué dato crear primero <small>lo que frena cada uno sumado a los que ya hay</small></h2></div>
+    ${sugeridos.map(v => `<div class="ig-sug"><b>${esc(I.DATO[v.id].n)}</b><span class="muted">${esc(I.DATO[v.id].area)}</span><span class="n">${igValor(v, true)}</span><button class="btn sm" data-add="${v.id}">Crear</button></div>`).join('')}</section>` : ''}
+  <section class="card"><div class="card-h wrap"><h2>Por conducta <small>monto y qué tanto se detecta</small></h2>
+    <div class="legend"><span><i class="sw" style="background:#34d399"></i>Frenado a tiempo</span><span><i class="sw" style="background:#fbbf24"></i>Se ve tarde</span><span><i class="sw" style="background:#f87171"></i>Se escapa</span></div></div>
+    <div class="pl-table"><table><thead><tr><th>Conducta</th><th>Quién</th><th class="n">Casos</th><th class="n">Monto</th><th style="min-width:160px">Detección</th><th>Reglas (en gris: falta un dato)</th></tr></thead><tbody>
+    ${porC.map(r => `<tr><td><b>${esc(r.cd.n)}</b><div class="muted" style="font-size:12px">${esc(r.cd.desc)}</div></td><td style="color:${ACTC[r.cd.actor] || '#fbbf24'}">${I.ACTOR_N[r.cd.actor]}</td><td class="n">${r.n}</td><td class="n">${money(r.monto)}</td>
+      <td><span class="fl-bar" style="width:${Math.max(8, 100 * r.monto / maxM).toFixed(0)}%">${[[r.f, '#34d399'], [r.t, '#fbbf24'], [r.e, '#f87171']].map(([v, col]) => `<i style="width:${r.monto ? (100 * v / r.monto).toFixed(1) : 0}%;background:${col}"></i>`).join('')}</span></td>
+      <td>${r.cd.reglas.map(x => { const rg = I.REGLA[x], ok = rg.datos.every(d => has.has(d)); return `<span class="ig-rg ${ok ? 'on' : ''}" title="Necesita: ${rg.datos.map(d => I.DATO[d].n).join(' + ')}">${esc(rg.n)}${ok ? '' : ` <i>falta ${rg.datos.filter(d => !has.has(d)).map(d => DCORTO[d]).join(' + ')}</i>`}</span>`; }).join('')}</td></tr>`).join('')}
+    </tbody></table></div></section>
+  <section class="card"><div class="card-h"><h2>Qué dato detecta qué <small>● la regla de esa conducta necesita el dato; en verde, ya creado</small></h2></div>
+    <div class="pl-table"><table class="ig-mx"><thead><tr><th>Conducta</th>${I.DATOS.map(d => `<th class="${has.has(d.id) ? 'on' : ''}">${DCORTO[d.id]}</th>`).join('')}</tr></thead><tbody>
+    ${I.CONDUCTAS.map(cd => `<tr><td>${esc(cd.n)}</td>${I.DATOS.map(d => { const need = cd.reglas.some(x => I.REGLA[x].datos.includes(d.id)); return `<td class="${need ? (has.has(d.id) ? 'ok' : 'no') : ''}">${need ? '●' : ''}</td>`; }).join('')}</tr>`).join('')}
+    </tbody></table></div></section>
+  <section class="card"><div class="card-h wrap"><h2>Casos sembrados <small>quién, qué hizo, cuánto y si se detectó</small></h2>
+    <div class="seg" id="ig-est"><button data-e="" class="${!S.f_ig ? 'active' : ''}">Todos</button><button data-e="escapado" class="${S.f_ig === 'escapado' ? 'active' : ''}">Se escapan</button><button data-e="tarde" class="${S.f_ig === 'tarde' ? 'active' : ''}">Tarde</button><button data-e="frenado" class="${S.f_ig === 'frenado' ? 'active' : ''}">Frenados</button></div></div>
+    ${table('integ', [
+      { h: 'Quién', v: x => x.actor.nombre, f: x => (x.actor.clues ? `<a href="#/p/${P.id}/aprobacion/u/${x.actor.clues}" style="color:var(--accent)">${esc(x.actor.nombre)}</a>` : x.actor.tipo === 'del' ? `<a href="#/p/${P.id}/aprobacion/del/${x.actor.cve}" style="color:var(--accent)">${esc(x.actor.nombre)}</a>` : esc(x.actor.nombre)) },
+      { h: 'Conducta', v: x => I.CONDUCTA[x.c].n },
+      { h: 'Detalle', v: x => casoDetalle(x), f: x => `<span style="font-size:12.5px">${casoDetalle(x)}</span>` },
+      { h: 'Monto', n: true, v: x => x.monto, f: x => money(x.monto) },
+      { h: 'Resultado', v: x => x.estado, f: x => `<span class="st ${EST[x.estado][1]}">${EST[x.estado][0]}</span>${x.reglas.length ? `<div class="muted" style="font-size:11.5px">${x.reglas.map(r => esc(I.REGLA[r].n)).join('; ')}</div>` : ''}` },
+    ], R.casos.filter(x => !S.f_ig || x.estado === S.f_ig).sort((a, b) => b.monto - a.monto))}</section>`;
+};
+BIND.integridad = ({ P }) => {
+  if (!$('#ig-md')) return;
+  const cfg = integCfg(), R = S.integR;
+  const upd = () => { integSave(); const y = scrollY; render(); scrollTo({ top: y }); };
+  document.querySelectorAll('[data-d]').forEach(el => el.addEventListener('change', () => { const id = el.dataset.d; cfg.datos = el.checked ? [...new Set([...cfg.datos, id])] : cfg.datos.filter(x => x !== id); upd(); }));
+  document.querySelectorAll('[data-add]').forEach(el => el.addEventListener('click', () => { cfg.datos = [...new Set([...cfg.datos, el.dataset.add])]; upd(); }));
+  document.querySelectorAll('[data-c]').forEach(el => el.addEventListener('change', () => { const id = el.dataset.c; cfg.off = el.checked ? cfg.off.filter(x => x !== id) : [...cfg.off, id]; upd(); }));
+  $('#ig-pre').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; cfg.datos = b.dataset.p === 'todo' ? I.DATOS.map(d => d.id) : b.dataset.p === 'req' ? [...I.PRESET_REQ] : []; upd(); });
+  $('#ig-seed').addEventListener('click', () => { cfg.seed++; upd(); });
+  for (const [k, id] of [['um', '#ig-um'], ['del', '#ig-del'], ['oc', '#ig-oc']]) {
+    $(id).addEventListener('input', e => { $('#ig-p' + k).textContent = pct(+e.target.value); });
+    $(id).addEventListener('change', e => { cfg.pct[k] = +e.target.value; upd(); });
+  }
+  $('#ig-est').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.f_ig = b.dataset.e || null; resetPage('integ'); upd(); });
+  $('#ig-md').addEventListener('click', () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([integMD(R, cfg)], { type: 'text/markdown;charset=utf-8' })); a.download = `${P.id}_integridad_datos_ATDT.md`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); });
+  $('#ig-csv').addEventListener('click', () => download(`${P.id}_requerimiento_datos.csv`, [['Dato', 'Área que lo genera', 'Frecuencia', 'Campos mínimos', 'Para qué', 'Reglas que habilita', 'Conductas que detecta', 'Frena en la simulación (MXN)', 'Falsas alarmas que evita'],
+    ...I.DATOS.map(d => { const rg = I.REGLAS.filter(r => r.datos.includes(d.id)), v = R.valor.find(x => x.id === d.id); return [d.n, d.area, d.frec, d.campos, d.desc, rg.map(r => r.n).join('; '), I.CONDUCTAS.filter(c => c.reglas.some(x => rg.some(r => r.id === x))).map(c => c.n).join('; '), Math.round(v.dFrenado), v.dFp]; })]));
+};
 
 // ---------- Programas especiales (HU26 a HU31)
 VIEWS.programas = ({ P, a }) => {

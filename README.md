@@ -83,8 +83,13 @@ Detalle y método en [docs/RESULTADOS.md](docs/RESULTADOS.md).
 
 ```
 ├── README.md                    este archivo
+├── GUIA_DE_NAVEGACION.md        brújula y mapa maestro para recorrer procesos y documentos
 ├── PLAN_HOJA_DE_RUTA.md         plan por fases contra la hoja de ruta oficial (bitácora)
 ├── docs/                        documentación técnica
+│   ├── GUIA_DE_NAVEGACION.md    guía maestra de lectura y navegación rápida
+│   ├── PROCESOS_Y_ALERTAS.md    ciclo documental, procesos, cuellos de botella y SLAs
+│   ├── CONTRATOS.md             modelo de simulación de contratos, órdenes, penas y rescisión
+│   ├── ESTRUCTURA_DATOS_BUROCRACIA.md  arquitectura de datos del expediente vivo y ventanillas
 │   ├── ARQUITECTURA.md          módulos, flujo de datos y modelo de simulación
 │   ├── MODELOS_BLENDER.md       cómo se construye y exporta cada modelo 3D
 │   ├── DATOS.md                 fuentes, supuestos y contrato de datos

@@ -1114,7 +1114,7 @@ BIND.flujo = async ({ P }) => {
       const { PlanFlow3D } = await import('./plan3d.js');
       V = new PlanFlow3D({ iss: S.data.iss, U: S.U, getGLB: window.PLAN_GLB });
       await V.load(box);
-      S.flow3d = V;
+      S.flow3d = V; if (/[?&]debug/.test(location.search)) window.__V = V;
     } catch (err) { box.innerHTML = `<p class="empty">No se pudo cargar la vista 3D: ${esc(err.message)}</p>`; return; }
   } else V.attach(box);
   if (!document.body.contains(box)) return;
@@ -1173,7 +1173,7 @@ function flLabels(V, el) {
   if (V.sel?.type === 'del' && !top.some(r => r[0] === V.sel.i)) top.unshift([V.sel.i, sum3(c, Nu + V.sel.i)]);
   for (const [d, n] of top) {
     const h = Math.ceil(n / 100 / 9) * 5.8 + 18;
-    const [x2, y2, ok2] = V.project(V.dPos[d].clone().setY(V.dPos[d].y + h));
+    const [x2, y2, ok2] = V.project(V.dPile[d].clone().setY(V.dPile[d].y + Math.max(h, 26)));
     if (ok2 && free(x2, y2, 70)) out.push(`<div class="fl-l" style="transform:translate(${x2.toFixed(0)}px,${y2.toFixed(0)}px)">${esc(S.data.iss.estados.find(e => e.cve === S.U.delegaciones[d].cve).abbr)}<b>${n0(n)}</b></div>`);
   }
   el.innerHTML = out.join('');

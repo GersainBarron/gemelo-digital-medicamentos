@@ -24,6 +24,7 @@ const HS = 12;                                     // alto de la losa de cada es
 const CAJA = 100;                                  // peticiones por caja en las pilas
 const CENTRAL_XY = [4, -12];                       // Buenavista, a 12 km del CENADI
 const TOWER_S = 1.6;                               // metros → km exagerado
+const DEL_S = 0.9;                                 // edificio delegacional: un predio de 64 m queda en 58 km
 const AGE_COL = ['#2dd4bf', '#fbbf24', '#f87171'];
 const ACT_COL = { um: '#5eead4', del: '#60a5fa', oc: '#f472b6' };
 const DEC_COL = { asignar: '#cbd5e1', aprobar: '#34d399', negociar: '#c084fc', solicitar: '#c084fc', rechazar: '#f87171' };
@@ -56,10 +57,12 @@ export class PlanFlow3D {
     c.addEventListener('change', () => { this.dirty = true; });
 
     const loader = new GLTFLoader();
-    const [map, tower] = await Promise.all([
+    const [map, tower, dele] = await Promise.all([
       this.getGLB('assets/mapa_mexico.glb').then(b => loader.parseAsync(b, '')),
       this.getGLB('assets/issste_buenavista.glb').then(b => loader.parseAsync(b, '')),
+      this.getGLB('assets/delegacion.glb').then(b => loader.parseAsync(b, '')),
     ]);
+    this.deleScene = dele.scene;
     // --- mapa: se recolorea cada estado; el CENADI no participa en la planeación
     this.states = {};
     map.scene.traverse(o => {
@@ -106,6 +109,7 @@ export class PlanFlow3D {
     const E = Object.fromEntries(this.iss.estados.map(e => [e.cve, e]));
     this.uPos = this.U.units.map((u, i) => { const xy = this.iss.unidades[i].xy; return P3(xy[0], xy[1], HS); });
     this.dPos = this.U.delegaciones.map(d => { const e = E[d.cve]; return P3(e.hub[0], e.hub[1], HS); });
+    this.dPile = this.dPos.map(p => p.clone().add(new THREE.Vector3(44, 0, 8)));     // escritorio de la delegación, junto al edificio
     this.cPos = P3(CENTRAL_XY[0], CENTRAL_XY[1], HS);
     this.cPile = P3(CENTRAL_XY[0] + 70, CENTRAL_XY[1] - 95, HS);     // escritorio de Central, junto a la torre
     this.dOf = this.U.units.map(u => this.U.delegaciones.findIndex(d => d.cve === u.cve));
@@ -129,12 +133,33 @@ export class PlanFlow3D {
     this.dPos.forEach(D => { const q = this.arc(D, this.cPos, 0.16); let p0 = q[0]; for (let s = 1; s <= 24; s++) { const p = this.at(q, s / 24, new THREE.Vector3()); pd.push(p0, p); p0 = p; } });
     this.delLinks = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pd), new THREE.LineBasicMaterial({ color: '#60a5fa', transparent: true, opacity: 0.22, depthWrite: false }));
     this.scene.add(this.delLinks);
-    // marcadores de delegación (hexágono) para tocar
-    const hex = new THREE.CylinderGeometry(14, 14, 3, 6); hex.translate(0, 1.5, 0);
-    this.dMark = new THREE.InstancedMesh(hex, new THREE.MeshStandardMaterial({ color: '#60a5fa', emissive: '#1d4ed8', emissiveIntensity: 0.4, roughness: 0.5 }), this.ND);
+    this.buildDelegaciones();
+  }
+  // edificio delegacional (assets/delegacion.glb, en metros) en la sede de cada delegación:
+  // una malla instanciada por material; la franja del letrero y la baliza llevan el semáforo de su bandeja
+  buildDelegaciones() {
+    const root = this.deleScene; root.updateMatrixWorld(true);
     const o = new THREE.Object3D();
-    this.dPos.forEach((p, i) => { o.position.copy(p); o.updateMatrix(); this.dMark.setMatrixAt(i, o.matrix); });
-    this.scene.add(this.dMark);
+    this.dParts = []; this.dSem = null;
+    root.traverse(m => {
+      if (!m.isMesh) return;
+      const g = m.geometry.clone(); g.applyMatrix4(m.matrixWorld);
+      const sem = m.userData.wh_type === 'del_semaforo' || m.parent?.userData?.wh_type === 'del_semaforo';
+      const mat = sem ? new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.4, emissive: '#ffffff', emissiveIntensity: 0.35 }) : m.material;
+      const im = new THREE.InstancedMesh(g, mat, this.ND);
+      im.frustumCulled = false; this.scene.add(im); this.dParts.push(im);
+      if (sem) { this.dSem = im; for (let i = 0; i < this.ND; i++) im.setColorAt(i, new THREE.Color('#64748b')); }
+    });
+    this.placeDelegaciones();
+  }
+  placeDelegaciones() {
+    const o = new THREE.Object3D();
+    for (let i = 0; i < this.ND; i++) {
+      const k = DEL_S * (this.sel?.type === 'del' && this.sel.i === i ? 1.35 : 1);
+      o.position.copy(this.dPos[i]); o.scale.setScalar(k); o.updateMatrix();
+      for (const im of this.dParts) im.setMatrixAt(i, o.matrix);
+    }
+    for (const im of this.dParts) { im.instanceMatrix.needsUpdate = true; im.computeBoundingSphere(); }
   }
   // ------------------------------------------------------------ pilas de cajas (delegaciones y Central)
   buildPiles() {
@@ -163,7 +188,7 @@ export class PlanFlow3D {
     };
     const cTot = [0, 0, 0];
     for (let d = 0; d < ND; d++) {
-      const i = (Nu + d) * 3; stack(this.dPos[d], [cnt[i], cnt[i + 1], cnt[i + 2]], 3, d);
+      const i = (Nu + d) * 3; stack(this.dPile[d], [cnt[i], cnt[i + 1], cnt[i + 2]], 3, d);
       const j = (Nu + ND + d) * 3; cTot[0] += cnt[j]; cTot[1] += cnt[j + 1]; cTot[2] += cnt[j + 2];
     }
     stack(this.cPile, cTot, 5, -1);
@@ -297,8 +322,19 @@ export class PlanFlow3D {
       this.uHt[i] = n * 0.55; this.uCol[i] = c > 0 ? 2 : b > 0 ? 1 : 0;
     }
     this.placePiles(cnt);
+    this.paintDelegaciones(cnt);
     this.recolorStates();
     if (force) this.placeUnits(true);
+  }
+  // letrero y baliza de cada delegación: gris sin pendientes, verde agua en plazo, ámbar vencidas, rojo más del doble
+  paintDelegaciones(cnt) {
+    if (!this.dSem) return;
+    const c = new THREE.Color();
+    for (let d = 0; d < this.ND; d++) {
+      const i = (this.Nu + d) * 3, n = cnt[i] + cnt[i + 1] + cnt[i + 2];
+      this.dSem.setColorAt(d, c.set(!n ? '#64748b' : cnt[i + 2] ? AGE_COL[2] : cnt[i + 1] ? AGE_COL[1] : AGE_COL[0]));
+    }
+    this.dSem.instanceColor.needsUpdate = true;
   }
   // resumen por estado: quién tiene las peticiones y cuántas van vencidas
   stateSummary() {
@@ -332,7 +368,7 @@ export class PlanFlow3D {
   }
   setColorMode(m) { this.colorMode = m; this.recolorStates(); this.dirty = true; }
   select(s, fly = true) {
-    this.sel = s; this.recolorStates(); this.dirty = true;
+    this.sel = s; this.recolorStates(); this.placeDelegaciones(); this.dirty = true;
     if (!fly) return;
     if (!s) return this.home();
     if (s.type === 'central') return this.flyTo(this.cPos.clone().add(new THREE.Vector3(30, 60, 0)), 700);
@@ -378,8 +414,7 @@ export class PlanFlow3D {
       this.units.computeBoundingSphere();
       const u = ray.intersectObject(this.units, false)[0];
       if (u && this.uHt[u.instanceId] > 0.5) return { type: 'unit', i: u.instanceId };
-      this.dMark.computeBoundingSphere();
-      const dm = ray.intersectObject(this.dMark, false)[0];
+      const dm = ray.intersectObjects(this.dParts, false)[0];
       if (dm) return { type: 'del', i: dm.instanceId };
       const m = ray.intersectObjects(meshes(), false)[0];
       if (m) return { type: 'del', i: this.U.delegaciones.findIndex(d => d.cve === m.object.userData.cve) };

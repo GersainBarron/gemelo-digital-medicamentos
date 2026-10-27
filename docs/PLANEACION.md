@@ -96,7 +96,8 @@ Con el ejemplo, en el día 15:
 
 ## Flujo nacional 3D
 
-Ventana `#/p/ID/flujo` (archivo `web/js/plan3d.js`). Usa el mapa `assets/mapa_mexico.glb` y la torre `assets/issste_buenavista.glb`, ambos de Blender.
+Ventana `#/p/ID/flujo` (archivo `web/js/plan3d.js`). Usa el mapa `assets/mapa_mexico.glb`, la torre `assets/issste_buenavista.glb` y el edificio delegacional `assets/delegacion.glb`, los tres de Blender.
+- **Delegaciones:** un edificio delegacional genérico en cada una de las 32 sedes, con su pila de peticiones al lado. La franja del letrero y la baliza de la azotea toman el semáforo de su bandeja: gris sin pendientes, verde agua en plazo, ámbar vencidas y rojo más del doble del plazo.
 - **Registro:** el motor guarda en cada día simulado (`P.flow[d]`) dos cosas. La primera es el corte de cuántas peticiones tiene cada nodo, por antigüedad contra su plazo. Los nodos son las 1,033 unidades, las 32 delegaciones y Oficina Central, separada por delegación. La segunda es qué se movió de quién a quién, con la decisión.
 - **Partículas:** cada grupo de peticiones que cambia de escritorio viaja por arcos: unidad → delegación → Central, y de regreso cuando hay negociación. La asignación inicial sale de Central hacia todas las unidades. Lo concluido sube a la torre.
 - **Pilas:** una caja equivale a 100 peticiones. Abajo van las más viejas: rojo es más del doble del plazo, ámbar vencida y verde agua dentro de plazo. La columna de cada unidad crece con sus pendientes.

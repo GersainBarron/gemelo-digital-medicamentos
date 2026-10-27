@@ -19,6 +19,7 @@ El prototipo responde dos preguntas:
 | **Cierre del plan** | El aprobador firmante descarga el plan consolidado nacional y sube el oficio en PDF; el plan pasa a "Cerrado" | HU24 S3 |
 | **Notificaciones y bitácora** | Campana por rol (la unidad solo ve las suyas, la delegación las de sus unidades) y registro de movimientos con descarga | HU02 y HU25 S3, REQ_NOFUN_07 |
 | **Seguimiento y traza** | Indicadores de desviación (avance contra lo programado, cierre estimado contra la fecha límite, peticiones vencidas por actor, cuello de botella, de quién es el retraso, piezas y costo contra la propuesta y el presupuesto, fuera de rango y rondas de más); etapas programadas contra reales; avance por nivel; dónde está atorado (antigüedad por actor); reparto del retraso por delegación; a quién se le acaba el tiempo; plazos editables. En el detalle de cada insumo, la traza de la petición por carriles | Gemelo |
+| **Flujo nacional 3D** | Mapa de México por estado con la torre de Buenavista: las peticiones viajan como partículas (asignación, aprobación, negociación, rechazo) entre unidades, delegaciones y Oficina Central; pilas de cajas con lo que cada quien tiene pendiente por antigüedad; estados coloreados por quién tiene la mayoría o por vencidas; línea de tiempo con reproducción y ficha de lo que se atora | Gemelo |
 | **Simulación del ciclo** | Indicadores, avance diario, mapa de delegaciones, reglas de los actores, tabla por delegación y comparación de métodos | Gemelo |
 
 La barra lateral "Sistema Integral de Abasto" enlaza los demás módulos con las vistas del gemelo que ya los representan:
@@ -64,6 +65,15 @@ Con el ejemplo (método pronóstico):
 - **Retraso acumulado:** 65 % es de Central, 22 % de las delegaciones y 13 % de las unidades.
 - **Jalisco y Ciudad de México:** el retraso es sobre todo de la delegación.
 - **Ciclo completo:** termina en el día hábil 41, contra una fecha límite de 39.
+
+## Flujo nacional 3D
+
+Ventana `#/p/ID/flujo` (archivo `web/js/plan3d.js`). Usa el mapa `assets/mapa_mexico.glb` y la torre `assets/issste_buenavista.glb`, ambos de Blender.
+- **Registro:** el motor guarda en cada día simulado (`P.flow[d]`) dos cosas. La primera es el corte de cuántas peticiones tiene cada nodo, por antigüedad contra su plazo. Los nodos son las 1,033 unidades, las 32 delegaciones y Oficina Central, separada por delegación. La segunda es qué se movió de quién a quién, con la decisión.
+- **Partículas:** cada grupo de peticiones que cambia de escritorio viaja por arcos: unidad → delegación → Central, y de regreso cuando hay negociación. La asignación inicial sale de Central hacia todas las unidades. Lo concluido sube a la torre.
+- **Pilas:** una caja equivale a 100 peticiones. Abajo van las más viejas: rojo es más del doble del plazo, ámbar vencida y verde agua dentro de plazo. La columna de cada unidad crece con sus pendientes.
+- **Estados:** se colorean por quién tiene la mayoría de sus peticiones (unidad, delegación o Central) o por cuántas van vencidas.
+- **Ficha:** muestra las peticiones abiertas por actor, lo concluido y dónde se atora más. Al tocar una delegación, una unidad o la torre se ve su detalle y un enlace a su aprobación.
 
 ## Simulación del ciclo
 

@@ -325,7 +325,7 @@ function scaleMonths(months, target) {
   return months.map(v => Math.max(0, Math.round(v * target / s)));
 }
 function simDay(U, P) {
-  if (P.status !== 'validacion') { if (P.status === 'finalizado' && !P.cierre && P.day - (P.finDay ?? P.day) >= 2) ACTIONS.cerrar(U, P, { archivo: 'oficio_cierre_plan.pdf', por: 'Aprobador firmante (simulado)' }); P.day++; return; }
+  if (P.status !== 'validacion') { if (P.status === 'finalizado' && P.flow && !P.flow[P.day] && !P.flowEnd) { tickHolders(U, P); P.flowEnd = P.day; } if (P.status === 'finalizado' && !P.cierre && P.day - (P.finDay ?? P.day) >= 2) ACTIONS.cerrar(U, P, { archivo: 'oficio_cierre_plan.pdf', por: 'Aprobador firmante (simulado)' }); P.day++; return; }
   const day = P.day;
   tickHolders(U, P);
   const cap = { del: {}, oc: 0 };
@@ -425,13 +425,28 @@ export function holderOf(U, P, it) {
   return 'um';
 }
 function tickHolders(U, P) {
+  // además del conteo de días, registra el flujo del día para la vista 3D:
+  // cuántas peticiones tiene cada nodo (unidad, delegación, Central) por antigüedad y qué se movió de quién a quién
+  const Nu = U.units.length, ND = U.delegaciones.length, NN = Nu + 2 * ND;      // nodos: unidades, delegaciones y Central por delegación
+  const dIdx = U._dIdx ||= Object.fromEntries(U.delegaciones.map((d, i) => [d.cve, i]));
+  const node = (h, it) => (h === 'um' ? it.u : (h === 'del' ? Nu : Nu + ND) + dIdx[U.units[it.u].cve]);
+  const cnt = new Uint32Array(NN * 3), mv = new Map();
   for (const it of P.items.values()) {
     const h = holderOf(U, P, it);
-    if (h !== it.holder) { it.holder = h; it.since = P.day; }
+    if (h !== it.holder) {
+      const a = it.holder ? node(it.holder, it) : -1;                    // −1: sale de Central como asignación inicial
+      const b = h ? node(h, it) : -2 - it.u;                              // < −1: concluyó, regresa a la unidad
+      const d = !it.holder ? 'asignar' : !h ? (it.st.oc === 'rechazado' ? 'rechazar' : 'aprobar') : it.ev.at(-1)?.d || 'aprobar';
+      const key = a + '|' + b + '|' + d; mv.set(key, (mv.get(key) || 0) + 1);
+      it.holder = h; it.since = P.day;
+    }
     if (!h) continue;
     it.hold[h]++;
-    if (P.day - it.since >= P.sla[h]) it.late[h]++;
+    const age = P.day - it.since, sla = P.sla[h];
+    if (age >= sla) it.late[h]++;
+    cnt[node(h, it) * 3 + (age < sla ? 0 : age < 2 * sla ? 1 : 2)]++;
   }
+  (P.flow ||= [])[P.day] = { cnt, mv: [...mv].map(([k, n]) => { const [a, b, d] = k.split('|'); return [+a, +b, n, d]; }) };
 }
 // días hábiles entre dos fechas ISO (fin incluido)
 export function bizDays(a, b) {

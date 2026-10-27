@@ -156,3 +156,36 @@
 #view > * { min-width: 0; }
 main.pl-main { margin: 0; padding: 0; max-width: none; width: 100%; }
 textarea { font: inherit; }
+
+/* ---------- Flujo nacional 3D */
+.fl-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; }
+.fl-card { min-width: 0; }
+.fl-3d { position: relative; height: min(68vh, 720px); min-height: 420px; border-radius: 12px; overflow: hidden; background: #0b1118; touch-action: none; }
+.fl-3d canvas { display: block; }
+.fl-3d .u3d-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+.fl-lab { position: absolute; inset: 0; pointer-events: none; }
+.fl-l { position: absolute; left: 0; top: 0; margin: -30px 0 0 -40px; width: 80px; text-align: center; font-size: 11px; color: #cbd5e1; text-shadow: 0 1px 3px #000; white-space: nowrap; }
+.fl-l b { display: block; font-size: 13px; color: #e6edf3; }
+.fl-l.fl-c { color: #f9a8d4; font-weight: 650; width: 120px; margin-left: -60px; }
+.fl-l.fl-c b { font-size: 16px; color: #fce7f3; }
+.fl-3d .tip { position: absolute; max-width: 220px; pointer-events: none; z-index: 3; }
+.fl-time { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.fl-time input[type=range] { flex: 1 1 200px; min-width: 140px; accent-color: #2dd4bf; }
+.fl-day { font-size: 13px; font-variant-numeric: tabular-nums; min-width: 170px; }
+.fl-legend { margin-top: 8px; }
+.fl-legend .sw { vertical-align: -1px; }
+.fl-ficha h2 { font-size: 20px; margin: 2px 0 4px; }
+.fl-ficha h3 { font-size: 16px; margin: 2px 0 6px; }
+.fl-h3 { font-size: 13px !important; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-top: 8px !important; }
+.fl-row { display: grid; grid-template-columns: 108px minmax(0, 1fr) 58px; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.fl-row .n { text-align: right; font-variant-numeric: tabular-nums; }
+.fl-bar { display: flex; height: 12px; border-radius: 4px; overflow: hidden; background: rgba(255,255,255,.05); }
+.fl-who { font-size: 12px; }
+.fl-link { all: unset; cursor: pointer; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-link:hover { text-decoration: underline; }
+.fl-sel { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.fl-sel .pl-actions { margin-top: 10px; }
+@media (max-width: 1100px) {
+  .fl-wrap { grid-template-columns: minmax(0, 1fr); }
+  .fl-3d { height: 58vh; min-height: 340px; }
+}

@@ -111,6 +111,7 @@ function side(r) {
     <a class="${on('programas')}" href="#/p/${P.id}/programas">Programas especiales</a>
     <a class="${on('aprobacion') || on('solicitar')}" href="#/p/${P.id}/aprobacion">Aprobación de insumos</a>
     <a class="${on('seguimiento')}" href="#/p/${P.id}/seguimiento">Seguimiento y traza</a>
+    <a class="${on('flujo')}" href="#/p/${P.id}/flujo">Flujo nacional 3D</a>
     <a class="${on('cierre')}" href="#/p/${P.id}/cierre">Cierre del plan</a>
     <a class="${on('simulacion')}" href="#/p/${P.id}/simulacion">Simulación del ciclo</a>
     <a class="${on('bitacora')}" href="#/p/${P.id}/bitacora">Bitácora</a></div>` : '';
@@ -1064,6 +1065,153 @@ function atorado(P, G) {
   const top = ['um', 'del', 'oc'].reduce((a, b) => (G.pend[b] > G.pend[a] ? b : a));
   return `${rows}<div class="legend" style="margin-top:8px"><span><i class="sw" style="background:#94a3b8"></i>Dentro de plazo</span><span><i class="sw" style="background:#fbbf24"></i>Vencida</span><span><i class="sw" style="background:#f87171"></i>Más del doble del plazo</span></div>
     <p class="note">${tot ? `${pct(G.pend[top] / tot)} de las ${n0(tot)} peticiones abiertas están con ${ACT[top].toLowerCase()}.` : 'No hay peticiones abiertas.'} Una petición pasa a la delegación hasta que la unidad finaliza su verificación, y a Oficina Central hasta que la delegación finaliza la de esa unidad.</p>`;
+}
+
+// ---------- Flujo nacional 3D: las peticiones viajando entre unidades, delegaciones y Oficina Central
+const AGEC = ['#2dd4bf', '#fbbf24', '#f87171'];
+VIEWS.flujo = ({ P }) => {
+  const base = [['Planes de necesidad', '#/'], [P.folio, `#/p/${P.id}`], ['Flujo nacional 3D']];
+  if (!['validacion', 'finalizado', 'cerrado'].includes(P.status)) return `${crumbs(base)}<div class="card"><p class="empty">El flujo arranca en la etapa de aprobación, cuando Oficina Central envía la asignación a las unidades.</p></div>`;
+  const F = S.f_flujo ||= { color: 'quien', speed: 1 };
+  return `${crumbs(base)}${simBar(P)}
+  <section class="card"><div class="pl-head"><div><span class="eyebrow">${esc(P.folio)} · Flujo nacional</span><h1>¿Por dónde van las peticiones?</h1><p>Cada punto es un grupo de peticiones que cambia de escritorio: de la unidad a su delegación, de la delegación a Oficina Central en Buenavista, y de regreso cuando hay negociación. Las pilas son lo que cada quien tiene pendiente (una caja = 100 peticiones; abajo, las más viejas).</p></div></div></section>
+  <div class="fl-wrap">
+    <section class="card fl-card">
+      <div class="card-h wrap"><h2>La red en 3D <small>toca una delegación, una unidad o la torre</small></h2>
+        <div class="pl-actions"><div class="seg" id="fl-color"><button data-c="quien" class="${F.color === 'quien' ? 'active' : ''}">Quién la tiene</button><button data-c="venc" class="${F.color === 'venc' ? 'active' : ''}">Vencidas</button></div><button class="btn sm" id="fl-home">Vista nacional</button></div></div>
+      <div id="fl-3d" class="fl-3d"><div class="u3d-loading">Cargando el mapa y la torre de Buenavista…</div><div id="fl-lab" class="fl-lab"></div><div id="fl-tip" class="tip" hidden></div></div>
+      <div class="fl-time">
+        <button class="icon-btn primary" id="fl-play" aria-label="Reproducir">▶</button>
+        <div class="seg" id="fl-speed"><button data-s="1" class="${F.speed === 1 ? 'active' : ''}">1 día/s</button><button data-s="3" class="${F.speed === 3 ? 'active' : ''}">3 días/s</button></div>
+        <input type="range" id="fl-t" min="-1" max="0" step="0.01" value="0" aria-label="Día hábil">
+        <b id="fl-day" class="fl-day">—</b>
+      </div>
+      <div class="legend fl-legend">
+        <span><i class="sw" style="background:#cbd5e1;transform:rotate(45deg)"></i>Asignación</span><span><i class="sw" style="background:#34d399;transform:rotate(45deg)"></i>Aprobó</span><span><i class="sw" style="background:#c084fc;transform:rotate(45deg)"></i>Negoció</span><span><i class="sw" style="background:#f87171;transform:rotate(45deg)"></i>Rechazó</span>
+        <span class="rf-sep"></span><span><i class="sw" style="background:${AGEC[0]}"></i>Dentro de plazo</span><span><i class="sw" style="background:${AGEC[1]}"></i>Vencida</span><span><i class="sw" style="background:${AGEC[2]}"></i>Más del doble</span>
+        <span class="rf-sep"></span><span id="fl-leg-map"></span>
+      </div>
+    </section>
+    <section class="card fl-ficha" id="fl-ficha" aria-live="polite"></section>
+  </div>`;
+};
+function flLegMap() {
+  return (S.f_flujo.color === 'quien'
+    ? `Estado: <i class="sw" style="background:#5eead4"></i>Unidades <i class="sw" style="background:#60a5fa"></i>Delegación <i class="sw" style="background:#f472b6"></i>Central`
+    : `Estado: más rojo = más peticiones vencidas`) + ' · gris oscuro = sin pendientes';
+}
+BIND.flujo = async ({ P }) => {
+  if (!$('#fl-3d')) return;
+  const F = S.f_flujo, box = $('#fl-3d');
+  $('#fl-leg-map').innerHTML = flLegMap();
+  let V = S.flow3d;
+  if (!V) {
+    try {
+      const { PlanFlow3D } = await import('./plan3d.js');
+      V = new PlanFlow3D({ iss: S.data.iss, U: S.U, getGLB: window.PLAN_GLB });
+      await V.load(box);
+      S.flow3d = V;
+    } catch (err) { box.innerHTML = `<p class="empty">No se pudo cargar la vista 3D: ${esc(err.message)}</p>`; return; }
+  } else V.attach(box);
+  if (!document.body.contains(box)) return;
+  box.querySelector('.u3d-loading')?.remove();
+  V.colorMode = F.color;
+  const keepT = V.P === P && V.nDays === (P.flow?.length || 0) ? V.t : null;
+  V.setPlan(P);
+  V.setTime(keepT ?? V.maxT());
+  const rng = $('#fl-t'); rng.min = -1; rng.max = Math.max(0, V.maxT()); rng.value = V.t;
+  let playing = false, last = performance.now();
+  const setPlay = on => { playing = on; $('#fl-play').textContent = on ? '❚❚' : '▶'; $('#fl-play').setAttribute('aria-label', on ? 'Pausar' : 'Reproducir'); };
+  $('#fl-play').onclick = () => { if (!playing && V.t >= V.maxT() - 0.01) V.setTime(-1); setPlay(!playing); };
+  $('#fl-speed').onclick = e => { const b = e.target.closest('button'); if (!b) return; F.speed = +b.dataset.s; $('#fl-speed').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b)); };
+  $('#fl-color').onclick = e => { const b = e.target.closest('button'); if (!b) return; F.color = b.dataset.c; $('#fl-color').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b)); V.setColorMode(F.color); $('#fl-leg-map').innerHTML = flLegMap(); };
+  $('#fl-home').onclick = () => { V.select(null); S.flSel = null; ficha(); };
+  rng.oninput = () => { setPlay(false); V.setTime(+rng.value); };
+  const tip = $('#fl-tip');
+  V.onHover = (h, e) => {
+    if (!h) { tip.hidden = true; return; }
+    tip.innerHTML = flNodeTip(V, P, h); tip.hidden = false;
+    const r = box.getBoundingClientRect();
+    tip.style.left = Math.min(r.width - 230, e.clientX - r.left + 14) + 'px'; tip.style.top = (e.clientY - r.top + 14) + 'px';
+  };
+  V.onPick = h => { S.flSel = h && (S.flSel?.type === h.type && S.flSel?.i === h.i) ? null : h; V.select(S.flSel); ficha(); };
+  if (S.flSel) V.select(S.flSel, false);
+  let shownDay = null;
+  const ficha = () => { $('#fl-ficha').innerHTML = flFicha(V, P); shownDay = V.shownDay;
+    $('#fl-ficha').querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => { const [type, i] = b.dataset.pick.split(':'); S.flSel = { type, i: +i }; V.select(S.flSel); ficha(); })); };
+  ficha();
+  const labels = $('#fl-lab');
+  const loop = now => {
+    if (!document.body.contains(box)) return;          // se salió de la vista
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (playing) { V.setTime(V.t + dt * F.speed); rng.value = V.t; if (V.t >= V.maxT()) setPlay(false); }
+    if (V.frame(dt, playing)) flLabels(V, labels);
+    if (V.shownDay !== shownDay) ficha();
+    $('#fl-day').textContent = V.t < 0 ? 'Envío de la asignación' : `Día hábil ${Math.floor(V.t)} · ${fdate(E.dateOfDay(P, Math.floor(V.t)))}`;
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+};
+const sum3 = (c, n) => c[n * 3] + c[n * 3 + 1] + c[n * 3 + 2];
+function flNodeTip(V, P, h) {
+  const c = V.cnt, Nu = V.Nu, ND = V.ND;
+  if (h.type === 'central') { let t = 0; for (let d = 0; d < ND; d++) t += sum3(c, Nu + ND + d); return `<b>Oficina Central · Buenavista</b><br>${n0(t)} peticiones en su escritorio`; }
+  if (h.type === 'del') { const d = S.U.delegaciones[h.i]; let u = 0; for (const i of d.units) u += sum3(c, i); return `<b>Delegación ${esc(d.nombre)}</b><br>En la delegación ${n0(sum3(c, Nu + h.i))} · en sus unidades ${n0(u)} · en Central ${n0(sum3(c, Nu + ND + h.i))}`; }
+  const u = S.U.units[h.i]; return `<b>${esc(u.nombre)}</b><br>${esc(u.clues)} · ${n0(sum3(c, h.i))} peticiones en la unidad`;
+}
+function flLabels(V, el) {
+  const c = V.cnt, Nu = V.Nu, ND = V.ND, out = [], used = [];
+  const free = (x, y, w) => { if (used.some(([a, b, ww]) => Math.abs(a - x) < (w + ww) / 2 && Math.abs(b - y) < 30)) return false; used.push([x, y, w]); return true; };
+  let ct = 0; for (let d = 0; d < ND; d++) ct += sum3(c, Nu + ND + d);
+  const [x, y, ok] = V.project(V.cPile.clone().setY(V.cPile.y + Math.ceil(ct / 100 / 25) * 5.8 + 22));
+  if (ok && free(x, y, 120)) out.push(`<div class="fl-l fl-c" style="transform:translate(${x.toFixed(0)}px,${y.toFixed(0)}px)">Oficina Central<b>${n0(ct)}</b></div>`);
+  const top = [...Array(ND).keys()].map(d => [d, sum3(c, Nu + d)]).filter(r => r[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, V.box.clientWidth < 700 ? 4 : 7);
+  if (V.sel?.type === 'del' && !top.some(r => r[0] === V.sel.i)) top.unshift([V.sel.i, sum3(c, Nu + V.sel.i)]);
+  for (const [d, n] of top) {
+    const h = Math.ceil(n / 100 / 9) * 5.8 + 18;
+    const [x2, y2, ok2] = V.project(V.dPos[d].clone().setY(V.dPos[d].y + h));
+    if (ok2 && free(x2, y2, 70)) out.push(`<div class="fl-l" style="transform:translate(${x2.toFixed(0)}px,${y2.toFixed(0)}px)">${esc(S.data.iss.estados.find(e => e.cve === S.U.delegaciones[d].cve).abbr)}<b>${n0(n)}</b></div>`);
+  }
+  el.innerHTML = out.join('');
+}
+function flFicha(V, P) {
+  const c = V.cnt, Nu = V.Nu, ND = V.ND, d = V.shownDay;
+  const N = P.items.size;
+  const tot = { um: [0, 0, 0], del: [0, 0, 0], oc: [0, 0, 0] };
+  for (let i = 0; i < Nu; i++) for (let k = 0; k < 3; k++) tot.um[k] += c[i * 3 + k];
+  for (let j = 0; j < ND; j++) for (let k = 0; k < 3; k++) { tot.del[k] += c[(Nu + j) * 3 + k]; tot.oc[k] += c[(Nu + ND + j) * 3 + k]; }
+  const s3 = a => a[0] + a[1] + a[2], open = s3(tot.um) + s3(tot.del) + s3(tot.oc);
+  const max = Math.max(1, s3(tot.um), s3(tot.del), s3(tot.oc));
+  const bar = (a, m) => `<span class="fl-bar">${a.map((x, k) => `<i style="width:${(100 * x / m).toFixed(1)}%;background:${AGEC[k]}" title="${['Dentro de plazo', 'Vencidas', 'Más del doble del plazo'][k]}: ${n0(x)}"></i>`).join('')}</span>`;
+  const rows = ['um', 'del', 'oc'].map(a => `<div class="fl-row"><b style="color:${ACTC[a]}">${ACT[a]}</b>${bar(tot[a], max)}<span class="n">${n0(s3(tot[a]))}</span></div>`).join('');
+  const done = d < 0 ? 0 : N - open;
+  const by = V.summary || {};
+  const rank = S.U.delegaciones.map((dl, i) => { const s = by[dl.cve]; if (!s) return null; const v = s.um[1] + s.um[2] + s.del[1] + s.del[2] + s.oc[1] + s.oc[2]; const who = ['um', 'del', 'oc'].reduce((a, b) => (s3(s[b]) > s3(s[a]) ? b : a)); return { i, dl, v, who, open: s3(s.um) + s3(s.del) + s3(s.oc) }; }).filter(r => r && r.open).sort((a, b) => b.v - a.v || b.open - a.open).slice(0, 6);
+  let sel = '';
+  const h = S.flSel;
+  if (h?.type === 'del') {
+    const dl = S.U.delegaciones[h.i], s = by[dl.cve];
+    const G = E.seguimiento(S.U, P).byDel.find(r => r.d.cve === dl.cve);
+    sel = `<div class="fl-sel"><span class="eyebrow">Delegación</span><h3>${esc(dl.nombre)}</h3>
+      ${['um', 'del', 'oc'].map(a => `<div class="fl-row"><b style="color:${ACTC[a]}">${a === 'um' ? 'Sus unidades' : a === 'del' ? 'Delegación' : 'En Central'}</b>${bar(s[a], Math.max(1, s3(s.um), s3(s.del), s3(s.oc)))}<span class="n">${n0(s3(s[a]))}</span></div>`).join('')}
+      ${G ? `<p class="note">Retraso acumulado al día de hoy: unidades ${n0(G.late.um)}, delegación ${n0(G.late.del)} y Central ${n0(G.late.oc)} días-petición fuera de plazo.</p>` : ''}
+      <div class="pl-actions"><a class="btn sm" href="#/p/${P.id}/aprobacion/del/${dl.cve}">Ver su aprobación</a><a class="btn sm ghost" href="#/p/${P.id}/seguimiento">Seguimiento</a></div></div>`;
+  } else if (h?.type === 'unit') {
+    const u = S.U.units[h.i];
+    sel = `<div class="fl-sel"><span class="eyebrow">Unidad médica · ${esc(u.tipo)}</span><h3>${esc(u.nombre)}</h3><p class="muted">${esc(u.clues)} · ${esc(u.mun)}</p>
+      <div class="fl-row"><b style="color:${ACTC.um}">En la unidad</b>${bar([c[h.i * 3], c[h.i * 3 + 1], c[h.i * 3 + 2]], Math.max(1, sum3(c, h.i)))}<span class="n">${n0(sum3(c, h.i))}</span></div>
+      <div class="pl-actions"><a class="btn sm" href="#/p/${P.id}/aprobacion/u/${u.clues}">Ver sus insumos</a></div></div>`;
+  } else if (h?.type === 'central') {
+    const topC = [...Array(ND).keys()].map(j => [j, sum3(c, Nu + ND + j)]).filter(r => r[1]).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    sel = `<div class="fl-sel"><span class="eyebrow">Oficina Central · Buenavista</span><h3>${n0(s3(tot.oc))} peticiones en su escritorio</h3>
+      ${topC.map(([j, n]) => `<div class="fl-row"><button class="fl-link" data-pick="del:${j}">${esc(S.U.delegaciones[j].nombre)}</button><span class="fl-bar"><i style="width:${(100 * n / topC[0][1]).toFixed(1)}%;background:${ACTC.oc}"></i></span><span class="n">${n0(n)}</span></div>`).join('') || '<p class="muted">Sin pendientes.</p>'}</div>`;
+  }
+  return `<div class="fl-head"><span class="eyebrow">${d < 0 ? 'Antes del día 0' : `Día hábil ${d} · ${fdate(E.dateOfDay(P, d))}`}</span>
+    <h2>${d < 0 ? 'Central envía la asignación' : `${n0(open)} peticiones abiertas`}</h2>
+    <p class="muted">${d < 0 ? `${n0(N)} peticiones salen hacia ${n0(Nu)} unidades.` : `${pct(done / N)} concluidas (${n0(done)} de ${n0(N)}).`}${V.maxT() < 1 ? ' Avanza la simulación para ver el flujo.' : ''}</p></div>
+    ${rows}
+    <div class="legend" style="margin:6px 0 10px"><span><i class="sw" style="background:${AGEC[0]}"></i>En plazo</span><span><i class="sw" style="background:${AGEC[1]}"></i>Vencida</span><span><i class="sw" style="background:${AGEC[2]}"></i>Más del doble</span></div>
+    ${sel || `<h3 class="fl-h3">Dónde se atora más</h3>${rank.map(r => `<div class="fl-row"><button class="fl-link" data-pick="del:${r.i}">${esc(r.dl.nombre)}</button><span class="fl-who" style="color:${ACTC[r.who]}">la tiene ${ACT[r.who].toLowerCase()}</span><span class="n">${n0(r.open)}${r.v ? `<small style="display:block;color:var(--crit)">${n0(r.v)} venc.</small>` : ''}</span></div>`).join('') || '<p class="muted">Nada pendiente.</p>'}<p class="note">Peticiones abiertas por estado (en sus unidades, su delegación y en Central), ordenadas por vencidas, y quién tiene la mayoría.</p>`}`;
 }
 
 // ---------- Programas especiales (HU26 a HU31)

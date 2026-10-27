@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Gersain Barron">
+  <meta name="copyright" content="© 2026 Gersain Barron · Licencia MIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1117">
+  <title>Contratos · Gestión del abasto</title>
+  <link rel="stylesheet" href="css/unidad.css">
+  <link rel="stylesheet" href="css/contratos.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <b>Contratos · Gestión</b>
+        <span>Gemelo digital · <em class="author">Gersain Barron</em> · contratos, gasto y cumplimiento</span>
+      </div>
+    </div>
+    <nav class="views" aria-label="Vistas">
+      <a id="go-cedis" href="index.html">CEDIS 3D</a>
+      <a href="mapa.html">Red estatal</a>
+      <a href="unidad.html">Unidad médica</a>
+      <a class="active" href="contratos.html" aria-current="page">Contratos</a>
+      <a id="go-rec" href="expedientes.html">Recorrido</a>
+      <a href="cenadi.html">CENADI</a>
+    </nav>
+    <div class="sim">
+      <div class="clock-box">
+        <span id="clock" class="clock">—</span>
+        <span class="sim-status paused" id="corte">Corte de información</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Filtros -->
+    <section class="card ct-filters">
+      <div class="f-row">
+        <div class="f-group">
+          <label>Periodo</label>
+          <div id="f-period" class="seg">
+            <button data-p="1">Ayer</button><button data-p="7">7 días</button><button data-p="30" class="active">30 días</button>
+            <button data-p="90">90 días</button><button data-p="vig">Vigencia</button><button data-p="custom">Fechas</button>
+          </div>
+        </div>
+        <div id="f-custom" class="f-group" hidden>
+          <label>Del · al</label>
+          <div class="f-dates"><input id="f-from" type="date"><input id="f-to" type="date"></div>
+        </div>
+        <div class="f-group">
+          <label for="f-k">Contrato</label>
+          <select id="f-k"><option value="">Todos los contratos</option></select>
+        </div>
+        <div class="f-group f-right">
+          <label>Exportar periodo</label>
+          <div class="f-btns">
+            <button id="x-csv" class="btn">CSV (partidas)</button>
+            <button id="x-score" class="btn">CSV (proveedores)</button>
+            <button id="x-json" class="btn">JSON (expedientes)</button>
+          </div>
+        </div>
+      </div>
+      <p id="f-sum" class="muted f-sum"></p>
+    </section>
+
+    <!-- Indicadores -->
+    <section id="kpis" class="kpis" style="--kc: 8" aria-label="Indicadores del periodo"></section>
+
+    <section id="alerts" class="card">
+      <div class="card-h"><h2>Alertas de gestión <small>al corte</small></h2></div>
+      <ul id="alert-list" class="al-list"></ul>
+    </section>
+
+    <div class="split2">
+      <section class="card">
+        <div class="card-h">
+          <h2>Gasto y pagos por día <small>MXN sin IVA</small></h2>
+          <div class="legend"><span><i class="sw g1"></i>Recibido (EBA)</span><span><i class="sw g2"></i>Rescate 2º lugar</span><span><i class="sw g3 line"></i>Pagado</span></div>
+        </div>
+        <div id="ch-gasto" class="chart"></div>
+      </section>
+      <section class="card">
+        <div class="card-h">
+          <h2>Penas devengadas y rechazos <small>por día</small></h2>
+          <div class="legend"><span><i class="sw p1"></i>Penas</span><span><i class="sw p2 dot"></i>Partidas rechazadas</span></div>
+        </div>
+        <div id="ch-penas" class="chart"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-h">
+        <h2>Avance de contratos <small>ejercido al corte, proyección al fin de la vigencia y bolsa de penas</small></h2>
+        <div class="legend"><span><i class="sw a1"></i>Ejercido</span><span><i class="sw a2"></i>Proyección</span><span><i class="mk min"></i>Mínimo 40 %</span><span><i class="sw a3"></i>Penas / garantía</span></div>
+      </div>
+      <div id="avance" class="av-list"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-h">
+        <h2>Desempeño de proveedores <small id="score-sub">periodo seleccionado · toca un encabezado para ordenar</small></h2>
+      </div>
+      <div class="tbl-wrap"><table id="score" class="tbl"></table></div>
+    </section>
+
+    <section class="card" id="day">
+      <div class="card-h">
+        <h2>Revisión del día <small id="day-sub"></small></h2>
+        <div class="day-nav">
+          <button id="d-prev" class="icon-btn" aria-label="Día anterior">‹</button>
+          <input id="d-date" type="date">
+          <button id="d-next" class="icon-btn" aria-label="Día siguiente">›</button>
+        </div>
+      </div>
+      <div id="day-kpis" class="day-kpis"></div>
+      <div class="day-grid">
+        <div><h3>Recepciones en andén</h3><div id="day-rec" class="d-list"></div></div>
+        <div><h3>Órdenes emitidas</h3><div id="day-os" class="d-list"></div></div>
+        <div><h3>Pagos y cobros</h3><div id="day-pay" class="d-list"></div></div>
+        <div><h3>Bitácora</h3><ul id="day-log" class="d-log"></ul></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><h2>Cómo se calculan <small>definiciones y fundamento</small></h2></div>
+      <div id="defs" class="defs"></div>
+    </section>
+  </main>
+  <div id="tip" class="tip" hidden></div>
+  <div id="loading" class="ct-loading">Calculando contratos…</div>
+  <script type="module" src="js/contratos-page.js"></script>
+</body>
+</html>

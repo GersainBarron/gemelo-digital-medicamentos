@@ -254,6 +254,42 @@ Blender: `bodega/recoleccion/punto_recoleccion_builder.py` genera un casillero d
 pantalla, lector QR y letrero (`assets/punto_recoleccion.glb`). La moto es `Moto_Reparto` de
 `vehiculos.glb`. `unidad_layout.json` incluye `locker`.
 
+### CENADI · entradas y salidas de vehículos (`cenadi.html`)
+
+`js/yard-sim.js` (motor), `js/cenadi3d.js` (escena) y `js/cenadi.js` (página). Simula un día tipo del
+Centro Nacional de Distribución del ISSSTE (operado por Birmex): proveedores que llegan con o sin cita,
+caseta, patio regulador, 14 andenes de recepción, y la flota propia que carga en 24 andenes de embarque
+y regresa de ruta por la misma caseta. Es una simulación de eventos discretos minuto a minuto,
+determinista con semilla.
+
+Dentro del almacén sigue cada tarima:
+- **Recepción:** un carrito por vehículo baja cada tarima del tráiler a cuarentena frente a su andén
+  (ámbar = por validar). Ya validada (azul) espera un montacargas que la sube al rack.
+- **Embarque:** cada ola se libera al surtido 4 h antes de su salida. Cada tarima ocupa a un surtidor
+  30 min y queda consolidada en el carril de su ruta; la carga empieza cuando la ruta está completa.
+
+Escenarios: **A** actual tipo (sin citas, 8:00 a 14:00, validación en andén, un turno de surtido),
+**B** citas con cupo por ventana y **C** citas con horario de 6:00 a 22:00, validación en cuarentena,
+andenes de red fría, carril de flota y surtido en tres turnos. Cada uno con día **normal**, **pico ×2.5**
+o **contingencia** (un carrito menos y 30 % de llegadas tarde). Todos los parámetros se editan en la
+página.
+
+Pantalla:
+- 3D con 10 vistas (carretera, patio, recepción, cuarentena, rack, picking, carriles, embarque…), techo
+  ocultable y etiquetas por zona con su semáforo.
+- **Dónde se atrasa:** trabajo en proceso por etapa con el más antiguo contra su meta, y la lista de
+  vehículos, lotes y rutas fuera de meta; al tocarlos, la cámara va a ellos.
+- 8 indicadores del día, Gantt de andenes con citas, colas durante el día, agenda de proveedores y de
+  salidas (CSV) y la comparación de los 9 escenarios.
+
+Resultado del día tipo: con el plan A en pico la cola en carretera llega a 22 vehículos y la estancia
+promedio a 2 h 59; con el plan C el mismo pico queda en 3 vehículos y 1 h 01, y todas las salidas
+a tiempo.
+
+Modelo: `assets/cenadi.glb`, de `bodega/nacional/cenadi_builder.py`. Los tráileres fijos del modelo
+sirven de plantilla y se ocultan. Investigación y supuestos: documento "CENADI · Simulación de entradas y
+salidas de vehículos".
+
 ## Estructura
 
 ```

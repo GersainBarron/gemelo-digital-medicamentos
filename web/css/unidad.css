@@ -380,3 +380,11 @@ td.n.part { color: var(--warn); } td.n.den { color: var(--crit); }
 @media (max-width: 1100px) { .lm-kpis { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 860px) { .lm-grid { grid-template-columns: 1fr; } .qr-body { grid-template-columns: 1fr; } .qr-code { max-width: 220px; } }
 @media (max-width: 600px) { .lm-kpis { grid-template-columns: repeat(2, 1fr); } .lm-row { grid-template-columns: 76px 1fr; } .lm-st { grid-column: 2; text-align: left; } }
+
+/* Barra superior con seis vistas: en pantallas medianas la navegación pasa a su propio renglón */
+@media (max-width: 1400px) {
+  .topbar { flex-wrap: wrap; row-gap: 8px; }
+  .topbar .views { order: 3; width: 100%; overflow-x: auto; scrollbar-width: none; margin-left: 0; }
+  .topbar .views::-webkit-scrollbar { display: none; }
+  .topbar .views a { flex: 1 0 auto; }
+}

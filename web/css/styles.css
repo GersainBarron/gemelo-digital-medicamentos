@@ -413,3 +413,38 @@ input[type="search"] { width: 100%; margin-bottom: 10px; -webkit-user-select: te
 .inv-row { display: flex; flex-direction: column; gap: 3px; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); font-size: 12.5px; }
 .inv-row .u-head { display: flex; gap: 8px; align-items: center; } .inv-row .u-head b { flex: 1; } .inv-row time { font-variant-numeric: tabular-nums; font-weight: 700; }
 .inv-row .u-unit, .inv-row .u-item { color: var(--muted, #94a3b8); }
+
+/* ---------- Contratos (contratos-ui.js) ---------- */
+.ct-list { display: grid; gap: 8px; }
+.ct-card { border: 1px solid var(--line); border-radius: 11px; background: rgba(255, 255, 255, 0.03); overflow: hidden; }
+.ct-card.open { border-color: var(--line-strong); }
+.ct-head { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 9px; padding: 10px 10px 6px; cursor: pointer; }
+.ct-title { display: flex; flex-direction: column; min-width: 0; }
+.ct-title b { font-size: 13.5px; }
+.ct-title span { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ct-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px currentColor; color: var(--ok); }
+.ct-dot.warn { background: var(--warn); color: var(--warn); }
+.ct-dot.accent { background: #f97316; color: #f97316; }
+.ct-dot.crit { background: var(--crit); color: var(--crit); animation: ct-blink 1s ease-in-out infinite; }
+@keyframes ct-blink { 50% { opacity: 0.35; } }
+.ct-bolsa { padding: 0 10px 10px 31px; display: grid; gap: 4px; }
+.ct-bolsa span { font-size: 11px; color: var(--faint); }
+.ct-body { padding: 4px 10px 10px; display: grid; gap: 5px; border-top: 1px solid var(--line); }
+.ct-body .kv { font-size: 12px; gap: 10px; }
+.ct-body .kv b { text-align: right; }
+.ct-proc { margin: 4px 0; padding: 8px 10px; border-radius: 9px; border-left: 3px solid var(--crit); background: rgba(248, 113, 113, 0.09); font-size: 12px; line-height: 1.45; color: #e2c4c4; }
+.ct-os { margin-top: 6px; padding: 8px; border-radius: 9px; background: rgba(0, 0, 0, 0.18); }
+.ct-os.focus { outline: 1px solid var(--accent); }
+.ct-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-size: 12px; }
+.ct-row span { color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ct-tab { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11.5px; }
+.ct-tab th { text-align: left; color: var(--faint); font-weight: 600; padding: 2px 4px; }
+.ct-tab td { padding: 4px; border-top: 1px solid var(--line); vertical-align: middle; }
+.ct-tab .n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ct-tab .chip { height: 19px; font-size: 10.5px; padding: 0 6px; }
+.ct-trucks { display: grid; gap: 6px; }
+.ct-truck { padding: 8px; border-radius: 9px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); }
+.ct-sub { font-size: 11.5px; color: var(--muted); margin-top: 3px; line-height: 1.35; }
+.ct-sub .crit { color: var(--crit); }
+.ct-log li { grid-template-columns: 82px 1fr; }
+.ct-nota { font-size: 11px; color: var(--faint); line-height: 1.4; margin: 8px 0 0; }

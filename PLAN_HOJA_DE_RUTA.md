@@ -120,6 +120,36 @@ En Blender se hizo `recoleccion/punto_recoleccion_builder.py`; la moto se anima 
 - **Blender:** punto de recolección o módulo `punto_recoleccion_builder.py`; la moto repartidora de la
   fase 1 se anima en el 3D de la unidad, saliendo del andén.
 
+## Fase 5 · CENADI: patio, andenes y flujo interno (Proyectos 2 y 3, nivel nacional) — HECHO (26 oct, 23:15)
+Resultado (día pico ×2.5, misma semilla):
+- plan A (actual tipo): estancia promedio de 2 h 59, cola máxima en carretera de 22 vehículos y 73 % de
+  salidas a tiempo;
+- plan C (citas, horario de 6:00 a 22:00 y validación en cuarentena): 1 h 01, 3 vehículos y 100 %;
+- plan B (solo citas): sin cola, pero 9 de 55 proveedores sin cupo ese día.
+
+Investigación y supuestos: documento "CENADI · Simulación de entradas y salidas de vehículos"
+(https://claude.ai/artifact/DXzCFe1kFtQMbMDpWHifbg). Datos públicos: 35,000 posiciones, 38 andenes,
+6 antecámaras, ~22 millones de piezas recibidas y ~20 millones enviadas al mes a ~786 unidades.
+- **Código:** `web/js/yard-sim.js` (motor de eventos discretos minuto a minuto, determinista),
+  `web/js/cenadi3d.js` (escena) y `web/js/cenadi.js` + `web/cenadi.html` + `web/css/cenadi.css`.
+- **Flujo:** carretera → caseta → patio regulador → andén → carrito de descarga → cuarentena (validación)
+  → montacargas al rack. Embarque: ola liberada 4 h antes → surtido por tarima → carril de la ruta → carga.
+- **Escenarios:** A, B y C, cada uno en día normal, pico ×2.5 o contingencia (un carrito menos y 30 % de
+  llegadas tarde). Parámetros editables en pantalla.
+- **Pantalla:** 3D con 10 vistas, panel "Dónde se atrasa" con 11 etapas y lista de atrasos ligada a la
+  cámara, 8 KPIs, Gantt de andenes, colas, agenda (proveedores y salidas, CSV) y comparación de escenarios.
+- **Blender:** `nacional/cenadi_builder.py` (CENADI, también en `web/assets/cenadi.glb`),
+  `issste_buenavista/issste_buenavista_builder.py` (oficinas centrales del ISSSTE) y
+  `unidades_tipo/unidades_medicas.py` (CAF, UMF y hospital; sin integrar).
+- **Otros cambios:** enlace "CENADI" en la barra de todas las páginas; en `css/unidad.css`, la navegación
+  pasa a su propio renglón por debajo de 1400 px.
+
+Pendiente:
+- conectar las llegadas de proveedor con los arribos de `network-sim.js`;
+- medir una semana real de descarga, validación y surtido y sustituir los supuestos;
+- separar los tipos de unidad en builders e integrarlos al mapa de red;
+- el 3D solo se probó con renderizador de software: revisar fluidez en el iPad (el modelo pesa 5.5 MB).
+
 ## Cierre de cada fase
 - Probar en el navegador (PC 1366 px e iPad 820/1180 px) y revisar errores de consola.
 - Actualizar `web/README.md`, el documento de investigación y, si aplica, el Excel.
@@ -133,7 +163,7 @@ En Blender se hizo `recoleccion/punto_recoleccion_builder.py`; la moto se anima 
 - **Escenario:** `?esc=normal|contingencia`, que también se guarda en localStorage (`js/scenario-ui.js`).
 - **Simulación determinista:** `js/supply.js` (`UnitSupply`), donde el día 0 es el lunes 26 oct 2026.
   `makeCalendar` reutiliza `Ops.buildDay`.
-- **Blender:** 5.2 en español. Buscar los nodos por `bl_idname`. Exportar glTF en una llamada aparte
+- **Blender:** 5.2 en español. Buscar los nodos por `bl_idname` (los scripts que buscan "Principled BSDF" por nombre fallan). Exportar glTF en una llamada aparte
   después de `read_homefile` (si no, falla el contexto).
 - **Navegador de prueba:** si el panel está oculto, `requestAnimationFrame` no corre. Para probar, usar
   `window.__unidad.refresh(true)` y `window.__mapa.renderAll(true)`.

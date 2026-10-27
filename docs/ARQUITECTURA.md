@@ -53,6 +53,11 @@ flowchart LR
 | `js/mapa.js` | Vista de la red estatal: mapa SVG de Hidalgo y pestañas |
 | `js/unidad.js`, `js/unit3d.js` | Vista de la unidad: indicadores, tablas, gráficas y escena 3D (personas, moto, casillero, jefatura) |
 | `js/scenario-ui.js` | Escenario, método de pedido y pedido automático compartidos entre vistas (URL + `localStorage`) |
+| `js/contratos.js` | Motor de contratos (sin DOM): 8 contratos abiertos, órdenes de suministro multipartida a partir de los pedidos del inventario, dictamen de andén por partida, pena diaria sobre lo no entregado, bolsa de penas contra la fianza, entrega trunca, rescisión en días hábiles y rescate del segundo lugar. Pruebas: `node tests/contratos.test.mjs [normal|contingencia]` |
+| `js/contratos-3d.js` | Patio de proveedores (`contratos_patio.glb`): camiones por remisión (patio → andén R2/R3 → salida, posición = f(t)), semáforos de andén, tablero de contratos, tarimas devueltas y pilas de expedientes por ventanilla |
+| `js/contratos-ui.js` | Pestaña "Contratos": bolsa de penas por contrato, órdenes abiertas con sus partidas, camiones del día y bitácora con número de documento |
+| `contratos.html`, `js/contratos-page.js` | Ventana de gestión: periodo (ayer, 7, 30, 90 días, vigencia o fechas) y contrato; 8 indicadores con comparación contra el periodo anterior, alertas al corte, gasto y pagos por día, penas y rechazos, avance contra mínimo y máximo con proyección, desempeño por proveedor, revisión de un día y exportación a CSV y JSON (`ExpedienteMaestro`). Abre con el corte del CEDIS (`?t=`) |
+| `expedientes.html`, `js/expedientes.js` | Simulación del recorrido: cada OS es una ficha que viaja por 12 etapas (emisión, proveedor, patio, andén, almacén, factura, pago, cierre y los desvíos mora, devolución, incumplimiento y rescate del segundo lugar) según `etapaOS(os, t)`. Reproducción a 1 h/s – 3 días/s, línea de tiempo, filtro por contrato o incidencias, seguimiento de una OS con su línea de vida (documentos y plazos por etapa), movimientos en vivo y tiempo promedio por etapa |
 
 ## Modelo de simulación
 
@@ -109,6 +114,22 @@ aleatorios salen de `mulberry32` con una semilla formada por el CLUES y el día.
 - **Moto:** 2 salidas al día, con 18 paradas y 4 h como máximo por salida.
 - **Comprobante:** QR.
 
+**Contratos** (`contratos.js`).
+- **Origen:** cada pedido semanal del inventario del CEDIS se vuelve una orden de suministro del contrato de su clave; un
+  pedido retrasado se explica como retraso o como rechazo en el primer arribo (el reemplazo llega cuando el inventario
+  recibe) y un pedido parcial es una entrega trunca. Así el inventario y los contratos nunca se contradicen.
+- **Pena:** 2.5 % diario sobre el valor pendiente de cada partida, desde el día siguiente al vencimiento (acuse + plazo de
+  la clave) hasta que se entrega o se notifica la imposibilidad. La bolsa del contrato se recalcula en cada instante.
+- **Rescisión:** por imposibilidad de entrega (contingencia) o al alcanzar la garantía; 5 días hábiles para alegar
+  (art. 77 LAASSP), resolución y orden de rescate al segundo lugar si su precio difiere ≤ 10 % (art. 54 fr. VI).
+- **Pagos:** una factura por entrega aceptada; pago dentro de 17 días hábiles desde la verificación (art. 73) en la
+  mayoría de los casos. La pena de la partida se cobra antes del pago que la cierra (art. 141 RLAASSP); si la partida se
+  rescinde, la pena no se cobra y se hace efectiva la garantía.
+- **Indicadores:** `kpis(d0, d1, contrato, corte)`, `serie()`, `avance()` y `dia()`. El cumplimiento es piezas a tiempo ÷
+  piezas de las partidas que vencieron, como el Sistema de Monitoreo al Cumplimiento del Abasto (DOF 09-02-2026).
+- **Fundamento:** LAASSP (DOF 16-04-2025) y su Reglamento (DOF 18-12-2025): arts. 54, 68, 73, 75 y 77. La tasa de pena,
+  el plazo de entrega y la deducción por saldo son supuestos del modelo de contrato.
+
 ## Puntos de integración (`>>> API`)
 
 | Punto | Archivo | Qué se conecta |
@@ -118,6 +139,7 @@ aleatorios salen de `mulberry32` con una semilla formada por el CLUES y el día.
 | Existencias y arribos del CEDIS | `network-sim.js` | WMS del CEDIS y órdenes de compra |
 | Pronóstico | `forecast.js` | Modelo de IA (misma interfaz `forecastSeries`) |
 | Pedido extraordinario | `docs/pedido-extraordinario.schema.json` | Contrato tipo FHIR SupplyRequest |
+| Contratos, órdenes y dictámenes de andén | `contratos.js` | Sistema de compras (contratos y OS) y WMS (recepción); `expediente()` ya entrega el formato `ExpedienteMaestro` |
 | Domicilios y avisos a pacientes | `lastmile.js` | Expediente (con consentimiento) y SMS/WhatsApp |
 | Distancias | `routing.js`, `lastmile.js` | Matriz de carretera (OSRM) |
 

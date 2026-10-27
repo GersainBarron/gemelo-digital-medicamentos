@@ -17,6 +17,9 @@ import { UnitSupply, makeCalendar } from './supply.js';
 import { CedisLink } from './cedis-link.js';
 import { initScenario } from './scenario-ui.js';
 import { installInventory } from './network-sim.js';
+import { Contratos } from './contratos.js';
+import { Contratos3D } from './contratos-3d.js';
+import { ContratosUI } from './contratos-ui.js';
 
 const MODEL_URL = 'assets/almacen_medicamentos.glb';
 const LAYOUT_URL = 'assets/warehouse_layout.json';
@@ -118,9 +121,22 @@ async function init() {
     fetch('assets/slot_claves.json').then(r => r.json()).then(j => { app.slotClaves = j.slots; }).catch(() => {});
     app.link = app.ops.link = new CedisLink(app.ops, cat);
     app.link.tick(app.ops.now, true);
+    // Contratos, órdenes de suministro y patio de proveedores (contratos.js + contratos_patio.glb)
+    try {
+      app.contratos = new Contratos(app.inv, cat);
+      app.c3d = new Contratos3D(app, app.contratos);
+      app.cUI = new ContratosUI(app, app.contratos, app.c3d, { onFocusPatio: () => flyTo('patio') });
+      app.c3d.onPick = e => {
+        if (e.type === 'os') app.cUI.show(e.cam.os.contrato, e.os);     // camión → su orden de suministro
+        else app.cUI.show(e.id);                                        // lámpara del tablero → contrato
+      };
+      app.c3d.load().catch(err => console.warn('Sin patio de proveedores', err));
+    } catch (err) { console.warn('Sin motor de contratos', err); }
   }).catch(err => { console.warn('Sin enlace con unidades', err); app.ops.autoRandom = true; });
   document.getElementById('go-map').addEventListener('click', e => { e.currentTarget.href = `mapa.html?t=${Math.floor(app.sim.time)}`; });
   document.getElementById('go-unit').addEventListener('click', e => { e.currentTarget.href = `unidad.html?t=${Math.floor(app.sim.time)}`; });
+  for (const id of ['go-contracts', 'ct-open']) document.getElementById(id)?.addEventListener('click', e => { e.currentTarget.href = `contratos.html?t=${Math.floor(app.sim.time)}`; });
+  document.getElementById('ct-rec')?.addEventListener('click', e => { e.currentTarget.href = `expedientes.html?t=${Math.floor(app.sim.time)}`; });
   app.opsUI = new OpsUI(app.ops, { onShowUnit: (u, rows) => showUnit(u, rows) });
   const baseAlerts = app.sim.alerts.bind(app.sim);
   app.sim.alerts = () => [...app.ops.alerts(), ...baseAlerts()];
@@ -138,6 +154,7 @@ async function init() {
   app.renderer.setAnimationLoop(now => {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     app.sim.update(dt);
+    app.c3d?.update(app.ops.now);
     stepFlight(dt);
     stepFollow();
     const moving = app.sim.running || app.flight || app.controls._moving;
@@ -153,6 +170,7 @@ async function init() {
       kpiAcc = 0;
       app.ops.update();
       app.link?.tick(app.ops.now);
+      app.cUI?.update(0.25);
       app.ui.updateKPIs(app.sim);
       app.opsUI.update();
       app.ui.setClock(app.ops.clockLabel());
@@ -503,12 +521,14 @@ const PRESET_META = [
   { id: 'Camera_Dispatch', label: 'Despacho', icon: '⇡' },
   { id: 'cold', label: 'Cuarto frío', icon: '❄' },
   { id: 'Camera_Exterior', label: 'Exterior', icon: '⌂' },
+  { id: 'patio', label: 'Patio y contratos', icon: '⛟' },
 ];
 function PRESETS_LIST() { return PRESET_META; }
 
 function presetData(id) {
   const cams = app.layout.cameras;
   if (id === 'aerial') return { pos: b2t(25, -26, 52), target: b2t(25, 14, 0), lens: 24, roof: false };
+  if (id === 'patio') return { pos: b2t(4, -66, 30), target: b2t(6, -6, 0), lens: 26, roof: false };
   if (id === 'cold') return { pos: b2t(40.5, 18.0, 6.5), target: b2t(46.0, 24.5, 0.8), lens: 22, roof: false };
   const c = cams[id];
   if (!c) return null;

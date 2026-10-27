@@ -1,0 +1,75 @@
+/* Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT */
+/* Recorrido de expedientes (expedientes.html) */
+.xp { max-width: 1600px; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 14px; align-items: start; }
+.xp-flow { grid-column: 1; grid-row: 1; }
+.xp-side { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 76px; max-height: calc(100vh - 92px); }
+.xp-side .card { min-height: 0; display: flex; flex-direction: column; }
+.xp-side .card:first-child { flex: 1 1 auto; overflow: hidden; }
+.xp-stats { grid-column: 1; }
+@media (max-width: 1100px) { .xp { grid-template-columns: minmax(0, 1fr); } .xp-side { grid-column: 1; grid-row: auto; position: static; max-height: none; } }
+.xp-bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 10px; }
+#tl { flex: 1 1 320px; accent-color: var(--accent); height: 28px; }
+.xp-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.xp-tools select { height: 34px; border-radius: 9px; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line); padding: 0 8px; color-scheme: dark; max-width: 260px; }
+.xp-chk { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.xp-svg svg { display: block; width: 100%; height: auto; user-select: none; }
+.xp-legend { margin-top: 8px; }
+.sw.ck { border-radius: 50%; }
+
+.nd rect.box { fill: #10161d; stroke: rgba(148, 163, 184, 0.22); stroke-width: 1.2; }
+.nd.main rect.box { fill: #131b24; }
+.nd.alt rect.box { stroke-dasharray: 5 4; }
+.nd.bad rect.box { stroke: rgba(248, 113, 113, 0.55); }
+.nd.sel rect.box { stroke: var(--accent); stroke-width: 2; }
+.nd { cursor: pointer; }
+.nd .t { fill: var(--text); font-size: 13px; font-weight: 650; }
+.nd .a { fill: var(--muted); font-size: 10.5px; }
+.nd .dc { fill: var(--faint); font-size: 9.5px; }
+.nd .cnt { fill: var(--text); font-size: 15px; font-weight: 700; text-anchor: end; font-variant-numeric: tabular-nums; }
+.nd .more { fill: var(--muted); font-size: 11px; font-weight: 600; }
+.edge { fill: none; stroke: rgba(148, 163, 184, 0.28); stroke-width: 1.6; marker-end: url(#arw); transition: stroke 0.4s, stroke-width 0.4s; }
+.edge.alt { stroke-dasharray: 5 4; }
+.edge.flash { stroke: var(--accent); stroke-width: 3; }
+.edge.flash.bad { stroke: var(--crit); }
+.edge-l { fill: var(--faint); font-size: 10px; }
+.tok { transition: transform 0.9s cubic-bezier(0.45, 0.05, 0.25, 1), opacity 0.4s; cursor: pointer; }
+.tok circle { stroke-width: 2.5; }
+.tok.sel circle { stroke: #fff; stroke-width: 3; }
+.tok.dim { opacity: 0.16; }
+.tok.new { opacity: 0; }
+.trail { fill: none; stroke: #fff; stroke-width: 2; stroke-dasharray: 2 5; opacity: 0.7; pointer-events: none; }
+
+.xp-sel { overflow-y: auto; font-size: 12.5px; min-height: 0; }
+.xp-sel-btns { display: flex; gap: 6px; }
+.xp-sel .meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin-bottom: 10px; color: var(--muted); }
+.xp-sel .meta b { color: var(--text); font-weight: 600; text-align: right; }
+.steps { list-style: none; margin: 0; padding: 0 0 0 4px; position: relative; }
+.steps li { position: relative; padding: 0 0 10px 20px; border-left: 2px solid rgba(148, 163, 184, 0.18); }
+.steps li:last-child { border-left-color: transparent; }
+.steps li::before { content: ""; position: absolute; left: -6px; top: 2px; width: 10px; height: 10px; border-radius: 50%; background: #10161d; border: 2px solid var(--faint); }
+.steps li.done::before { background: var(--accent); border-color: var(--accent); }
+.steps li.now::before { background: #fff; border-color: #fff; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15); }
+.steps li.bad::before { border-color: var(--crit); }
+.steps li.future { opacity: 0.45; }
+.steps .h { display: flex; justify-content: space-between; gap: 8px; }
+.steps .h b { font-size: 12.5px; }
+.steps .h time { color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.steps .s { color: var(--muted); line-height: 1.4; }
+.steps .s .ok { color: var(--ok); } .steps .s .crit { color: var(--crit); }
+.steps .docs { color: var(--faint); font-size: 11.5px; }
+.list-os { display: grid; gap: 5px; }
+.list-os button { text-align: left; padding: 7px 9px; border-radius: 8px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); display: flex; gap: 8px; align-items: center; font-size: 12.5px; }
+.list-os button:hover { border-color: var(--line-strong); }
+.list-os i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.list-os span { color: var(--muted); margin-left: auto; white-space: nowrap; }
+
+.xp-feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 12px; max-height: 300px; overflow-y: auto; }
+.xp-feed li { display: grid; grid-template-columns: 74px 1fr; gap: 8px; line-height: 1.35; color: #c9d4de; }
+.xp-feed li.bad { color: #f2b8b8; }
+.xp-feed time { color: var(--faint); font-variant-numeric: tabular-nums; }
+.xp-feed b { cursor: pointer; }
+.xp-stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.xp-stat-grid div { padding: 9px 11px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.xp-stat-grid b { display: block; color: var(--text); font-size: 13px; margin-bottom: 2px; }
+.xp-stat-grid em { font-style: normal; color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }
+.xp-stat-grid .bad em { color: var(--crit); }

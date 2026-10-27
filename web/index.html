@@ -53,6 +53,14 @@
         <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 21V8l8-5 8 5v13h-6v-6h-4v6H4zm7-11v2H9v2h2v2h2v-2h2v-2h-2v-2h-2z" fill="currentColor"/></svg>
         <span>Unidad médica</span>
       </a>
+      <a id="go-contracts" class="pill-btn" href="contratos.html" aria-label="Gestión de contratos">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 2h9l5 5v15H6V2zm8 1.5V8h4.5M9 12h8v1.6H9zm0 3.4h8V17H9zm0-6.8h4v1.6H9z" fill="currentColor"/></svg>
+        <span>Contratos</span>
+      </a>
+      <a id="go-cenadi" class="pill-btn" href="cenadi.html" aria-label="CENADI: entradas y salidas de vehículos">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M2 17V8h11v9H2zm12 0v-6h4l4 3v3h-8zM5 20.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm13 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" fill="currentColor"/></svg>
+        <span>CENADI</span>
+      </a>
       <button id="btn-layers" class="pill-btn" aria-label="Capas">
         <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 3 2 8l10 5 10-5-10-5zm-8.2 9L2 13l10 5 10-5-1.8-1L12 16l-8.2-4zm0 4L2 17l10 5 10-5-1.8-1L12 20l-8.2-4z" fill="currentColor"/></svg>
         <span>Capas</span>
@@ -83,6 +91,7 @@
       <button data-tab="urgencias">Urgencias<em id="urg-count" class="badge"></em></button>
       <button data-tab="inventario">Inventario</button>
       <button data-tab="autorizacion">Autorización<em id="aut-count" class="badge"></em></button>
+      <button data-tab="contratos">Contratos<em id="ct-count" class="badge"></em></button>
     </nav>
 
     <div class="tab-page active" data-page="almacen">
@@ -209,6 +218,33 @@
       </section>
       <section class="card">
         <div id="aut-list" class="inv-list"></div>
+      </section>
+    </div>
+
+    <div class="tab-page" data-page="contratos">
+      <section class="card">
+        <h3>Contratos y órdenes de suministro <small class="muted">expediente vivo</small></h3>
+        <div class="tiles three">
+          <div class="tile"><b id="ct-risk">—</b><span>Contratos en riesgo o rescisión</span></div>
+          <div class="tile"><b id="ct-os">—</b><span>Órdenes abiertas</span></div>
+          <div class="tile"><b id="ct-penas">—</b><span>Penas devengadas</span></div>
+        </div>
+        <button id="ct-patio" class="pill-btn wide"><span>Ver patio de proveedores y tablero</span></button>
+        <a id="ct-open" class="pill-btn wide" href="contratos.html"><span>Abrir gestión: días anteriores, gasto e indicadores</span></a>
+        <a id="ct-rec" class="pill-btn wide" href="expedientes.html"><span>Ver la simulación del recorrido de los expedientes</span></a>
+        <p class="muted sub">Cada pedido del CEDIS es una orden de suministro multipartida. La pena diaria (2.5 %) corre solo sobre lo no entregado de cada partida; la barra compara la bolsa de penas con la fianza (10 % del monto máximo). Toca un contrato para ver sus órdenes, o una lámpara del tablero en la escena.</p>
+      </section>
+      <section class="card">
+        <div id="ct-list" class="ct-list"></div>
+      </section>
+      <section class="card">
+        <h3>Camiones de proveedor hoy <small id="ct-trucks-sum"></small></h3>
+        <div id="ct-trucks" class="ct-trucks"></div>
+      </section>
+      <section class="card">
+        <h3>Bitácora del expediente</h3>
+        <ul id="ct-log" class="log ct-log"></ul>
+        <p id="ct-nota" class="ct-nota"></p>
       </section>
     </div>
 

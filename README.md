@@ -24,12 +24,13 @@ El trabajo está organizado según la hoja de ruta del Consejo Asesor:
 
 ![CEDIS en Blender](renders/Camera_Overview.png)
 
-## Las tres vistas
+## Las vistas
 
 | Vista | Archivo | Qué muestra |
 |---|---|---|
 | **CEDIS 3D** | `web/index.html` | Almacén con montacargas, AGV y picking animados. Pestañas: entradas, salidas, unidades, urgencias, inventario y bandeja de autorización. Capas de ocupación y de cobertura por clave |
 | **Red estatal** | `web/mapa.html` | Mapa de Hidalgo con semáforo de las 60 unidades, camionetas en ruta, desabasto, rutas y costos, inventario y asignación, alertas, redistribución, trazabilidad de lotes y pronóstico |
+| **CENADI · Entradas y salidas** | `web/cenadi.html` | Centro Nacional de Distribución en 3D: proveedores con o sin cita, caseta, patio, andenes, carritos de descarga, cuarentena, subida a rack, picking, carriles y carga de la flota. Panel "Dónde se atrasa" por etapa, 8 indicadores, Gantt de andenes, colas, agenda y comparación de 9 escenarios |
 | **Unidad médica** | `web/unidad.html` | Hospital 3D con pacientes y enfermeras: al tocar a una persona se ven sus medicamentos. Incluye indicadores, recetas completas, parciales y negadas, 60 claves con kárdex, lotes y pronóstico, alertas, pedidos extraordinarios y entregas a pacientes |
 
 Las tres vistas usan la misma simulación determinista, así que una alerta que ve la unidad en el iPad es la misma
@@ -72,6 +73,9 @@ Parámetros de la URL, compartidos por las tres vistas:
 | 4 · Última milla (HGZMF 1, 30 días) | Visitas a farmacia evitadas | — | 364 |
 | | Horas de pacientes ahorradas | — | ~529 |
 | | Costo por entrega a domicilio | — | ~$47 |
+| 5 · Patio del CENADI (día pico ×2.5) | Estancia promedio, caseta a caseta | 2 h 59 (plan A) | 1 h 01 (plan C) |
+| | Cola máxima en carretera | 22 vehículos | 3 vehículos |
+| | Salidas de la flota a tiempo | 73 % | 100 % |
 
 Detalle y método en [docs/RESULTADOS.md](docs/RESULTADOS.md).
 
@@ -86,7 +90,7 @@ Detalle y método en [docs/RESULTADOS.md](docs/RESULTADOS.md).
 │   ├── DATOS.md                 fuentes, supuestos y contrato de datos
 │   └── RESULTADOS.md            indicadores por fase y cómo reproducirlos
 ├── web/                         visor (HTML + JS, sin compilación)
-│   ├── index.html · mapa.html · unidad.html
+│   ├── index.html · mapa.html · unidad.html · contratos.html · expedientes.html · cenadi.html
 │   ├── js/                      simulación, optimización y vistas
 │   ├── css/  assets/  vendor/   estilos, modelos .glb y datos, librerías
 │   ├── docs/pedido-extraordinario.schema.json   contrato tipo FHIR SupplyRequest
@@ -97,6 +101,9 @@ Detalle y método en [docs/RESULTADOS.md](docs/RESULTADOS.md).
 ├── vehiculos/                   camionetas seca y refrigerada y moto de reparto
 ├── regional/                    almacén regional tipo
 ├── recoleccion/                 casillero 24 h para entrega de medicamentos
+├── nacional/                    CENADI, Centro Nacional de Distribución (cenadi_builder.py)
+├── issste_buenavista/           oficinas centrales del ISSSTE (torre de Buenavista)
+├── unidades_tipo/               CAF, UMF y hospital tipo (sin integrar)
 ├── renders/                     vistas previas
 └── investigacion/               unidades CLUES de Hidalgo, contorno del estado y Excel de contingencia
 ```
@@ -119,6 +126,7 @@ Cada carpeta de Blender incluye el script que construye el modelo, el `.blend` y
 - Conectar datos reales en los puntos marcados `>>> API`: WMS del CEDIS, farmacia de las unidades y órdenes de compra.
 - Sustituir las distancias en línea recta (× 1.35) por una matriz de carretera (OSRM).
 - Agregar el inventario propio de los almacenes regionales (el modelo 3D ya existe).
+- Conectar las llegadas de proveedor del CENADI con los arribos de `network-sim.js` y medir tiempos reales de descarga, validación y surtido.
 - Sustituir Holt-Winters por un modelo de aprendizaje automático con clima, epidemiología y calendario.
 
 ## Autoría y licencia

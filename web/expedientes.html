@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Gersain Barron">
+  <meta name="copyright" content="© 2026 Gersain Barron · Licencia MIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1117">
+  <title>Recorrido de expedientes · Contratos</title>
+  <link rel="stylesheet" href="css/unidad.css">
+  <link rel="stylesheet" href="css/contratos.css">
+  <link rel="stylesheet" href="css/expedientes.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <b>Recorrido de expedientes</b>
+        <span>Gemelo digital · <em class="author">Gersain Barron</em> · cada orden de suministro por todas sus etapas</span>
+      </div>
+    </div>
+    <nav class="views" aria-label="Vistas">
+      <a id="go-cedis" href="index.html">CEDIS 3D</a>
+      <a href="mapa.html">Red estatal</a>
+      <a id="go-contracts" href="contratos.html">Contratos</a>
+      <a class="active" href="expedientes.html" aria-current="page">Recorrido</a>
+      <a href="cenadi.html">CENADI</a>
+    </nav>
+    <div class="sim">
+      <button id="btn-play" class="icon-btn primary" aria-label="Pausar"></button>
+      <div id="speed" class="speed" role="group" aria-label="Velocidad">
+        <button data-s="3600">1 h/s</button><button data-s="21600">6 h/s</button><button data-s="86400" class="active">1 día/s</button><button data-s="259200">3 días/s</button>
+      </div>
+      <div class="clock-box">
+        <span id="clock" class="clock">—</span>
+        <span id="sim-status" class="sim-status">Reproduciendo</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="xp">
+    <section class="card xp-flow">
+      <div class="xp-bar">
+        <input id="tl" type="range" min="0" max="1" step="1800" aria-label="Línea de tiempo">
+        <div class="xp-tools">
+          <select id="f-k"><option value="">Todos los contratos</option></select>
+          <label class="xp-chk"><input id="f-inc" type="checkbox"> Solo con incidencias</label>
+          <button id="btn-hoy" class="btn">Ir al corte</button>
+        </div>
+      </div>
+      <div id="flow" class="xp-svg"></div>
+      <div id="legend" class="legend xp-legend"></div>
+    </section>
+
+    <aside class="xp-side">
+      <section class="card" id="sel-card">
+        <div class="card-h"><h2 id="sel-title">Expediente</h2><div class="xp-sel-btns"><button id="sel-next" class="btn" hidden>Siguiente paso ›</button><button id="sel-x" class="btn" hidden>✕</button></div></div>
+        <div id="sel-body" class="xp-sel"><p class="muted">Toca una ficha para seguir su orden de suministro, o una etapa para ver qué expedientes hay en ella.</p></div>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Movimientos <small>en vivo</small></h2></div>
+        <ul id="feed" class="xp-feed"></ul>
+      </section>
+    </aside>
+
+    <section class="card xp-stats">
+      <div class="card-h"><h2>Tiempo en cada etapa <small id="st-sub">expedientes cerrados en los 90 días previos al instante mostrado</small></h2></div>
+      <div id="stats" class="xp-stat-grid"></div>
+    </section>
+  </main>
+  <div id="tip" class="tip" hidden></div>
+  <div id="loading" class="ct-loading">Armando expedientes…</div>
+  <script type="module" src="js/expedientes.js"></script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Gersain Barron">
+  <meta name="copyright" content="© 2026 Gersain Barron · Licencia MIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d1117">
+  <title>CENADI · Entradas y salidas</title>
+  <link rel="stylesheet" href="css/unidad.css">
+  <link rel="stylesheet" href="css/cenadi.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/jsm/" } }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <b>CENADI · Entradas y salidas</b>
+        <span>Gemelo digital · <em class="author">Gersain Barron</em> · patio, andenes, rack y picking</span>
+      </div>
+    </div>
+    <nav class="views" aria-label="Vistas">
+      <a href="index.html">CEDIS 3D</a>
+      <a href="mapa.html">Red estatal</a>
+      <a href="unidad.html">Unidad médica</a>
+      <a href="contratos.html">Contratos</a>
+      <a href="expedientes.html">Recorrido</a>
+      <a class="active" href="cenadi.html" aria-current="page">CENADI</a>
+    </nav>
+    <div class="sim">
+      <button id="btn-play" class="icon-btn primary" aria-label="Pausar"></button>
+      <div class="speed" role="group" aria-label="Velocidad">
+        <button data-speed="60">60×</button><button data-speed="300">300×</button><button data-speed="900">900×</button><button data-speed="1800">1800×</button>
+      </div>
+      <div class="clock-box">
+        <span id="clock" class="clock">—</span>
+        <span id="sim-status" class="sim-status">Día tipo · simulado</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Escenario -->
+    <section class="card cn-scn">
+      <div class="cn-scn-top">
+        <div class="f-group">
+          <label>Plan de recepción</label>
+          <div id="scn" class="seg">
+            <button data-s="A" class="active">A · Actual tipo</button><button data-s="B">B · Citas</button><button data-s="C">C · Citas + horario</button>
+          </div>
+        </div>
+        <div class="f-group">
+          <label>Tipo de día</label>
+          <div id="mod" class="seg">
+            <button data-m="normal" class="active">Normal</button><button data-m="pico">Pico ×2.5</button><button data-m="contingencia">Contingencia</button>
+          </div>
+        </div>
+        <div class="f-group cn-time">
+          <label for="t-range">Hora <b id="t-label">—</b></label>
+          <input id="t-range" type="range" min="0" max="1439" step="1" value="420">
+          <div class="cn-jumps">
+            <button data-j="open">Apertura</button><button data-j="peak">Más cola</button><button data-j="close">Cierre</button>
+          </div>
+        </div>
+      </div>
+      <p id="scn-desc" class="muted cn-desc"></p>
+      <details id="params" class="cn-params">
+        <summary>Parámetros <small>cambia y la simulación se recalcula</small></summary>
+        <div id="param-grid" class="cn-pgrid"></div>
+        <div class="cn-pfoot"><button id="p-reset" class="seg-btn" type="button">Restablecer el escenario</button><span id="p-cupo" class="muted"></span></div>
+      </details>
+    </section>
+
+    <!-- 3D -->
+    <section class="card u3d-card">
+      <div class="card-h wrap">
+        <h2>CENADI en 3D <small>toca un vehículo o una etiqueta de zona</small></h2>
+        <div class="cn-3dtools">
+          <div id="v3d" class="seg cn-scroll">
+            <button data-v="general" class="active">General</button><button data-v="carretera">Carretera</button><button data-v="patio">Patio</button>
+            <button data-v="recepcion">Recepción</button><button data-v="cuarentena">Cuarentena</button><button data-v="racks">Rack</button>
+            <button data-v="picking">Picking</button><button data-v="carriles">Carriles</button><button data-v="embarque">Embarque</button><button data-v="interior">Interior</button>
+          </div>
+          <button id="btn-roof" class="seg-btn" type="button">Techo</button>
+        </div>
+      </div>
+      <div id="c3d" class="u3d cn-3d"><div class="u3d-loading">Cargando el modelo del CENADI…</div></div>
+      <div class="legend u3d-legend">
+        <span><i class="sw" style="background:#f87171"></i>En carretera</span>
+        <span><i class="sw" style="background:#fbbf24"></i>En patio</span>
+        <span><i class="sw" style="background:#34d399"></i>Descargando</span>
+        <span><i class="sw" style="background:#60a5fa"></i>Validación</span>
+        <span><i class="sw" style="background:#a78bfa"></i>Papeles</span>
+        <span><i class="sw" style="background:#2dd4bf"></i>Flota cargando</span>
+        <span class="cn-lg-sep"></span>
+        <span><i class="sw" style="background:#f59e0b"></i>Tarima por validar</span>
+        <span><i class="sw" style="background:#60a5fa"></i>Por subir a rack</span>
+        <span><i class="sw" style="background:#5eead4"></i>Consolidada en carril</span>
+        <span><i class="sw" style="background:#fb923c"></i>Ruta atrasada</span>
+        <span class="cn-lg-sep"></span>
+        <span><i class="sw" style="background:#f59e0b;border-radius:50%"></i>Carrito de descarga y carga</span>
+        <span><i class="sw" style="background:#eab308;border-radius:50%"></i>Montacargas de rack</span>
+        <span><i class="sw" style="background:#f472b6;border-radius:50%"></i>Surtidor</span>
+      </div>
+    </section>
+
+    <!-- Dónde se atrasa -->
+    <section class="card">
+      <div class="card-h">
+        <h2>Dónde se atrasa <small id="flow-sub">trabajo en proceso por etapa a esta hora · toca una etapa para verla en 3D</small></h2>
+        <div class="legend"><span><i class="dot ok"></i>Dentro de meta</span><span><i class="dot warn"></i>Arriba de meta</span><span><i class="dot crit"></i>50 % arriba de meta</span></div>
+      </div>
+      <div class="cn-flow"><span class="cn-flow-t">Recepción</span><div id="flow-rec" class="cn-stages"></div></div>
+      <div class="cn-flow"><span class="cn-flow-t">Embarque</span><div id="flow-emb" class="cn-stages"></div></div>
+      <h3 class="cn-h3">Atrasos ahora <small id="delay-sub"></small></h3>
+      <div id="delays" class="cn-delays"></div>
+    </section>
+
+    <!-- Indicadores -->
+    <section id="kpis" class="kpis" aria-label="Resultado del día"></section>
+
+    <div class="split">
+      <section class="card">
+        <div class="card-h">
+          <h2>Andenes de recepción <small>ocupación real y citas</small></h2>
+          <div class="legend">
+            <span><i class="sw" style="background:#a3e635"></i>Atraque</span><span><i class="sw" style="background:#f59e0b"></i>Espera montacargas</span>
+            <span><i class="sw" style="background:#34d399"></i>Descarga</span><span><i class="sw" style="background:#60a5fa"></i>Validación</span><span><i class="sw" style="background:#a78bfa"></i>Papeles</span>
+            <span><i class="mk"></i>Cita</span>
+          </div>
+        </div>
+        <div id="gantt" class="chart"></div>
+      </section>
+      <section class="card">
+        <div class="card-h">
+          <h2>Colas durante el día <small>vehículos</small></h2>
+          <div class="legend"><span><i class="sw" style="background:#f87171"></i>Carretera</span><span><i class="sw" style="background:#fbbf24"></i>Patio</span><span><i class="sw line" style="background:#2dd4bf"></i>Andenes ocupados</span></div>
+        </div>
+        <div id="qchart" class="chart"></div>
+        <p id="q-note" class="note"></p>
+      </section>
+    </div>
+
+    <!-- Agenda -->
+    <section class="card">
+      <div class="card-h wrap">
+        <h2>Agenda del día <small id="ag-sub"></small></h2>
+        <div class="rx-tools">
+          <div id="ag-tab" class="seg"><button data-a="prov" class="active">Proveedores</button><button data-a="sal">Salidas</button></div>
+          <div id="ag-f" class="seg"><button data-f="all" class="active">Todos</button><button data-f="now">En curso</button><button data-f="late">Atrasados</button><button data-f="miss">Faltas y reprogramados</button></div>
+          <button id="ag-csv" class="seg-btn" type="button">CSV</button>
+        </div>
+      </div>
+      <div id="agenda" class="m-table"></div>
+    </section>
+
+    <!-- Comparación -->
+    <section class="card">
+      <div class="card-h"><h2>Comparación de escenarios <small>resultado del día completo · toca una fila para cargarla</small></h2></div>
+      <div id="compare" class="m-table"><p class="empty">Calculando…</p></div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><h2>Cómo se calcula</h2></div>
+      <div class="cn-defs">
+        <p>Simulación de eventos discretos minuto a minuto, determinista con semilla (mismo día cada vez). Cada vehículo pasa por recursos con capacidad limitada: carriles de caseta, cajones de patio, andenes, montacargas para descargar, validadores, montacargas de rack, surtidores y cuadrillas de carga.</p>
+        <p><b>Cupo de citas por ventana</b> = ⌊andenes × minutos de la ventana ÷ tiempo medio en andén × (1 − holgura)⌋. Un proveedor sin hueco en el día queda reprogramado. Un vehículo que llega tarde pasa al siguiente andén libre.</p>
+        <p><b>Recepción</b>: maniobra 5 min, descarga 10 min + 2 min por tarima (un carrito por vehículo), validación 15 min + 1.5 min por tarima con 5 % de incidencias de 45 min, papeles 10 min. Con validación en cuarentena el vehículo sale al terminar la descarga. Cada tarima validada espera un montacargas para subir al rack (4 min).</p>
+        <p><b>Embarque</b>: cada ola se libera al surtido 4 h antes de su salida; cada tarima ocupa a un surtidor 30 min y queda consolidada en el carril de su ruta; la carga empieza cuando la ruta está completa (15 min + 1.5 min por tarima). Una salida es a tiempo si cruza la caseta hasta 15 min después de lo programado.</p>
+        <p>Volúmenes y andenes: datos públicos del CENADI (ISSSTE-Birmex). Tiempos, horarios y mezcla de vehículos: supuestos editables. Detalle y fuentes en el documento <a href="https://claude.ai/artifact/DXzCFe1kFtQMbMDpWHifbg" target="_blank" rel="noopener">CENADI · Simulación de entradas y salidas de vehículos</a>.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="tip" class="tip" hidden></div>
+  <div id="loading" class="loading">Calculando el día…</div>
+  <script type="module" src="js/cenadi.js"></script>
+</body>
+</html>

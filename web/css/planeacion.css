@@ -216,3 +216,18 @@ textarea { font: inherit; }
   .ig-sug { grid-template-columns: minmax(0, 1fr) auto; }
   .ig-sug .muted { display: none; }
 }
+
+/* ---------- Mi tablero */
+.mt-row { display: grid; grid-template-columns: 12px minmax(180px, 1fr) minmax(0, 1.6fr) auto; gap: 12px; align-items: start; padding: 12px 0; border-top: 1px solid var(--line); }
+.mt-sem { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; background: var(--ok); }
+.mt-sem.warn { background: var(--warn); } .mt-sem.crit { background: var(--crit); }
+.mt-who b { display: block; font-size: 14px; }
+.mt-who small { display: block; color: var(--muted); font-size: 12px; }
+.mt-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.mt-why { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.45; }
+.mt-why li { margin: 2px 0; }
+.mt-act { display: flex; gap: 6px; }
+@media (max-width: 800px) {
+  .mt-row { grid-template-columns: 12px minmax(0, 1fr); }
+  .mt-why, .mt-act { grid-column: 2; }
+}

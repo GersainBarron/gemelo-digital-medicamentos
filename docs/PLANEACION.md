@@ -11,6 +11,7 @@ El prototipo responde dos preguntas:
 | Submódulo | Pantallas | Requerimientos |
 |---|---|---|
 | **Planes de necesidad** | Bandeja con búsqueda, filtros y paginador de 15; nuevo plan en 5 pasos (datos, periodo de catálogos, de asignación, de programas especiales y de aprobación, cada uno con responsables); cancelar plan con motivo; consultar plan | RF_C_01 a RF_C_13, RN_04, RN_27 a RN_37 |
+| **Mi tablero** | Pantalla de inicio por rol: a quién llamar hoy y por qué (atraso, calidad o integridad), KPI con semáforo, escalera de avisos y botón de recordatorio que llega a la campana del responsable | Gemelo |
 | **Tablero del plan** | Etapas con color (verde concluida, café en proceso, gris pendiente), fechas, enlaces "Ir al catálogo", editar configuración inicial con motivo | RF_C_14, HU01 S2 |
 | **Catálogos institucionales** | Unidades (1,033 CLUES ISSSTE): personalizar, quitar o regresar, dentro o fuera del plan, finalizar o cancelar la finalización, descarga. Insumos (60 claves CNIS) con detalle, en pestañas de medicamentos y material de curación. Kits en 3 pasos, con insumos exclusivos por kit | RF_C_16 a RF_C_25, RN_08 a RN_26 |
 | **Asignación de insumos** | Vista por delegación, unidad o insumo; asignación automática por pronóstico; asistente de 3 pasos (unidades, insumos, piezas); planeación anual o mensual con propuesta mínima y máxima; carga y descarga CSV con validación; origen "Kit" o "Fuera de kit"; finalizar asignación | HU01 a HU12 S2, RNG-01 a RNG-03 |
@@ -66,6 +67,32 @@ Con el ejemplo (método pronóstico):
 - **Retraso acumulado:** 65 % es de Central, 22 % de las delegaciones y 13 % de las unidades.
 - **Jalisco y Ciudad de México:** el retraso es sobre todo de la delegación.
 - **Ciclo completo:** termina en el día hábil 41, contra una fecha límite de 39.
+
+## Mi tablero: a quién llamar hoy
+
+Ventana `#/p/ID/mitablero` (archivo `web/js/responsables.js`). Responde, según el rol, a quién hay que regañar y por qué.
+- **Cada rol ve solo el nivel de abajo.** Central ve 32 delegaciones y a sus 5 analistas, no 1,033 unidades. La delegación ve sus unidades. La unidad ve lo suyo.
+- **Dos tipos de culpa:**
+    - Directa: quien tiene la petición y ya venció su plazo.
+    - De supervisión: la delegación responde por sus unidades atrasadas, aunque su bandeja esté al día.
+- **Tres cosas que pueden andar mal**, cada una con su remedio:
+    - Atraso: recordatorio.
+    - Calidad (rondas de más, pedido lejos del consumo, costo arriba de la propuesta, aprobar todo sin cambios): revisar o capacitar.
+    - Integridad (alertas de la ventana Integridad del plan): revisión formal.
+- **Semáforo:** al día; con atraso; escalado (una petición pasó al supervisor o hay una alerta de integridad).
+- **Escalera de avisos:**
+    - Al vencer el plazo se avisa a quien tiene la petición.
+    - 3 días después, a su supervisor.
+    - 5 días después llega a Central.
+    - Los días se editan en pantalla. El supervisor de la unidad es su delegación; el de la delegación y el de los analistas, la coordinación de planeación de Central.
+- **Central también aparece.** Cada analista tiene asignadas 6 o 7 delegaciones y su bandeja vencida se muestra aparte, porque en la simulación Central es quien más retrasa.
+- **Recordatorio:** el botón manda el aviso a la campana del responsable y queda en la bitácora.
+- **Responsables por puesto**, no por persona. El directorio con nombres y supervisores es un dato que debe crear la plataforma.
+
+Con el ejemplo, en el día 15:
+- 6 delegaciones están escaladas y las 26 restantes tienen atraso.
+- Central tiene 17,531 peticiones vencidas; 11,909 ya pasaron el nivel de aviso a Central.
+- Jalisco encabeza la lista por tres motivos: 1,238 vencidas en su escritorio, costo 22 % arriba de la propuesta y 2 alertas de sus unidades.
 
 ## Flujo nacional 3D
 

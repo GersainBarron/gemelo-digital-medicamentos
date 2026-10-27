@@ -16,6 +16,7 @@
 // =====================================================================
 import * as E from './plan-engine.js';
 import * as I from './integridad.js';
+import * as RS from './responsables.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -104,6 +105,7 @@ window.addEventListener('hashchange', () => { S.wiz = S.wiz?.keep ? S.wiz : null
 function side(r) {
   const P = r.P, on = v => (r.v === v ? 'on' : '');
   const sub = P ? `<div class="sub">
+    <a class="${on('mitablero')}" href="#/p/${P.id}/mitablero">Mi tablero</a>
     <a class="${on('tablero')}" href="#/p/${P.id}">Tablero del plan</a>
     <a class="${on('unidades')}" href="#/p/${P.id}/unidades">Catálogo de unidades</a>
     <a class="${on('insumos')}" href="#/p/${P.id}/insumos">Catálogo de insumos</a>
@@ -1345,6 +1347,132 @@ BIND.integridad = ({ P }) => {
   $('#ig-md').addEventListener('click', () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([integMD(R, cfg)], { type: 'text/markdown;charset=utf-8' })); a.download = `${P.id}_integridad_datos_ATDT.md`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); });
   $('#ig-csv').addEventListener('click', () => download(`${P.id}_requerimiento_datos.csv`, [['Dato', 'Área que lo genera', 'Frecuencia', 'Campos mínimos', 'Para qué', 'Reglas que habilita', 'Conductas que detecta', 'Frena en la simulación (MXN)', 'Falsas alarmas que evita'],
     ...I.DATOS.map(d => { const rg = I.REGLAS.filter(r => r.datos.includes(d.id)), v = R.valor.find(x => x.id === d.id); return [d.n, d.area, d.frec, d.campos, d.desc, rg.map(r => r.n).join('; '), I.CONDUCTAS.filter(c => c.reglas.some(x => rg.some(r => r.id === x))).map(c => c.n).join('; '), Math.round(v.dFrenado), v.dFp]; })]));
+};
+
+// ---------- Mi tablero: a quién hay que llamar hoy, según el rol
+const TIPO = { atraso: ['Atraso', 'pendiente'], calidad: ['Calidad', 'negociacion'], integridad: ['Integridad', 'rechazado'] };
+const SEM = { ok: 'aprobado', warn: 'pendiente', crit: 'rechazado' }, SEMN = { ok: 'Al día', warn: 'Con atraso', crit: 'Escalado' };
+const semChip = s => `<span class="st ${SEM[s]}">${SEMN[s]}</span>`;
+function mtRow(P, x) {
+  const tipos = [...new Set(x.motivos.map(m => m.tipo))];
+  return `<div class="mt-row"><i class="mt-sem ${x.sem}"></i><div class="mt-who"><b>${esc(x.quien)}</b><small>${esc(x.puesto)}</small>
+    <div class="mt-tags">${tipos.map(t => `<span class="st ${TIPO[t][1]}">${TIPO[t][0]}</span>`).join('')}</div></div>
+    <ul class="mt-why">${x.motivos.map(m => `<li>${esc(m.txt)}</li>`).join('')}</ul>
+    <div class="mt-act">${x.ver ? `<a class="btn sm" href="${x.ver}">Ver</a>` : ''}<button class="btn sm pri" data-rec="${esc(JSON.stringify(x.rec))}">Recordatorio</button></div></div>`;
+}
+function mtLadder(P, R) {
+  const L = R.ladder, e = R.esc;
+  const col = ['Vencida: aviso a quien la tiene', `+${e.sup} días: aviso a su supervisor`, `+${e.central} días: llega a Central`];
+  return `<div class="pl-table"><table><thead><tr><th>Quién la tiene</th>${col.map(c => `<th class="n">${c}</th>`).join('')}</tr></thead><tbody>
+    ${['um', 'del', 'oc'].map(a => `<tr><td style="color:${ACTC[a]};font-weight:650">${ACT[a]}</td>${L[a].map((v, i) => `<td class="n" style="${v && i === 2 ? 'color:var(--crit);font-weight:650' : ''}">${n0(v)}</td>`).join('')}</tr>`).join('')}
+    </tbody></table></div>
+    <p class="note">El supervisor de una unidad es su delegación; el de una delegación y el de un analista, la coordinación de planeación de Oficina Central.</p>
+    <div class="pl-form" style="margin-top:8px"><label>Días después del plazo para avisar al supervisor<input type="number" min="1" max="15" id="esc-sup" value="${e.sup}"></label><label>Días después del plazo para que llegue a Central<input type="number" min="1" max="20" id="esc-central" value="${e.central}"></label></div>
+    <div class="pl-actions" style="justify-content:flex-end;margin-top:8px"><button class="btn sm pri" id="esc-save" ${S.role === 'oc' ? '' : 'disabled title="Solo el Área central"'}>Guardar escalera</button></div>`;
+}
+VIEWS.mitablero = ({ P }) => {
+  const base = [['Planes de necesidad', '#/'], [P.folio, `#/p/${P.id}`], ['Mi tablero']];
+  if (!['validacion', 'finalizado', 'cerrado'].includes(P.status)) return `${crumbs(base)}<div class="card"><p class="empty">Mi tablero arranca en la etapa de aprobación, cuando las peticiones empiezan a circular. Hoy el plan está en "${esc(E.PLAN_ST[P.status])}".</p></div>`;
+  const R = S.mtR = RS.responsables(S.U, P, I.simular(S.U, P, integCfg()));
+  const G = E.seguimiento(S.U, P);
+  const kc = (n, v, s2, sem) => `<div class="kpi ${sem || ''}"><span>${n}</span><b>${v}</b><small><i class="dot"></i>${s2}</small></div>`;
+  const role = ['del', 'um'].includes(S.role) ? S.role : 'oc';
+  let head = '', kpis = [], lista = [], tabla = '', extra = '';
+  if (role === 'oc') {
+    const dels = R.del.map(D => ({ ...D, quien: `Delegación ${D.d.nombre}`, puesto: RS.PUESTO.del(D.d), ver: `#/p/${P.id}/aprobacion/del/${D.d.cve}`, rec: { to: 'del', ent: { cve: D.d.cve }, quien: `Delegación ${D.d.nombre}` } }));
+    const anas = R.ana.map(A => ({ ...A, quien: `Analista ${A.a + 1}`, puesto: `${RS.PUESTO.oc(A.a)} · ${A.dels.map(d => d.abbr).join(', ')}`, ver: `#/p/${P.id}/seguimiento`, rec: { to: 'oc', quien: RS.PUESTO.oc(A.a) } }));
+    lista = dels.filter(x => x.pts > 0).sort((a, b) => b.pts - a.pts);
+    const anaL = anas.filter(x => x.pts > 0).sort((a, b) => b.pts - a.pts);
+    extra = `<section class="card"><div class="card-h"><h2>Dentro de Oficina Central <small>la bandeja de cada analista; Central también se atrasa</small></h2></div>${anaL.length ? anaL.map(x => mtRow(P, x)).join('') : '<p class="empty">Los analistas van al día.</p>'}</section>`;
+    const nd = s => dels.filter(x => x.sem === s).length;
+    const ocV = R.ana.reduce((s, a) => s + a.venc, 0);
+    head = `<span class="eyebrow">Mi tablero · Oficina Central</span><h1>¿A quién hay que llamar hoy?</h1><p>Central ve sus 32 delegaciones y a sus ${RS.ANALISTAS} analistas. De las unidades responde cada delegación: si una unidad se atrasa, aquí aparece su delegación. Central también aparece si su propia bandeja se atrasa.</p>`;
+    kpis = [
+      kc('Delegaciones escaladas', `${nd('crit')} de 32`, `${nd('warn')} con atraso · ${nd('ok')} al día`, nd('crit') ? 'crit' : nd('warn') ? 'warn' : 'ok'),
+      kc('Bandeja de Central vencida', n0(ocV), ocV ? `${R.ana.filter(a => a.venc).length} analistas con atraso` : 'al día', ocV > 1000 ? 'crit' : ocV ? 'warn' : 'ok'),
+      kc('Cierre estimado', G.estimado == null ? '—' : fdate(E.dateOfDay(P, G.estimado)), G.holgura == null ? 'sin ritmo suficiente' : G.holgura >= 0 ? `${G.holgura} días hábiles antes del límite` : `${-G.holgura} días hábiles tarde`, G.holgura == null ? '' : G.holgura >= 2 ? 'ok' : G.holgura >= 0 ? 'warn' : 'crit'),
+      kc('Unidades escaladas a Central', n0(R.unit.filter(u => u.esc2).length), 'se cargan a su delegación', R.unit.some(u => u.esc2) ? 'crit' : 'ok'),
+      kc('Alertas de integridad abiertas', n0(R.del.reduce((s, d) => s + d.alertas.length + d.uAlertas, 0) + R.ana.reduce((s, a) => s + a.alertas.length, 0)), 'de la ventana Integridad del plan', 'warn'),
+    ];
+    tabla = `<section class="card"><div class="card-h"><h2>Todas las delegaciones <small>ordenadas por gravedad</small></h2></div>${table('mt-del', [
+      { h: 'Estado', v: x => ({ crit: 0, warn: 1, ok: 2 })[x.sem], f: x => semChip(x.sem) },
+      { h: 'Delegación', v: x => x.d.nombre, f: x => `<a href="${x.ver}" style="color:var(--accent)">${esc(x.d.nombre)}</a>` },
+      { h: 'Su bandeja vencida', n: true, v: x => x.venc, f: x => n0(x.venc) },
+      { h: 'Unidades vencidas', n: true, v: x => x.uVenc, f: x => `${x.uVenc} de ${x.uTot}` },
+      { h: 'Unidades sin finalizar', n: true, v: x => x.uSinFin },
+      { h: 'Aprueba sin cambios', n: true, v: x => x.sinCambios ?? -1, f: x => (x.sinCambios == null ? '—' : pct(x.sinCambios)) },
+      { h: 'Costo vs propuesta', n: true, v: x => x.desvCosto, f: x => `${x.desvCosto >= 0 ? '+' : ''}${pct(x.desvCosto, 1)}` },
+      { h: 'Alertas', n: true, v: x => x.alertas.length + x.uAlertas },
+    ], dels.sort((a, b) => b.pts - a.pts))}</section>`;
+  } else if (role === 'del') {
+    const D = R.del.find(x => x.d.cve === S.del);
+    const us = D.d.units.map(i => R.unit[i]).filter(x => x.inPlan).map(x => ({ ...x, quien: x.u.nombre, puesto: `${RS.PUESTO.um(x.u)} · ${x.u.clues}`, ver: `#/p/${P.id}/aprobacion/u/${x.u.clues}`, rec: { to: 'um', ent: { clues: x.u.clues, cve: x.u.cve }, quien: x.u.nombre, de: `Delegación ${D.d.nombre}` } }));
+    lista = us.filter(x => x.pts > 0).sort((a, b) => b.pts - a.pts);
+    head = `<span class="eyebrow">Mi tablero · Delegación ${esc(D.d.nombre)}</span><h1>¿Qué unidades hay que empujar hoy?</h1><p>Respondes por tus ${D.uTot} unidades: si una se atrasa, Central te lo carga a ti. Abajo, cómo te ve Oficina Central.</p>`;
+    kpis = [
+      kc('Cómo te ve Central', SEMN[D.sem], D.motivos[0]?.txt || 'sin pendientes vencidos', D.sem),
+      kc('Tu bandeja vencida', n0(D.venc), D.venc ? `la más vieja de ${D.oldest} días · plazo ${P.sla.del} días` : `${n0(D.pend)} pendientes en plazo`, D.esc2 ? 'crit' : D.venc ? 'warn' : 'ok'),
+      kc('Unidades vencidas', `${D.uVenc} de ${D.uTot}`, D.uEsc1 ? `${D.uEsc1} ya escaladas a ti` : 'ninguna escalada', D.uEsc2 ? 'crit' : D.uVenc ? 'warn' : 'ok'),
+      kc('Unidades sin finalizar', n0(D.uSinFin), `fecha límite de las unidades: ${fdate(E.dateOfDay(P, R.L.um))}`, D.uSinFin && R.now > R.L.um ? 'crit' : D.uSinFin ? 'warn' : 'ok'),
+      kc('Alertas de integridad', n0(D.alertas.length + D.uAlertas), `${D.alertas.length} tuyas · ${D.uAlertas} de tus unidades`, D.alertas.length ? 'crit' : D.uAlertas ? 'warn' : 'ok'),
+    ];
+    if (D.motivos.length) extra = `<section class="card"><div class="card-h"><h2>Tú en el tablero de Central</h2></div>${mtRow(P, { ...D, quien: `Delegación ${D.d.nombre}`, puesto: RS.PUESTO.del(D.d), ver: null, rec: { to: 'del', ent: { cve: D.d.cve }, quien: `Delegación ${D.d.nombre}` } })}</section>`;
+    tabla = `<section class="card"><div class="card-h"><h2>Todas tus unidades <small>ordenadas por gravedad</small></h2></div>${table('mt-u', [
+      { h: 'Estado', v: x => ({ crit: 0, warn: 1, ok: 2 })[x.sem], f: x => semChip(x.sem) },
+      { h: 'Unidad', v: x => x.u.nombre, f: x => `<a href="${x.ver}" style="color:var(--accent)">${esc(x.u.nombre)}</a>` },
+      { h: 'Pendientes', n: true, v: x => x.pend },
+      { h: 'Vencidas', n: true, v: x => x.venc },
+      { h: 'Días de la más vieja', n: true, v: x => x.oldest ?? -1, f: x => (x.oldest == null ? '—' : x.oldest) },
+      { h: 'Verificación', v: x => (x.fin ? 1 : 0), f: x => (x.fin ? '<span class="st aprobado">Finalizada</span>' : '<span class="st pendiente">Sin finalizar</span>') },
+      { h: 'Rondas por insumo', n: true, v: x => (x.n ? x.rondas / x.n : 0), f: x => (x.n ? (x.rondas / x.n).toFixed(1) : '—') },
+      { h: 'Pedido vs consumo', n: true, v: x => (x.obs ? x.q / x.obs : 0), f: x => (x.obs ? `${(x.q / x.obs).toFixed(2)}×` : '—') },
+      { h: 'Alertas', n: true, v: x => x.alertas.length },
+    ], us.sort((a, b) => b.pts - a.pts))}</section>`;
+  } else {
+    const ui = S.U.units.findIndex(u => u.clues === S.clues), X = R.unit[ui], u = X.u;
+    const L = R.L, its = E.unitItems(P, u.clues).filter(([, it]) => it.months && E.holderOf(S.U, P, it) === 'um');
+    const lim = X.oldest == null ? null : Math.min(X.fin ? Infinity : L.um, R.now - X.oldest + P.sla.um);
+    head = `<span class="eyebrow">Mi tablero · ${esc(u.nombre)}</span><h1>Lo que tienes pendiente</h1><p>Tu delegación ve esta misma información. Si una petición pasa ${P.sla.um} días hábiles en tu escritorio queda vencida; ${R.esc.sup} días después se avisa a tu delegación y ${R.esc.central} días después llega a Oficina Central.</p>`;
+    kpis = [
+      kc('Cómo te ve tu delegación', SEMN[X.sem], X.motivos[0]?.txt || 'sin pendientes vencidos', X.sem),
+      kc('Pendientes en tu escritorio', n0(X.pend), X.venc ? `${X.venc} vencidas` : 'todas en plazo', X.venc ? 'warn' : 'ok'),
+      kc('Tiempo para responder', lim == null ? '—' : lim - R.now < 0 ? `vencido hace ${R.now - lim} d` : `${lim - R.now} d`, lim == null ? 'nada pendiente' : `fecha límite ${fdate(E.dateOfDay(P, lim))}`, lim == null ? 'ok' : lim - R.now < 0 ? 'crit' : lim - R.now <= 2 ? 'warn' : 'ok'),
+      kc('Rondas por insumo', X.n ? (X.rondas / X.n).toFixed(1) : '—', 'más de 2 indica un pedido mal armado', X.n && X.rondas / X.n > 2 ? 'warn' : 'ok'),
+      kc('Pedido contra consumo', X.obs ? `${(X.q / X.obs).toFixed(2)}×` : '—', 'arriba de 1.5 se revisa', X.obs && X.q / X.obs > 1.5 ? 'warn' : 'ok'),
+    ];
+    tabla = `<section class="card"><div class="card-h"><h2>Peticiones en tu escritorio <small>las más viejas primero</small></h2></div>${table('mt-it', [
+      { h: 'Clave', v: ([, it]) => S.U.claves[it.k].clave, f: ([, it]) => `<span class="mono">${S.U.claves[it.k].clave}</span>` },
+      { h: 'Insumo', v: ([, it]) => S.U.claves[it.k].nombre, f: ([k, it]) => `<a href="#/p/${P.id}/aprobacion/i/${encodeURIComponent(k)}" style="color:var(--accent)">${esc(S.U.claves[it.k].nombre)}</a>` },
+      { h: 'Estado', v: ([, it]) => it.st.um, f: ([, it]) => dict(it.st.um) },
+      { h: 'Días contigo', n: true, v: ([, it]) => R.now - (it.holder === 'um' ? it.since : R.now) },
+      { h: 'Plazo', n: true, v: ([, it]) => P.sla.um - (R.now - (it.holder === 'um' ? it.since : R.now)), f: ([, it]) => { const left = P.sla.um - (R.now - (it.holder === 'um' ? it.since : R.now)); return left <= 0 ? `<span class="st rechazado">vencida</span>` : left <= 1 ? `<span class="st pendiente">${left} d</span>` : `<span class="st aprobado">${left} d</span>`; } },
+    ], its.sort((a, b) => a[1].since - b[1].since), { empty: 'No tienes peticiones pendientes.' })}</section>`;
+  }
+  const top = lista.slice(0, 5);
+  const titulo = role === 'oc' ? 'Hoy habla con estas delegaciones' : role === 'del' ? 'Hoy empuja a' : 'Lo que te van a reclamar';
+  return `${crumbs(base)}${simBar(P)}
+  <section class="card"><div class="pl-head"><div>${head}</div></div></section>
+  <section class="kpis">${kpis.join('')}</section>
+  ${role !== 'um' ? `<section class="card"><div class="card-h wrap"><h2>${titulo} <small>los ${top.length || 0} casos más graves, con el porqué</small></h2>
+    <div class="legend"><span><span class="st pendiente">Atraso</span> no respondió a tiempo: recordatorio</span><span><span class="st negociacion">Calidad</span> pide mal: revisar o capacitar</span><span><span class="st rechazado">Integridad</span> alerta de manipulación: revisión formal</span></div></div>
+    ${top.length ? top.map(x => mtRow(P, x)).join('') : '<p class="empty">Nadie con atraso, problemas de calidad ni alertas. Avanza la simulación para ver cómo se acumulan.</p>'}
+    ${lista.length > 5 ? `<p class="note">${lista.length - 5} más con algún motivo; están en la tabla de abajo.</p>` : ''}</section>` : X_motivos(R)}
+  ${extra}
+  ${role === 'oc' ? `<section class="card"><div class="card-h"><h2>Escalera de avisos <small>peticiones vencidas por nivel de aviso</small></h2></div>${mtLadder(P, R)}</section>` : ''}
+  ${tabla}
+  <p class="note">Los responsables aparecen por puesto. Para nombrarlos, la plataforma necesita un directorio con la persona responsable de cada unidad, delegación y analista, y su supervisor.</p>`;
+};
+function X_motivos(R) {
+  const ui = S.U.units.findIndex(u => u.clues === S.clues), X = R.unit[ui];
+  return `<section class="card"><div class="card-h"><h2>Lo que te van a reclamar <small>lo que ve tu delegación de ti</small></h2></div>${X.motivos.length ? `<ul class="mt-why" style="margin:0">${X.motivos.map(m => `<li><span class="st ${TIPO[m.tipo][1]}">${TIPO[m.tipo][0]}</span> ${esc(m.txt)}</li>`).join('')}</ul>` : '<p class="empty">Nada: vas al día.</p>'}</section>`;
+}
+BIND.mitablero = ({ P }) => {
+  document.querySelectorAll('[data-rec]').forEach(b => b.addEventListener('click', () => {
+    const r = JSON.parse(b.dataset.rec);
+    const row = b.closest('.mt-row'), why = [...row.querySelectorAll('.mt-why li')].map(li => li.textContent).join('; ');
+    commit({ plan: P.id, a: 'recordar', to: r.to, ent: r.ent, quien: r.quien, de: r.de || 'Área central', txt: `Atiende: ${why}` }, { toast: `Recordatorio enviado a ${r.quien}` });
+  }));
+  $('#esc-save')?.addEventListener('click', () => commit({ plan: P.id, a: 'plazos', esc: { sup: Math.max(1, +$('#esc-sup').value || 3), central: Math.max(2, +$('#esc-central').value || 5) } }, { toast: 'Escalera de avisos guardada' }));
 };
 
 // ---------- Programas especiales (HU26 a HU31)

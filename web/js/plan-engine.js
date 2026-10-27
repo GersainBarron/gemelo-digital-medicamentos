@@ -125,7 +125,7 @@ export function newPlan(cfg) {
     unitsOut: new Set(), clavesOut: new Set(), unitsDone: false, clavesDone: false, kitsDone: false, kits: [], programas: [],
     items: new Map(), byUnit: new Map(), unitSt: new Map(), log: [], notif: [], cierre: null, cancel: null, day: 0, metodo: cfg.metodo || 'pronostico',
     sim: { colchon: 0.15, capDel: 8, capOC: 60, tolOC: 0.10, presupuesto: 1.05, ...(cfg.sim || {}) }, hist: [],
-    sla: { um: 5, del: 5, oc: 3, ...(cfg.sla || {}) }, hitos: { um: 0.35, del: 0.6, oc: 0.85, ...(cfg.hitos || {}) },
+    sla: { um: 5, del: 5, oc: 3, ...(cfg.sla || {}) }, hitos: { um: 0.35, del: 0.6, oc: 0.85, ...(cfg.hitos || {}) }, esc: { sup: 3, central: 5, ...(cfg.esc || {}) },
   };
 }
 export function unitsIn(U, P) { return U.units.filter(u => !P.unitsOut.has(u.clues)); }
@@ -273,8 +273,10 @@ export const ACTIONS = {
   cancelar(U, P, a) { P.cancel = { motivo: a.motivo, t: P.day, por: 'Área central' }; P.status = 'cancelado'; note(P, 'Área central', `Plan cancelado: ${a.motivo}`); },
   editarConfig(U, P, a) { Object.assign(P, a.cambios); note(P, 'Área central', `Configuración inicial editada: ${a.motivo}`); },
   sim(U, P, a) { for (let d = 0; d < a.days; d++) simDay(U, P); },
+  // recordatorio de quien supervisa a quien tiene peticiones vencidas (llega a su campana)
+  recordar(U, P, a) { notify(P, a.to, a.txt, a.ent || null); note(P, a.de || 'Área central', `Recordatorio a ${a.quien}: ${a.txt}`); },
   simCfg(U, P, a) { Object.assign(P.sim, a.cfg); },
-  plazos(U, P, a) { Object.assign(P.sla, a.sla || {}); Object.assign(P.hitos, a.hitos || {}); note(P, 'Área central', 'Plazos del periodo de aprobación actualizados'); },
+  plazos(U, P, a) { Object.assign(P.sla, a.sla || {}); Object.assign(P.hitos, a.hitos || {}); Object.assign(P.esc, a.esc || {}); note(P, 'Área central', 'Plazos del periodo de aprobación actualizados'); },
 };
 function kitOf(P, clave) { return P.kits.find(k => k.claves.includes(clave)); }
 function checkPlanDone(U, P) {

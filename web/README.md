@@ -290,6 +290,26 @@ Modelo: `assets/cenadi.glb`, de `bodega/nacional/cenadi_builder.py`. Los tráile
 sirven de plantilla y se ocultan. Investigación y supuestos: documento "CENADI · Simulación de entradas y
 salidas de vehículos".
 
+### Red nacional · CENADI a 32 estados (`nacional.html`)
+
+Simulación de 30 días (paso de 1 hora) del abasto del CENADI a los almacenes de los 32 estados.
+
+- **Mapa 3D** (`assets/mapa_mexico.glb`): cada estado se colorea por cobertura en días, abasto acumulado o
+  número de unidades. Arcos curvos del CENADI a cada estado con grosor por tarimas a la semana y tráileres
+  en ruta (blanco a tiempo, naranja tarde, rojo detenido). "Todas las unidades" muestra las 1,033 unidades.
+- **Al tocar un estado** se levanta, su costado y contorno pulsan, los demás se oscurecen, la cámara vuela
+  hacia él y aparecen sus unidades por nivel (aqua 1er, azul 2º, rosa 3er). La ficha muestra unidades por
+  nivel y tipo, existencia, consumo, horas sin abasto, embarque en camino, siguiente salida, última entrega,
+  cobertura de 30 días y sus hospitales.
+- **Escenarios:** normal, falla de proveedor, cierre carretero, huracán en la península y pico respiratorio;
+  si no alcanza, reparto proporcional o por cobertura. Comparación de los 10 casos.
+- **Además:** 8 indicadores nacionales, mosaico de 32 estados, carga diaria del CENADI contra su capacidad,
+  tabla ordenable con CSV y bitácora de salidas, llegadas, retrasos y desabasto.
+- Parámetros de la URL: `esc` (normal, proveedor, carretera, huracan, pico), `asig` (cob, prop), `e` (clave
+  INEGI del estado, por ejemplo `31`) y `t` (hora 0 a 719).
+
+Modelo: `bodega/nacional/mapa_mexico_builder.py`.
+
 ## Estructura
 
 ```

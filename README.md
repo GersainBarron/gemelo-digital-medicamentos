@@ -31,6 +31,7 @@ El trabajo está organizado según la hoja de ruta del Consejo Asesor:
 | **CEDIS 3D** | `web/index.html` | Almacén con montacargas, AGV y picking animados. Pestañas: entradas, salidas, unidades, urgencias, inventario y bandeja de autorización. Capas de ocupación y de cobertura por clave |
 | **Red estatal** | `web/mapa.html` | Mapa de Hidalgo con semáforo de las 60 unidades, camionetas en ruta, desabasto, rutas y costos, inventario y asignación, alertas, redistribución, trazabilidad de lotes y pronóstico |
 | **CENADI · Entradas y salidas** | `web/cenadi.html` | Centro Nacional de Distribución en 3D: proveedores con o sin cita, caseta, patio, andenes, carritos de descarga, cuarentena, subida a rack, picking, carriles y carga de la flota. Panel "Dónde se atrasa" por etapa, 8 indicadores, Gantt de andenes, colas, agenda y comparación de 9 escenarios |
+| **Red nacional** | `web/nacional.html` | Mapa 3D de México por estado con el CENADI al centro: arcos de flujo con grosor por tarimas, tráileres en ruta, color por cobertura, abasto o unidades. Al tocar un estado se levanta, brilla y muestra su ficha: unidades ISSSTE por nivel de atención (CLUES ago 2026), existencia, cobertura, embarques en camino y la gráfica de 30 días. Mosaico de 32 estados, carga diaria del CENADI, tabla con CSV, bitácora y 5 escenarios × 2 reglas de reparto |
 | **Unidad médica** | `web/unidad.html` | Hospital 3D con pacientes y enfermeras: al tocar a una persona se ven sus medicamentos. Incluye indicadores, recetas completas, parciales y negadas, 60 claves con kárdex, lotes y pronóstico, alertas, pedidos extraordinarios y entregas a pacientes |
 
 Las tres vistas usan la misma simulación determinista, así que una alerta que ve la unidad en el iPad es la misma
@@ -76,6 +77,8 @@ Parámetros de la URL, compartidos por las tres vistas:
 | 5 · Patio del CENADI (día pico ×2.5) | Estancia promedio, caseta a caseta | 2 h 59 (plan A) | 1 h 01 (plan C) |
 | | Cola máxima en carretera | 22 vehículos | 3 vehículos |
 | | Salidas de la flota a tiempo | 73 % | 100 % |
+| 6 · Red nacional (30 días) | Horas-estado sin abasto, pico respiratorio | 245 (proporcional) | 0 (por cobertura) |
+| | Horas-estado sin abasto, falla de proveedor | 91 (proporcional) | 0 (por cobertura) |
 
 Detalle y método en [docs/RESULTADOS.md](docs/RESULTADOS.md).
 
@@ -106,11 +109,11 @@ Detalle y método en [docs/RESULTADOS.md](docs/RESULTADOS.md).
 ├── vehiculos/                   camionetas seca y refrigerada y moto de reparto
 ├── regional/                    almacén regional tipo
 ├── recoleccion/                 casillero 24 h para entrega de medicamentos
-├── nacional/                    CENADI, Centro Nacional de Distribución (cenadi_builder.py)
+├── nacional/                    CENADI (cenadi_builder.py) y mapa 3D de México por estado (mapa_mexico_builder.py)
 ├── issste_buenavista/           oficinas centrales del ISSSTE (torre de Buenavista)
 ├── unidades_tipo/               CAF, UMF y hospital tipo (sin integrar)
 ├── renders/                     vistas previas
-└── investigacion/               unidades CLUES de Hidalgo, contorno del estado y Excel de contingencia
+└── investigacion/               unidades CLUES de Hidalgo, red ISSSTE nacional (1,033 unidades), contorno y Excel de contingencia
 ```
 
 Cada carpeta de Blender incluye el script que construye el modelo, el `.blend` y el `.glb` exportado.
@@ -131,6 +134,7 @@ Cada carpeta de Blender incluye el script que construye el modelo, el `.blend` y
 - Conectar datos reales en los puntos marcados `>>> API`: WMS del CEDIS, farmacia de las unidades y órdenes de compra.
 - Sustituir las distancias en línea recta (× 1.35) por una matriz de carretera (OSRM).
 - Agregar el inventario propio de los almacenes regionales (el modelo 3D ya existe).
+- Red nacional: sustituir distancias en línea recta por una matriz de carretera y la demanda estimada por consumos reales por estado.
 - Conectar las llegadas de proveedor del CENADI con los arribos de `network-sim.js` y medir tiempos reales de descarga, validación y surtido.
 - Sustituir Holt-Winters por un modelo de aprendizaje automático con clima, epidemiología y calendario.
 

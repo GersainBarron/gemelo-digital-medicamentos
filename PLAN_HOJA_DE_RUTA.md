@@ -150,6 +150,34 @@ Pendiente:
 - separar los tipos de unidad en builders e integrarlos al mapa de red;
 - el 3D solo se probó con renderizador de software: revisar fluidez en el iPad (el modelo pesa 5.5 MB).
 
+## Fase 6 · Red nacional: CENADI a los 32 estados (Metas 1 y 2, nivel nacional) — HECHO (27 oct)
+Resultado (30 días, misma semilla):
+- normal: 100 % de abasto, ningún estado sin existencia, 343 embarques, ~$17 M de flete;
+- falla de proveedor (45 % de existencia del día 5 al 16): reparto proporcional deja 4 estados sin
+  abasto (91 horas-estado); reparto por cobertura, 0;
+- pico respiratorio (+80 % hacia el día 13, capacidad de 360 tarimas por día): proporcional deja 7 estados
+  sin abasto (245 horas-estado, 99.3 %); por cobertura, 0;
+- huracán en la península (días 8 a 13): Quintana Roo y Tabasco se quedan sin abasto 54 horas-estado con
+  cualquier regla: ahí la solución es inventario previo, no reparto;
+- cierre carretero en Sinaloa (+48 h, días 4 a 11): sólo entregas tarde, el inventario de seguridad absorbe.
+
+Investigación: documento "Mapa nacional · CENADI hacia los 32 estados"
+(https://claude.ai/artifact/GbbUhTE7iFTBg8q9JZLJaq).
+- **Datos:** 1,033 unidades ISSSTE en operación del CLUES ago 2026 (`investigacion/issste_unidades.csv`,
+  `estados_issste_cenadi.csv`); geometría de la CONABIO 2023 (Marco Geoestadístico del INEGI).
+- **Blender:** `nacional/mapa_mexico_builder.py` → `mapa_mexico.blend/.glb` y vista previa.
+- **Código:** `web/nacional.html`, `web/js/nacional-sim.js` (simulación horaria de 30 días),
+  `web/js/nacional3d.js` (mapa, arcos, tráileres, unidades, selección con animación) y `web/js/nacional.js`;
+  datos en `web/assets/estados_issste.json` y `estados_mx.json`.
+- **Otros cambios:** enlace "Nacional" en todas las páginas; la navegación pasa a su renglón por debajo de
+  1640 px.
+
+Pendiente:
+- matriz de carretera real y tiempos de tránsito medidos;
+- demanda por estado con consumos reales en vez del peso por tipo de unidad;
+- inventario por clave (no sólo en tarimas) en los almacenes estatales;
+- ligar la salida diaria del CENADI con `cenadi.html` (olas de embarque y carriles por región).
+
 ## Cierre de cada fase
 - Probar en el navegador (PC 1366 px e iPad 820/1180 px) y revisar errores de consola.
 - Actualizar `web/README.md`, el documento de investigación y, si aplica, el Excel.

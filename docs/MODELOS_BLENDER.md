@@ -28,6 +28,7 @@ g["export"]()    # en otra llamada: exporta el .glb y lo copia a web/assets
 | **CENADI (nivel nacional)** | `nacional/cenadi_builder.py` | `cenadi.blend/.glb`; copia en `web/assets/cenadi.glb` | Centro Nacional de Distribución del ISSSTE (Birmex). Nave de 200 × 130 × 14 m: 52 filas de rack de 9 niveles (`rack_row` con `wh_bays`, `wh_levels`, `wh_pos_per_bay`, un objeto por fila), red fría 2–8 °C y congelación con 6 antecámaras, jaula de controlados, picking por pieza, cuarentena y validación ISSSTE, 24 carriles de consolidación (`lane`, `wh_region`). 38 andenes (`dock`, `wh_dock`): 14 de recepción al norte y 24 de embarque al sur. Patio, caseta, oficinas, comedor, planta de emergencia y tráileres (plantillas para `cenadi.html`). 33,732 posiciones contra 35,000 reportadas. `main()`, `preview()` y `export(copy_to_web)` |
 | **Oficinas centrales ISSSTE** | `issste_buenavista/issste_buenavista_builder.py` | `issste_buenavista.blend/.glb` (no copiado a `web/assets`) | Antigua Torre de Ferrocarriles Nacionales (Jesús García 140, Buenavista, CDMX): 17 niveles y 61.5 m, planta en "Y" con tres alas y núcleo triangular ("libro abierto"). Raíz con `wh_type = oficinas_centrales`. Largo y ancho de las alas, ritmo de fachada y letrero son estimados |
 | **Tipos de unidad (sin integrar)** | `unidades_tipo/unidades_medicas.py` | Solo script y vistas previas | CAF (pequeña, ámbar), UMF (mediana, verde) y hospital con torre, helipuerto y urgencias (azul), para distinguirlas en el mapa de red. Falta separarlos en builders con `main()/export()` y `wh_type` |
+| **Mapa de México por estado** | `nacional/mapa_mexico_builder.py` (lee `nacional/estados_mx.json`) | `mapa_mexico.blend/.glb`; copia en `web/assets/mapa_mexico.glb` | 32 losas de 12 km de alto (`state`, con `wh_cve`, `wh_name`, `wh_abbr`, `wh_region`, `wh_area_km2`, `wh_label_x/y`), tapa y costado con materiales separados para recolorear y hacer brillar. Nombres como malla (`state_label`), mar (`sea`) y torre del CENADI en el origen (`cenadi`). En km, proyección EPSG:6372 centrada en el CENADI. Límites de la división municipal 2023 de la CONABIO (Marco Geoestadístico del INEGI), unidos por estado, simplificados y triangulados con earcut. 16,366 caras, 1.4 MB |
 
 ## Convenciones
 
@@ -51,6 +52,7 @@ g["export"]()    # en otra llamada: exporta el .glb y lo copia a web/assets
 | ![Almacén regional](../renders/preview_almacen_regional.png) | ![Almacén regional, interior](../renders/preview_almacen_regional_interior.png) |
 | ![CENADI](../renders/preview_cenadi.png) | ![CENADI, interior](../renders/preview_cenadi_interior.png) |
 | ![CENADI, andenes](../renders/preview_cenadi_andenes.png) | ![Oficinas centrales ISSSTE](../renders/preview_issste_buenavista.png) |
+| ![Mapa de México](../renders/preview_mapa_mexico.png) | |
 | ![Tipos de unidad](../renders/preview_unidades_tipo.png) | ![Hospital tipo](../renders/preview_unidad_hospital.png) |
 
 ---

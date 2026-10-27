@@ -1,0 +1,130 @@
+/* Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT */
+/* Red nacional · CENADI → 32 estados (usa la base de unidad.css) */
+
+.f-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.f-group > label { font-size: 12px; color: var(--muted); }
+.f-group > label b { color: var(--text); font-variant-numeric: tabular-nums; margin-left: 4px; }
+.nx-scn-top { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: end; }
+.nx-time { flex: 1 1 260px; }
+.nx-time input[type=range] { width: 100%; accent-color: var(--accent); }
+.nx-desc { font-size: 13px; line-height: 1.5; margin: 12px 0 0; }
+.nx-scroll { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.nx-scroll::-webkit-scrollbar { display: none; }
+.seg-btn { height: 34px; padding: 0 12px; border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--muted); background: rgba(255,255,255,.06); border: 1px solid var(--line); white-space: nowrap; }
+.seg-btn.on { color: var(--accent); background: rgba(45,212,191,.16); }
+.nx-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-width: 0; max-width: 100%; }
+
+/* 3D + ficha */
+.nx-main { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr); gap: 14px; align-items: start; }
+.nx-3d { height: clamp(420px, 66vh, 720px); }
+.nx-legend { margin-top: 10px; align-items: center; }
+.nx-ramp { display: inline-flex; gap: 2px; }
+.nx-ramp i { width: 18px; height: 10px; display: inline-block; border-radius: 2px; }
+.nx-lg-sep { width: 1px; height: 12px; background: var(--line-strong); }
+.nx-hint { position: absolute; left: 10px; bottom: 10px; font-size: 11.5px; color: var(--muted); background: rgba(13,17,23,.78); border: 1px solid var(--line); padding: 4px 9px; border-radius: 8px; pointer-events: none; }
+.nx-cenadi { position: absolute; left: 0; top: 0; font-size: 11px; font-weight: 700; color: #062e2a; background: #5eead4; padding: 2px 7px; border-radius: 7px; pointer-events: none; white-space: nowrap; transform: translate(-50%, -150%); }
+
+.ficha { position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow-y: auto; }
+.ficha header { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+.ficha h2 { font-size: 21px; font-weight: 700; margin: 2px 0 2px; }
+.ficha .sub { font-size: 12.5px; color: var(--muted); margin: 0; }
+.ficha .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.ficha h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--faint); font-weight: 650; margin: 16px 0 8px; }
+.fx-x { width: 34px; height: 34px; border-radius: 9px; background: rgba(255,255,255,.07); font-size: 19px; line-height: 1; flex: none; }
+.lvl { display: grid; grid-template-columns: 74px 1fr 42px; gap: 2px 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+.lvl:first-of-type { border-top: 0; }
+.lvl b { font-size: 13px; font-weight: 650; }
+.lvl .bar { height: 8px; }
+.lvl .n { text-align: right; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lvl small { grid-column: 2 / 4; font-size: 11.5px; color: var(--muted); }
+.lvl i.lv { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.fx-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.fx-stats div { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+.fx-stats span { display: block; font-size: 11px; color: var(--muted); line-height: 1.25; }
+.fx-stats b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.fx-stats b i { font-style: normal; font-size: 11.5px; color: var(--muted); margin-left: 3px; font-weight: 600; }
+.fx-stats .crit b { color: var(--crit); } .fx-stats .warn b { color: var(--warn); }
+.fx-rows { font-size: 12.5px; }
+.fx-rows .r { display: grid; grid-template-columns: 112px 1fr; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+.fx-rows .r:first-child { border-top: 0; }
+.fx-rows .r span { color: var(--muted); }
+.fx-rows .r em { font-style: normal; font-weight: 600; }
+.fx-rows .r em small { display: block; font-weight: 500; color: var(--muted); font-size: 11.5px; }
+.fx-rows .late { color: var(--warn); } .fx-rows .stop { color: var(--crit); }
+.fx-spark svg { width: 100%; height: 86px; display: block; }
+.fx-spark .ln { fill: none; stroke: var(--accent); stroke-width: 2; }
+.fx-spark .ar { fill: rgba(45,212,191,.12); }
+.fx-spark .rk { stroke: var(--warn); stroke-dasharray: 3 3; stroke-width: 1; }
+.fx-spark .nw { stroke: #e6edf3; stroke-width: 1; }
+.fx-spark text { fill: var(--faint); font-size: 10px; }
+.fx-hosp { list-style: none; margin: 0; padding: 0; font-size: 12.5px; }
+.fx-hosp li { display: grid; grid-template-columns: 40px 1fr; gap: 8px; padding: 5px 0; border-top: 1px solid var(--line); }
+.fx-hosp li:first-child { border-top: 0; }
+.fx-hosp .tp { font-size: 10.5px; font-weight: 700; padding: 2px 0; border-radius: 6px; text-align: center; }
+.fx-hosp small { display: block; color: var(--faint); font-size: 11px; }
+.fx-list { display: flex; flex-direction: column; gap: 6px; }
+.fx-item { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; text-align: left; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); }
+.fx-item:hover { border-color: var(--line-strong); }
+.fx-item i { width: 9px; height: 9px; border-radius: 50%; }
+.fx-item b { font-size: 13px; } .fx-item em { font-style: normal; font-size: 12.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+/* Mosaico de estados */
+.tiles { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; }
+.tile { aspect-ratio: 1 / 0.92; border-radius: 9px; display: flex; flex-direction: column; justify-content: space-between; padding: 6px 7px; text-align: left; min-width: 0;
+  border: 1px solid rgba(0,0,0,.25); color: #06121a; transition: transform .15s, box-shadow .15s; }
+.tile b { font-size: 12px; font-weight: 750; letter-spacing: .2px; }
+.tile span { font-size: 12.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.tile.dark { color: #e6edf3; }
+.tile.sel { box-shadow: 0 0 0 2px #f0fdfa, 0 0 18px rgba(94,234,212,.55); transform: translateY(-3px); }
+.tile.dim { opacity: .45; }
+.tile.blank { visibility: hidden; }
+
+/* Carga del CENADI */
+.nx-chart svg { display: block; width: 100%; height: auto; }
+.nx-chart .bar-s { fill: #2dd4bf; } .nx-chart .bar-r { fill: none; stroke: rgba(148,163,184,.55); stroke-dasharray: 2 2; }
+.nx-chart .cap { stroke: var(--crit); stroke-dasharray: 5 4; stroke-width: 1.2; }
+.nx-chart .ax { fill: var(--faint); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.nx-chart .grid { stroke: rgba(148,163,184,.12); }
+.nx-chart .now { fill: rgba(45,212,191,.12); }
+.nx-chart .risk { font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Tabla y bitácora */
+th.sort { cursor: pointer; user-select: none; }
+th.sort.on { color: var(--accent); }
+td .cv { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+td .cv .bar { width: 60px; }
+tr.sel td { background: rgba(45,212,191,.09); }
+td.st b { font-weight: 650; } td.st small { color: var(--faint); margin-left: 6px; font-size: 11.5px; }
+td .lv3 { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+td .lv3 b { color: var(--text); font-weight: 600; }
+.sem { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.nx-feed { max-height: 420px; overflow-y: auto; }
+.nx-ev { display: grid; grid-template-columns: 112px 10px 1fr; gap: 2px 10px; padding: 8px 0; border-top: 1px solid var(--line); align-items: baseline; text-align: left; width: 100%; }
+.nx-ev:first-child { border-top: 0; }
+.nx-ev time { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.nx-ev i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.nx-ev b { font-size: 13px; font-weight: 600; }
+.nx-ev small { grid-column: 3; font-size: 12px; color: var(--muted); }
+.cmp td.best { color: var(--ok); font-weight: 650; } .cmp td.worst { color: var(--crit); font-weight: 650; }
+tr.cur td { background: rgba(45,212,191,.07); }
+.nx-defs p { font-size: 13px; line-height: 1.55; color: var(--muted); margin: 0 0 8px; }
+.nx-defs b { color: var(--text); }
+.nx-defs a { color: var(--accent); }
+
+@media (max-width: 1180px) {
+  .nx-main { grid-template-columns: 1fr; }
+  .ficha { position: static; max-height: none; }
+}
+@media (max-width: 760px) {
+  .nx-3d { height: 64vh; min-height: 380px; }
+  .tiles { gap: 3px; }
+  .tile { padding: 3px 4px; border-radius: 6px; }
+  .tile b { font-size: 9.5px; } .tile span { font-size: 9.5px; }
+  .fx-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nx-ev { grid-template-columns: 92px 10px 1fr; }
+  .col-opt2 { display: none; }
+}
+
+.cmp td.n, .cmp th.n { white-space: nowrap; }
+.cmp th.n { white-space: normal; }
+.seg.nx-scroll button { flex: none; }

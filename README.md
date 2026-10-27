@@ -32,6 +32,7 @@ El trabajo está organizado según la hoja de ruta del Consejo Asesor:
 | **Red estatal** | `web/mapa.html` | Mapa de Hidalgo con semáforo de las 60 unidades, camionetas en ruta, desabasto, rutas y costos, inventario y asignación, alertas, redistribución, trazabilidad de lotes y pronóstico |
 | **CENADI · Entradas y salidas** | `web/cenadi.html` | Centro Nacional de Distribución en 3D: proveedores con o sin cita, caseta, patio, andenes, carritos de descarga, cuarentena, subida a rack, picking, carriles y carga de la flota. Panel "Dónde se atrasa" por etapa, 8 indicadores, Gantt de andenes, colas, agenda y comparación de 9 escenarios |
 | **Red nacional** | `web/nacional.html` | Mapa 3D de México por estado con el CENADI al centro: arcos de flujo con grosor por tarimas, tráileres en ruta, color por cobertura, abasto o unidades. Al tocar un estado se levanta, brilla y muestra su ficha: unidades ISSSTE por nivel de atención (CLUES ago 2026), existencia, cobertura, embarques en camino y la gráfica de 30 días. Mosaico de 32 estados, carga diaria del CENADI, tabla con CSV, bitácora y 5 escenarios × 2 reglas de reparto |
+| **Red fría** | `web/redfria.html` | Temperatura cada 5 minutos de 1,066 equipos (cámara del CENADI, 32 almacenes estatales y el refrigerador de cada unidad) y de cada tráiler y caja térmica durante 30 días. Cadena en 3D que sigue el producto de una unidad, curva de 30 días, mapa de equipos, bitácora de excursiones (detectadas o no), tabla por estado y comparación de inversiones con su retorno |
 | **Unidad médica** | `web/unidad.html` | Hospital 3D con pacientes y enfermeras: al tocar a una persona se ven sus medicamentos. Incluye indicadores, recetas completas, parciales y negadas, 60 claves con kárdex, lotes y pronóstico, alertas, pedidos extraordinarios y entregas a pacientes |
 
 Las tres vistas usan la misma simulación determinista, así que una alerta que ve la unidad en el iPad es la misma
@@ -79,6 +80,8 @@ Parámetros de la URL, compartidos por las tres vistas:
 | | Salidas de la flota a tiempo | 73 % | 100 % |
 | 6 · Red nacional (30 días) | Horas-estado sin abasto, pico respiratorio | 245 (proporcional) | 0 (por cobertura) |
 | | Horas-estado sin abasto, falla de proveedor | 91 (proporcional) | 0 (por cobertura) |
+| 7 · Red fría (30 días, otoño) | Producto perdido al mes | $22.7 M (como está) | $9.1 M con refrigerantes acondicionados ($0.3 M de inversión) |
+| | Dañado sin detectar (se aplicaría) | $6.6 M | $0 con registrador o telemetría |
 
 Detalle y método en [docs/RESULTADOS.md](docs/RESULTADOS.md).
 
@@ -109,7 +112,7 @@ Detalle y método en [docs/RESULTADOS.md](docs/RESULTADOS.md).
 ├── vehiculos/                   camionetas seca y refrigerada y moto de reparto
 ├── regional/                    almacén regional tipo
 ├── recoleccion/                 casillero 24 h para entrega de medicamentos
-├── nacional/                    CENADI (cenadi_builder.py) y mapa 3D de México por estado (mapa_mexico_builder.py)
+├── nacional/                    CENADI (cenadi_builder.py), mapa de México (mapa_mexico_builder.py) y cadena de red fría (redfria_builder.py)
 ├── issste_buenavista/           oficinas centrales del ISSSTE (torre de Buenavista)
 ├── unidades_tipo/               CAF, UMF y hospital tipo (sin integrar)
 ├── renders/                     vistas previas

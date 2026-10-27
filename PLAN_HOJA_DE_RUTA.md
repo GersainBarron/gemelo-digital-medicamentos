@@ -178,6 +178,31 @@ Pendiente:
 - inventario por clave (no sólo en tarimas) en los almacenes estatales;
 - ligar la salida diaria del CENADI con `cenadi.html` (olas de embarque y carriles por región).
 
+## Fase 7 · Red fría del CENADI a la unidad (Proyectos 2 y 3) — HECHO (27 oct)
+Resultado (30 días de otoño, misma semilla; costos y precios de referencia):
+- como está (registro manual, 70 % de refrigeradores domésticos en 1er nivel, refrigerantes directo del
+  congelador): $22.7 M de producto perdido al mes, $6.6 M de ese daño sin detectar (se aplicaría), 91.1 %
+  del tiempo en rango y 49 % de excursiones detectadas;
+- refrigerantes acondicionados: $9.1 M al mes con $0.3 M de inversión (se paga en días);
+- registrador o telemetría: la pérdida no baja, pero el daño oculto pasa a $0 (se da de baja con acta);
+- refrigerador grado médico en 1er nivel: $13.6 M, 99.3 % en rango, $33.8 M de inversión;
+- acondicionados + registrador + grado médico: $0 de pérdida con $41.4 M; recupera en menos de 2 meses;
+- el calor casi no daña producto; la pérdida viene de congelar (cajas y refrigeradores domésticos).
+
+Investigación: documento "Red fría · simulación del CENADI a la unidad"
+(https://claude.ai/artifact/9nT6KmEvjKEHoznrnZiiuA).
+- **Blender:** `nacional/redfria_builder.py` → `redfria.blend/.glb` y vista previa.
+- **Código:** `web/redfria.html`, `web/js/redfria-sim.js` (modelo térmico de 1,066 equipos y ~4,700
+  viajes), `web/js/redfria3d.js`, `web/js/redfria.js` y `web/js/redfria-worker.js` (escenarios en segundo
+  plano).
+- **Otros cambios:** enlace "Red fría" en todas las vistas.
+
+Pendiente:
+- censo real de equipos de red fría por unidad (tipo, año, planta) en lugar del supuesto 70 % doméstico;
+- datos de estabilidad de cada registro sanitario y precios de compra;
+- normales climatológicas del SMN por municipio;
+- cargar descargas reales de registradores o telemetría en el punto `>>> API`.
+
 ## Cierre de cada fase
 - Probar en el navegador (PC 1366 px e iPad 820/1180 px) y revisar errores de consola.
 - Actualizar `web/README.md`, el documento de investigación y, si aplica, el Excel.

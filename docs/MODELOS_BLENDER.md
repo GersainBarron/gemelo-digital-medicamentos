@@ -30,6 +30,7 @@ g["export"]()    # en otra llamada: exporta el .glb y lo copia a web/assets
 | **Tipos de unidad (sin integrar)** | `unidades_tipo/unidades_medicas.py` | Solo script y vistas previas | CAF (pequeña, ámbar), UMF (mediana, verde) y hospital con torre, helipuerto y urgencias (azul), para distinguirlas en el mapa de red. Falta separarlos en builders con `main()/export()` y `wh_type` |
 | **Mapa de México por estado** | `nacional/mapa_mexico_builder.py` (lee `nacional/estados_mx.json`) | `mapa_mexico.blend/.glb`; copia en `web/assets/mapa_mexico.glb` | 32 losas de 12 km de alto (`state`, con `wh_cve`, `wh_name`, `wh_abbr`, `wh_region`, `wh_area_km2`, `wh_label_x/y`), tapa y costado con materiales separados para recolorear y hacer brillar. Nombres como malla (`state_label`), mar (`sea`) y torre del CENADI en el origen (`cenadi`). En km, proyección EPSG:6372 centrada en el CENADI. Límites de la división municipal 2023 de la CONABIO (Marco Geoestadístico del INEGI), unidos por estado, simplificados y triangulados con earcut. 16,366 caras, 1.4 MB |
 
+| **Cadena de red fría** | `nacional/redfria_builder.py` | `redfria.blend/.glb`; copia en `web/assets/redfria.glb` | Diorama de cinco eslabones en metros: cámara fría del CENADI en corte (racks, evaporadores, cortina de tiras), tráiler refrigerado de 53' con tractocamión, cámara del almacén estatal, camioneta con cajas térmicas y refrigerantes, farmacia de la unidad con refrigerador grado médico, doméstico y termo. Para el visor: `station` (wh_key, wh_name), `station_ring` (aro que toma el color de la temperatura), `display` (pantalla del registrador), `product` (cajas que cambian de color si el lote se daña) y `flow_arrow` |
 ## Convenciones
 
 - Unidades en metros; Blender usa Z arriba y three.js usa Y arriba. La conversión es `B(x, y, z) → (x, z, −y)`.
@@ -52,7 +53,7 @@ g["export"]()    # en otra llamada: exporta el .glb y lo copia a web/assets
 | ![Almacén regional](../renders/preview_almacen_regional.png) | ![Almacén regional, interior](../renders/preview_almacen_regional_interior.png) |
 | ![CENADI](../renders/preview_cenadi.png) | ![CENADI, interior](../renders/preview_cenadi_interior.png) |
 | ![CENADI, andenes](../renders/preview_cenadi_andenes.png) | ![Oficinas centrales ISSSTE](../renders/preview_issste_buenavista.png) |
-| ![Mapa de México](../renders/preview_mapa_mexico.png) | |
+| ![Mapa de México](../renders/preview_mapa_mexico.png) | ![Cadena de red fría](../renders/preview_redfria.png) |
 | ![Tipos de unidad](../renders/preview_unidades_tipo.png) | ![Hospital tipo](../renders/preview_unidad_hospital.png) |
 
 ---

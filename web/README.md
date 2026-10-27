@@ -310,6 +310,27 @@ Simulación de 30 días (paso de 1 hora) del abasto del CENADI a los almacenes d
 
 Modelo: `bodega/nacional/mapa_mexico_builder.py`.
 
+### Red fría · CENADI a la unidad (`redfria.html`)
+
+Simulación térmica de 30 días con paso de 5 minutos: la cámara del CENADI, las de los 32 almacenes
+estatales, el refrigerador de cada una de las 1,033 unidades y cada viaje en tráiler refrigerado y caja
+térmica.
+
+- **Contexto:** otoño normal, ola de calor o huracanes con apagones largos en el Golfo y el Sureste.
+- **Palancas:** monitoreo (manual, registrador de 30 días o telemetría), refrigerador del 1er nivel (como
+  está, grado médico o con forro de hielo), planta de emergencia (2º y 3er nivel o todas) y refrigerantes
+  (directo del congelador o acondicionados).
+- **Cadena en 3D** (`assets/redfria.glb`): sigue el producto de la unidad elegida; los aros y pantallas
+  toman el color de la temperatura y las cajas de producto se pintan si el lote se congeló, se dio de baja o
+  quedó dañado sin detectar. Tocar un eslabón lo enfoca.
+- **Ficha de la unidad:** temperatura de cada eslabón ahora, productos con lo perdido y el calor gastado, e
+  incidentes con su causa y cómo se detectaron.
+- **Además:** curva de 30 días de la cadena, mapa de 1,066 equipos, bitácora (todo, sin detectar o de la
+  unidad), tabla por estado con CSV y comparación de 9 planes con inversión y meses para recuperarla.
+- Parámetros de la URL: `ctx`, `mon`, `ref`, `pla`, `pack`, `u` (CLUES) y `t` (hora 0 a 719).
+
+Modelo: `bodega/nacional/redfria_builder.py`.
+
 ## Estructura
 
 ```

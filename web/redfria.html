@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Gersain Barron">
+  <meta name="copyright" content="© 2026 Gersain Barron · Licencia MIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d1117">
+  <title>Red fría · CENADI a la unidad</title>
+  <link rel="stylesheet" href="css/unidad.css">
+  <link rel="stylesheet" href="css/redfria.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/jsm/" } }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <b>Red fría · CENADI a la unidad</b>
+        <span>Gemelo digital · <em class="author">Gersain Barron</em> · temperatura, excursiones y pérdidas de 2 a 8 °C</span>
+      </div>
+    </div>
+    <nav class="views" aria-label="Vistas">
+      <a href="index.html">CEDIS 3D</a>
+      <a href="mapa.html">Red estatal</a>
+      <a href="unidad.html">Unidad médica</a>
+      <a href="contratos.html">Contratos</a>
+      <a href="expedientes.html">Recorrido</a>
+      <a href="cenadi.html">CENADI</a>
+      <a href="nacional.html">Nacional</a>
+      <a class="active" href="redfria.html" aria-current="page">Red fría</a>
+    </nav>
+    <div class="sim">
+      <button id="btn-play" class="icon-btn primary" aria-label="Pausar"></button>
+      <div class="speed" role="group" aria-label="Velocidad">
+        <button data-speed="1">1 h/s</button><button data-speed="6">6 h/s</button><button data-speed="24">1 d/s</button>
+      </div>
+      <div class="clock-box">
+        <span id="clock" class="clock">—</span>
+        <span id="sim-status" class="sim-status">30 días · simulado</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="rf-scn">
+        <div class="f-group rf-wide">
+          <label>Contexto</label>
+          <div id="ctx" class="seg rf-scroll"><button data-v="otono" class="active">Otoño normal</button><button data-v="calor">Ola de calor</button><button data-v="huracan">Huracanes y apagones</button></div>
+        </div>
+        <div class="f-group rf-time">
+          <label for="t-range">Día <b id="t-label">—</b></label>
+          <input id="t-range" type="range" min="0" max="719" step="1" value="0">
+        </div>
+      </div>
+      <div class="rf-levers">
+        <div class="f-group"><label>Monitoreo</label><div id="mon" class="seg rf-scroll"><button data-v="manual" class="active">Manual</button><button data-v="reg">Registrador</button><button data-v="tele">Telemetría</button></div></div>
+        <div class="f-group"><label>Refrigerador del 1er nivel</label><div id="ref" class="seg rf-scroll"><button data-v="actual" class="active">Como está</button><button data-v="med">Grado médico</button><button data-v="ilr">Forro de hielo</button></div></div>
+        <div class="f-group"><label>Planta de emergencia</label><div id="pla" class="seg"><button data-v="n23" class="active">2º y 3er nivel</button><button data-v="todas">Todas</button></div></div>
+        <div class="f-group"><label>Refrigerantes de las cajas</label><div id="pack" class="seg"><button data-v="directo" class="active">Directo del congelador</button><button data-v="acond">Acondicionados</button></div></div>
+      </div>
+      <p id="scn-desc" class="muted rf-desc"></p>
+    </section>
+
+    <section id="kpis" class="kpis" aria-label="Indicadores de red fría"></section>
+
+    <div class="rf-main">
+      <section class="card u3d-card">
+        <div class="card-h">
+          <h2>La cadena en 3D <small id="chain-sub">sigue el producto de la unidad elegida</small></h2>
+          <div id="v3d" class="seg rf-scroll"><button data-v="general" class="active">Toda</button><button data-v="cenadi">CENADI</button><button data-v="reefer">Tráiler</button><button data-v="estatal">Estatal</button><button data-v="caja">Caja</button><button data-v="unidad">Unidad</button></div>
+        </div>
+        <div id="c3d" class="u3d rf-3d"><div class="u3d-loading">Cargando la cadena de red fría…</div></div>
+        <div class="legend u3d-legend">
+          <span><i class="sw" style="background:#3b82f6"></i>Congela (≤ −0.5 °C)</span><span><i class="sw" style="background:#7dd3fc"></i>Frío (&lt; 2 °C)</span><span><i class="sw" style="background:#2dd4bf"></i>En rango 2 a 8 °C</span><span><i class="sw" style="background:#fbbf24"></i>8 a 12 °C</span><span><i class="sw" style="background:#f87171"></i>&gt; 12 °C</span>
+          <span class="rf-sep"></span><span><i class="sw" style="background:#f87171;border-radius:2px"></i>Lote dado de baja</span><span><i class="sw" style="background:#e879f9;border-radius:2px"></i>Dañado sin detectar</span>
+        </div>
+      </section>
+      <section id="ficha" class="card rf-ficha" aria-live="polite"></section>
+    </div>
+
+    <section class="card">
+      <div class="card-h wrap">
+        <h2>Temperatura de la cadena <small id="curve-sub">30 días · unidad elegida, su almacén estatal, el CENADI y cada viaje</small></h2>
+        <div class="legend">
+          <span><i class="sw line" style="background:#2dd4bf"></i>Refrigerador de la unidad</span><span><i class="sw line" style="background:#60a5fa"></i>Almacén estatal</span><span><i class="sw line" style="background:#94a3b8"></i>CENADI</span><span><i class="sw line" style="background:#f59e0b"></i>Tráiler</span><span><i class="sw line" style="background:#c084fc"></i>Caja térmica</span><span><i class="sw" style="background:rgba(52,211,153,.18)"></i>2 a 8 °C</span>
+        </div>
+      </div>
+      <div id="curve" class="chart rf-curve"></div>
+      <p id="curve-note" class="note"></p>
+    </section>
+
+    <div class="split">
+      <section class="card">
+        <div class="card-h">
+          <h2>Mapa de equipos <small>toca una unidad para seguir su cadena</small></h2>
+        </div>
+        <div id="map" class="rf-map"></div>
+        <div class="legend" style="margin-top:8px">
+          <span><i class="sw" style="background:#2dd4bf;border-radius:50%"></i>Sin incidentes</span><span><i class="sw" style="background:#fbbf24;border-radius:50%"></i>Excursión sin daño</span><span><i class="sw" style="background:#60a5fa;border-radius:50%"></i>Congeló</span><span><i class="sw" style="background:#f87171;border-radius:50%"></i>Baja con acta</span><span><i class="sw" style="background:#e879f9;border-radius:50%"></i>Dañado sin detectar</span><span><i class="sw" style="background:#e6edf3"></i>Almacén estatal</span>
+        </div>
+      </section>
+      <section class="card">
+        <div class="card-h">
+          <h2>Bitácora <small id="feed-sub"></small></h2>
+          <div id="feed-f" class="seg"><button data-f="all" class="active">Todo</button><button data-f="hidden">Sin detectar</button><button data-f="sel">Unidad</button></div>
+        </div>
+        <div id="feed" class="rf-feed"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-h">
+        <h2>Por estado <small id="rank-sub">toca una fila para elegir su unidad con más problemas</small></h2>
+        <button id="rank-csv" class="seg-btn" type="button">CSV</button>
+      </div>
+      <div id="rank" class="m-table"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><h2>¿Qué inversión conviene? <small id="cmp-sub">30 días en el contexto elegido · toca una fila para cargarla</small></h2></div>
+      <div id="compare" class="m-table"><p class="empty">Calculando escenarios…</p></div>
+      <p class="note">Inversión con costos de referencia: registrador $3,500 por equipo y por caja; telemetría $9,000 por equipo + $200 al mes; refrigerador grado médico $55,000; con forro de hielo $80,000; planta de emergencia $35,000; acondicionar refrigerantes $8,000 por almacén estatal. Recupera = inversión ÷ pérdida evitada al mes.</p>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><h2>Cómo se calcula</h2></div>
+      <div class="rf-defs">
+        <p><b>Equipos.</b> 1,066: la cámara fría del CENADI, la de cada almacén estatal y el refrigerador de cada una de las 1,033 unidades ISSSTE (CLUES ago 2026). Paso de 5 minutos durante 30 días. Cada equipo se calienta hacia la temperatura del cuarto con su constante de tiempo (cámara 30 h, grado médico 6 h, doméstico 3 h, con forro de hielo 22 h), y el compresor con termostato lo regresa a 5 °C. Las puertas se abren en horario de atención. En el 1er nivel, 7 de cada 10 refrigeradores son domésticos en el escenario "como está"; tienen zonas frías y 1 de cada 7 el termostato desviado.</p>
+        <p><b>Clima y energía.</b> Temperatura máxima y mínima aproximada de la capital de cada estado con ciclo de día y noche; el cuarto va 3 °C arriba del exterior salvo en 2º y 3er nivel con clima. Apagones de 0.5 a 6 h (más en ola de calor y en el norte); en huracanes, de 18 a 72 h en el Golfo y el Sureste. La planta arranca en minutos y falla 1 de cada 10 veces.</p>
+        <p><b>Viajes.</b> Tráiler refrigerado del CENADI a cada estado, una o dos veces por semana, con 4 % de fallas de su unidad de frío (8 % en calor). Caja térmica del estado a cada unidad, semanal, a 45 km/h, con 48 h de vida fría a 32 °C. Refrigerantes directo del congelador: en 45 % de las cajas el producto pasa más de una hora bajo −0.5 °C.</p>
+        <p><b>Monitoreo.</b> Manual: lectura a las 8:00 y 16:00 en días hábiles, solo ve lo que pasa en ese momento. Registrador de 30 días: alarma a +8 °C por 10 h o −0.5 °C por 60 min, se ve en la siguiente revisión y al recibir cada caja. Telemetría: aviso a los 30 min arriba de 8 °C o 15 min bajo 0 °C; se resuelve en 45 min en horario y 3 h fuera. Al detectarlo, el producto pasa a un termo.</p>
+        <p><b>Daño.</b> Congelación (60 min a −0.5 °C o menos) destruye vacunas con adyuvante, insulinas y biológicos. El calor se acumula en horas equivalentes a 25 °C (Q10 = 2) contra el presupuesto de cada producto. Si se detectó, el lote se da de baja con acta; si no, se aplica sin saberlo. Productos, existencias y precios son supuestos del modelo. Detalle en el documento <a href="https://claude.ai/artifact/9nT6KmEvjKEHoznrnZiiuA" target="_blank" rel="noopener">Red fría · simulación del CENADI a la unidad</a>.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="tip" class="tip" hidden></div>
+  <div id="loading" class="loading">Simulando 30 días de temperatura en 1,066 equipos…</div>
+  <script type="module" src="js/redfria.js"></script>
+</body>
+</html>

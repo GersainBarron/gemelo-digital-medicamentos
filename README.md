@@ -28,6 +28,7 @@ El trabajo está organizado según la hoja de ruta del Consejo Asesor:
 
 | Vista | Archivo | Qué muestra |
 |---|---|---|
+| **Planeación** | `web/planeacion.html` | Módulo 1 de la plataforma homologada: planes de necesidad, catálogos de unidades, insumos y kits, asignación por Oficina Central (propuesta por pronóstico), aprobación Unidad → Delegación → Oficina Central con aprobar, rechazar o negociar, programas especiales, cierre por el firmante y notificaciones. Se actúa con cualquier rol y una simulación hace responder a las 1,033 unidades y 32 delegaciones. Detalle en [docs/PLANEACION.md](docs/PLANEACION.md) |
 | **CEDIS 3D** | `web/index.html` | Almacén con montacargas, AGV y picking animados. Pestañas: entradas, salidas, unidades, urgencias, inventario y bandeja de autorización. Capas de ocupación y de cobertura por clave |
 | **Red estatal** | `web/mapa.html` | Mapa de Hidalgo con semáforo de las 60 unidades, camionetas en ruta, desabasto, rutas y costos, inventario y asignación, alertas, redistribución, trazabilidad de lotes y pronóstico |
 | **CENADI · Entradas y salidas** | `web/cenadi.html` | Centro Nacional de Distribución en 3D: proveedores con o sin cita, caseta, patio, andenes, carritos de descarga, cuarentena, subida a rack, picking, carriles y carga de la flota. Panel "Dónde se atrasa" por etapa, 8 indicadores, Gantt de andenes, colas, agenda y comparación de 9 escenarios |
@@ -82,6 +83,8 @@ Parámetros de la URL, compartidos por las tres vistas:
 | | Horas-estado sin abasto, falla de proveedor | 91 (proporcional) | 0 (por cobertura) |
 | 7 · Red fría (30 días, otoño) | Producto perdido al mes | $22.7 M (como está) | $9.1 M con refrigerantes acondicionados ($0.3 M de inversión) |
 | | Dañado sin detectar (se aplicaría) | $6.6 M | $0 con registrador o telemetría |
+| 8 · Planeación anual 2027 (ciclo simulado) | Error del plan contra la necesidad real | 15.4 % (pronóstico de partida) | 12.1 % tras la negociación, con 19 % más de costo |
+| | Sobreasignación si las unidades piden 30 % de colchón | $576 M (15 %) | $1,075 M |
 
 Detalle y método en [docs/RESULTADOS.md](docs/RESULTADOS.md).
 

@@ -203,6 +203,20 @@ Pendiente:
 - normales climatológicas del SMN por municipio;
 - cargar descargas reales de registradores o telemetría en el punto `>>> API`.
 
+## Fase 8 · Planeación: plan anual de necesidades (Meta 3 + Proyecto 1) — HECHO (27 oct)
+Prototipo operable del Módulo 1 de la plataforma homologada (requerimientos ATDT, Sprints 1 a 3) con
+simulación del ciclo de aprobación. Detalle, mapeo de requerimientos y resultados en `docs/PLANEACION.md`.
+- **Código:** `web/planeacion.html`, `web/js/plan-engine.js` (plan, catálogos, asignación, dictámenes en tres
+  niveles, simulación de actores, indicadores y bitácora que se repite), `web/js/planeacion.js` (pantallas por
+  rol, rutas por hash) y `web/js/plan-worker.js` (comparación de métodos en segundo plano).
+- **Resultado:** con la propuesta del pronóstico el ciclo cierra en 41 días hábiles, 21 % de los insumos se
+  aprueba a la primera, el error baja de 15.4 % a 12.1 % y el costo sube 19 % por la sobreasignación que
+  piden las unidades; con 30 % de colchón la sobreasignación llega a $1,075 M.
+- **Otros cambios:** enlace "Planeación" en todas las vistas.
+
+Pendiente: anexos xlsx de los requerimientos, material de curación, Llave MX, notificaciones por correo,
+modelos epidemiológicos (SIR, SEIR, SIRD, SEIRS) y consumos reales.
+
 ## Cierre de cada fase
 - Probar en el navegador (PC 1366 px e iPad 820/1180 px) y revisar errores de consola.
 - Actualizar `web/README.md`, el documento de investigación y, si aplica, el Excel.

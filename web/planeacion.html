@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Gersain Barron">
+  <meta name="copyright" content="© 2026 Gersain Barron · Licencia MIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d1117">
+  <title>Planeación · Plan anual de necesidades</title>
+  <link rel="stylesheet" href="css/unidad.css">
+  <link rel="stylesheet" href="css/planeacion.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <b>Planeación · Plan anual de necesidades</b>
+        <span>Gemelo digital · <em class="author">Gersain Barron</em> · Módulo 1 de la plataforma homologada de abasto</span>
+      </div>
+    </div>
+    <nav class="views" aria-label="Vistas">
+      <a class="active" href="planeacion.html" aria-current="page">Planeación</a>
+      <a href="index.html">CEDIS 3D</a>
+      <a href="mapa.html">Red estatal</a>
+      <a href="unidad.html">Unidad médica</a>
+      <a href="contratos.html">Contratos</a>
+      <a href="expedientes.html">Recorrido</a>
+      <a href="cenadi.html">CENADI</a>
+      <a href="nacional.html">Nacional</a>
+      <a href="redfria.html">Red fría</a>
+    </nav>
+  </header>
+
+  <div class="pl-shell">
+    <aside class="pl-side" id="side" aria-label="Sistema Integral de Abasto"></aside>
+    <main class="pl-main" id="main">
+      <div class="pl-rolebar" id="rolebar"></div>
+      <div id="view"><p class="empty">Cargando el plan de necesidades…</p></div>
+    </main>
+  </div>
+  <div id="loading" class="loading">Construyendo el plan de necesidades: 1,033 unidades × 60 claves y 36 meses de consumo…</div>
+  <script type="module" src="js/planeacion.js"></script>
+</body>
+</html>

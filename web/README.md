@@ -331,6 +331,22 @@ térmica.
 
 Modelo: `bodega/nacional/redfria_builder.py`.
 
+### Planeación · plan anual de necesidades (`planeacion.html`)
+
+Prototipo del Módulo 1 (Necesidades) de la plataforma homologada de abasto, con simulación del ciclo.
+
+- **Actuar como:** Área central, Administrador delegacional, Unidad médica, Aprobador firmante o
+  Administrador institucional. Cada rol ve sus bandejas y acciones.
+- **Submódulos:** planes de necesidad (nuevo plan en 5 pasos), tablero por etapas, catálogos de unidades,
+  insumos y kits, asignación (automática por pronóstico, asistente de 3 pasos y carga CSV), aprobación con
+  aprobar, rechazar o negociar en tres niveles, solicitud de insumo nuevo, programas especiales, cierre,
+  simulación del ciclo y bitácora.
+- **Simulación:** "+1 día", "+5 días" o "Hasta el cierre" hace responder a las unidades, delegaciones y
+  Oficina Central con reglas editables; la comparación corre 4 ciclos completos en segundo plano.
+- Las acciones se guardan en el navegador; "Reiniciar ejemplo" vuelve al plan anual 2027 de muestra.
+
+Detalle en `docs/PLANEACION.md`.
+
 ## Estructura
 
 ```

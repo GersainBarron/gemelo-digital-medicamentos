@@ -25,7 +25,7 @@ El prototipo responde dos preguntas:
 | **Simulación del ciclo** | Indicadores, avance diario, mapa de delegaciones, reglas de los actores, tabla por delegación y comparación de métodos | Gemelo |
 
 La barra lateral "Sistema Integral de Abasto" enlaza los demás módulos con las vistas del gemelo que ya los representan:
-- Contrataciones: `contratos.html`
+- Contrataciones: `compras.html` (compra consolidada; ver `docs/COMPRAS.md`)
 - Suministro y reposición: `index.html`
 - Entrega y recepción: `cenadi.html`
 - Manejo de inventario: `mapa.html`

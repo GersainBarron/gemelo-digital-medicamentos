@@ -1,0 +1,31 @@
+/* Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT */
+/* Compra consolidada · del plan al contrato (usa unidad.css y redfria.css) */
+.cp-wide { flex: 1 1 520px; }
+.cp-step { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(0, 1.6fr) 84px 64px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.cp-step:first-child { border-top: 0; }
+.cp-step span small { display: block; color: var(--muted); font-size: 11.5px; line-height: 1.35; margin-top: 2px; }
+.cp-step b { text-align: right; font-variant-numeric: tabular-nums; }
+.cp-step b small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+.cp-step em { font-style: normal; font-size: 11.5px; color: var(--crit); text-align: right; font-variant-numeric: tabular-nums; }
+.cp-step em.up { color: var(--ok); }
+.cp-causa { grid-template-columns: minmax(170px, 1.5fr) minmax(0, 1fr) 40px; }
+.cp-bar { height: 14px; border-radius: 5px; background: rgba(255,255,255,.05); overflow: hidden; }
+.cp-bar i { display: block; height: 100%; background: #94a3b8; border-radius: 5px; }
+.cp-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.cp-st { display: inline-block; font-size: 11.5px; font-weight: 650; padding: 2px 8px; border-radius: 8px; white-space: nowrap; }
+.cp-st.ok { background: rgba(52,211,153,.12); color: var(--ok); }
+.cp-st.info { background: rgba(96,165,250,.14); color: #93c5fd; }
+.cp-st.warn { background: rgba(251,191,36,.13); color: var(--warn); }
+.cp-st.crit { background: rgba(248,113,113,.14); color: var(--crit); }
+.cp-tbl td { vertical-align: top; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+#comp tr.sel td { background: rgba(45,212,191,.08); }
+@media (max-width: 700px) {
+  .cp-step { grid-template-columns: minmax(0, 1fr) 76px 56px; }
+  .cp-step .cp-bar { grid-column: 1 / -1; grid-row: 2; }
+  .cp-causa { grid-template-columns: minmax(0, 1fr) 36px; }
+  .cp-causa .cp-bar { grid-column: 1 / -1; }
+}
+.cp-half { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.cp-prov td { white-space: nowrap; }
+@media (max-width: 1100px) { .cp-half { grid-template-columns: minmax(0, 1fr); } }

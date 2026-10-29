@@ -121,7 +121,7 @@ function side(r) {
     <a class="${on('bitacora')}" href="#/p/${P.id}/bitacora">Bitácora</a></div>` : '';
   $('#side').innerHTML = `<h2>Sistema Integral de Abasto</h2>
     <a class="${!P && r.v !== 'nuevo' ? 'on' : P ? 'on' : ''}" href="#/">Planes de necesidad</a>${sub}
-    <a href="contratos.html">Contrataciones <small>gemelo</small></a>
+    <a href="compras.html">Contrataciones <small>gemelo</small></a>
     <a href="index.html">Suministro y reposición <small>gemelo</small></a>
     <a href="cenadi.html">Entrega y recepción <small>gemelo</small></a>
     <a class="off" href="#">Pago a proveedores <small>pendiente</small></a>

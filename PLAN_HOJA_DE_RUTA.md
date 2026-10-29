@@ -217,6 +217,20 @@ simulación del ciclo de aprobación. Detalle, mapeo de requerimientos y resulta
 Pendiente: anexos xlsx de los requerimientos, material de curación, Llave MX, notificaciones por correo,
 modelos epidemiológicos (SIR, SEIR, SIRD, SEIRS) y consumos reales.
 
+## Fase 9 · Compra consolidada: del plan al contrato (Meta 2 + Proyecto 1) — HECHO (29 oct)
+Simulador de la licitación consolidada a partir de la demanda del plan anual de Planeación. Detalle,
+supuestos, resultados y fuentes en `docs/COMPRAS.md`.
+- **Código:** `web/compras.html`, `web/css/compras.css`, `web/js/compra-sim.js` (mercado por clave, evaluación
+  binaria, precio no aceptable y no conveniente, ofertas de descuento, abastecimiento simultáneo, desiertas,
+  segunda vuelta, rescisiones en 2027) y `web/js/compras.js` (pantalla).
+- **Resultado:** con el calendario 2027-2028 se adjudica 81 % de las claves licitadas en el fallo (real: 82 %)
+  y 7 claves pasan 30 días o más sin medicamento; con el calendario 2025-2026 son 43; convocar en mayo con
+  revisión previa de la documentación las baja a 5.
+- **Otros cambios:** enlace "Compras" en todas las vistas; en Planeación, "Contrataciones" lleva a esta ventana.
+
+Siguiente en la ruta: pasaporte del lote (trazabilidad del plan al paciente), pago a proveedores, proveedor y
+fabricación, logística inversa.
+
 ## Cierre de cada fase
 - Probar en el navegador (PC 1366 px e iPad 820/1180 px) y revisar errores de consola.
 - Actualizar `web/README.md`, el documento de investigación y, si aplica, el Excel.

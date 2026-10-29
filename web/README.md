@@ -331,6 +331,11 @@ térmica.
 
 Modelo: `bodega/nacional/redfria_builder.py`.
 
+### Compra consolidada · del plan al contrato (`compras.html`)
+- `js/compra-sim.js`: mercado por clave (supuesto), licitación con las reglas de la compra 2027-2028 y de la Ley de Adquisiciones 2025, desiertas, segunda vuelta, rescisiones en 2027 y comparación de cuatro estrategias con los mismos números aleatorios.
+- `js/compras.js`: lee el plan de Planeación (bitácora `planeacion.bitacora.v1` en localStorage o el plan de ejemplo) y pinta indicadores, embudo, calendario, causas, proveedores, tabla por clave con CSV y comparación.
+- Detalle y resultados en `docs/COMPRAS.md`.
+
 ### Planeación · plan anual de necesidades (`planeacion.html`)
 
 Prototipo del Módulo 1 (Necesidades) de la plataforma homologada de abasto, con simulación del ciclo.

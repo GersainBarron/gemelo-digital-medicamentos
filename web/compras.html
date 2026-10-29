@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Gersain Barron">
+  <meta name="copyright" content="© 2026 Gersain Barron · Licencia MIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d1117">
+  <title>Compra consolidada · del plan al contrato</title>
+  <link rel="stylesheet" href="css/unidad.css">
+  <link rel="stylesheet" href="css/redfria.css">
+  <link rel="stylesheet" href="css/compras.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <b>Compra consolidada · del plan al contrato</b>
+        <span>Gemelo digital · <em class="author">Gersain Barron</em> · licitación, fallo, claves desiertas y riesgo de desabasto</span>
+      </div>
+    </div>
+    <nav class="views" aria-label="Vistas">
+      <a href="planeacion.html">Planeación</a>
+      <a class="active" href="compras.html" aria-current="page">Compras</a>
+      <a href="index.html">CEDIS 3D</a>
+      <a href="mapa.html">Red estatal</a>
+      <a href="unidad.html">Unidad médica</a>
+      <a href="contratos.html">Contratos</a>
+      <a href="expedientes.html">Recorrido</a>
+      <a href="cenadi.html">CENADI</a>
+      <a href="nacional.html">Nacional</a>
+      <a href="redfria.html">Red fría</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="rf-scn">
+        <div class="f-group cp-wide">
+          <label>Escenario</label>
+          <div id="esc" class="seg rf-scroll"></div>
+        </div>
+        <button id="seed" class="seg-btn" type="button">Otra corrida</button>
+      </div>
+      <p id="esc-desc" class="muted rf-desc"></p>
+      <div class="rf-levers">
+        <div class="f-group"><label>Convocatoria</label><div id="conv" class="seg rf-scroll"><button data-v="05-15">Mayo</button><button data-v="07-16">Julio</button><button data-v="09-15">Septiembre</button><button data-v="11-08">Noviembre</button></div></div>
+        <div class="f-group"><label>Fuentes por clave</label><div id="fuentes" class="seg"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button></div></div>
+        <div class="f-group"><label>Ofertas de descuento</label><div id="desc" class="seg"><button data-v="1">Sí</button><button data-v="0">No</button></div></div>
+        <div class="f-group"><label>Errores en documentación técnica</label><div id="err" class="seg"><button data-v="0.04">4 %</button><button data-v="0.1">10 %</button><button data-v="0.32">32 %</button></div></div>
+        <div class="f-group"><label>Claves desiertas</label><div id="seg2" class="seg"><button data-v="licitacion">Segunda licitación</button><button data-v="invitacion">Invitación a tres</button></div></div>
+        <div class="f-group"><label>Inventario puente</label><div id="puente" class="seg"><button data-v="30">1 mes</button><button data-v="60">2 meses</button><button data-v="90">3 meses</button></div></div>
+      </div>
+      <p id="demanda" class="note"></p>
+    </section>
+
+    <section id="kpis" class="kpis" aria-label="Indicadores de la compra"></section>
+
+    <div class="split">
+      <section class="card">
+        <div class="card-h"><h2>Del plan al contrato <small>piezas 2027 que pasan cada filtro</small></h2></div>
+        <div id="embudo"></div>
+        <p id="embudo-note" class="note"></p>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Calendario del procedimiento <small id="cal-sub"></small></h2></div>
+        <div id="cal"></div>
+        <p id="cal-note" class="note"></p>
+      </section>
+    </div>
+
+    <div class="split cp-half">
+      <section class="card">
+        <div class="card-h"><h2>¿Por qué quedan desiertas? <small>claves licitadas sin adjudicar en el fallo</small></h2></div>
+        <div id="causas"></div>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Proveedores <small id="prov-sub"></small></h2></div>
+        <div id="prov" class="m-table"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-h wrap">
+        <h2>Por clave <small>toca un encabezado para ordenar</small></h2>
+        <div class="pl-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+          <div id="filtro" class="seg rf-scroll"><button data-v="todas" class="active">Todas</button><button data-v="riesgo">Con riesgo</button><button data-v="desiertas">Desiertas</button><button data-v="vitales">Vitales</button></div>
+          <button id="csv" class="seg-btn" type="button">CSV</button>
+        </div>
+      </div>
+      <div id="tabla" class="m-table"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><h2>¿Qué estrategia conviene? <small>mismo plan y mismo mercado · toca una fila para cargarla</small></h2></div>
+      <div id="comp" class="m-table"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><h2>Cómo se calcula</h2></div>
+      <div class="rf-defs" id="defs"></div>
+    </section>
+  </main>
+
+  <div id="loading" class="loading">Leyendo el plan anual de Planeación y simulando la licitación…</div>
+  <script type="module" src="js/compras.js"></script>
+</body>
+</html>

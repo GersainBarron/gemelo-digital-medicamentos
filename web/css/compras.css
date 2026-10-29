@@ -29,3 +29,14 @@
 .cp-half { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .cp-prov td { white-space: nowrap; }
 @media (max-width: 1100px) { .cp-half { grid-template-columns: minmax(0, 1fr); } }
+.cp-3d { height: clamp(380px, 60vh, 640px); }
+.cp-time { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.cp-time input[type=range] { flex: 1 1 200px; min-width: 140px; accent-color: #2dd4bf; }
+.cp-date { font-size: 13px; font-variant-numeric: tabular-nums; min-width: 190px; }
+.cp-3d .tip { position: absolute; max-width: 240px; pointer-events: none; z-index: 3; }
+.cp-zone { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.cp-zone b { font-variant-numeric: tabular-nums; }
+.cp-kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; margin: 8px 0; }
+.cp-kv span { color: var(--muted); }
+.cp-tbl tr { cursor: pointer; }
+.cp-tbl tr.sel td { background: rgba(45,212,191,.08); }

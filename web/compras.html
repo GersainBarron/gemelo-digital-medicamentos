@@ -13,6 +13,9 @@
   <link rel="stylesheet" href="css/unidad.css">
   <link rel="stylesheet" href="css/redfria.css">
   <link rel="stylesheet" href="css/compras.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/jsm/" } }
+  </script>
 </head>
 <body>
   <header class="topbar">
@@ -62,6 +65,26 @@
     </section>
 
     <section id="kpis" class="kpis" aria-label="Indicadores de la compra"></section>
+
+    <div class="rf-main">
+      <section class="card u3d-card">
+        <div class="card-h">
+          <h2>La compra en 3D <small>cada tarima es una clave del plan · toca una</small></h2>
+          <button id="v-home" class="seg-btn" type="button">Vista general</button>
+        </div>
+        <div id="c3d" class="u3d cp-3d"><div class="u3d-loading">Cargando la línea de la compra…</div><div id="c3d-lab" class="u3d-labels"></div><div id="c3d-tip" class="tip" hidden></div></div>
+        <div class="cp-time">
+          <button id="v-play" class="icon-btn primary" aria-label="Reproducir">▶</button>
+          <div id="v-speed" class="seg"><button data-v="10" class="active">10 días/s</button><button data-v="30">30 días/s</button></div>
+          <input id="v-t" type="range" min="0" max="1" step="0.1" value="0" aria-label="Fecha">
+          <b id="v-date" class="cp-date">—</b>
+        </div>
+        <div class="legend u3d-legend">
+          <span><i class="sw" style="background:#cbd5e1"></i>En proceso</span><span><i class="sw" style="background:#2dd4bf"></i>Adjudicada o a tiempo</span><span><i class="sw" style="background:#60a5fa"></i>Patente</span><span><i class="sw" style="background:#fbbf24"></i>Parcial, 2a vuelta o con atraso</span><span><i class="sw" style="background:#f87171"></i>Desierta o 30 días sin medicamento</span><span><i class="sw" style="background:#b91c1c"></i>Sin contrato</span>
+        </div>
+      </section>
+      <section id="ficha" class="card rf-ficha" aria-live="polite"></section>
+    </div>
 
     <div class="split">
       <section class="card">

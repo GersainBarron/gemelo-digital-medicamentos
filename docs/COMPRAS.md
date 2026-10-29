@@ -32,6 +32,17 @@ Toma la demanda 2027 por clave del plan anual de Planeación y simula la licitac
     - Con una sola, se esperan 45 días al segundo lugar o 90 a un procedimiento nuevo.
     - Las unidades arrancan con un inventario puente de 1 a 3 meses.
 
+## Vista 3D
+
+El diorama `assets/compra.glb` sale de Blender (`nacional/compra_builder.py`). Lo anima `web/js/compra3d.js`.
+- **Recorrido:** cada clave del plan es una tarima, más alta mientras más piezas tiene. Avanza con el calendario de la simulación por cinco arcos: convocatoria y apertura, evaluación técnica, precio aceptable, fallo y firma de contratos. Al final se entrega en el CENADI.
+- **Patente y fuente única:** van por su propio carril hasta la firma.
+- **Las que no pasan un arco** caen a la fosa de desiertas. En la segunda vuelta salen hacia el contrato o caen a "sin contrato".
+- **Color:** gris en proceso, verde agua adjudicada, azul patente, ámbar parcial o segunda vuelta, rojo desierta y rojo oscuro sin contrato. En el CENADI, verde agua si llegó a tiempo, y ámbar o rojo según los días sin medicamento.
+- **Lámparas de los arcos:** se encienden al terminar su etapa. Verde agua si ninguna clave se quedó ahí, ámbar si una o dos, rojo si más.
+- **Línea de tiempo:** se reproduce a 10 o 30 días por segundo, o se arrastra.
+- **Selección:** al tocar una tarima, o una fila de la tabla, se ve su ficha con resultado, ofertas, proveedores, precio, primera entrega, días sin medicamento y si su proveedor incumple.
+
 ## Pantalla
 
 - **Escenarios y palancas:** mes de la convocatoria, fuentes por clave, ofertas de descuento, errores en la documentación técnica, qué hacer con las desiertas e inventario puente.

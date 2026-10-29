@@ -19,8 +19,8 @@ const fecha = (t, y = true) => { const d = new Date(t); return `${d.getUTCDate()
 const ST = { adjudicada: ['Adjudicada', 'ok'], patente: ['Patente o fuente única', 'info'], parcial: ['Parcial', 'warn'], 'completada en 2a vuelta': ['Completada en 2a vuelta', 'warn'], 'segunda vuelta': ['Desierta, salvada en 2a vuelta', 'warn'], 'sin contrato': ['Sin contrato', 'crit'] };
 const VEN = { V: 'Vital', E: 'Esencial', N: 'No esencial' };
 
-const S = { esc: 'base', over: {}, seed: 1, puente: 60, filtro: 'todas', sort: { k: 'diasSin', dir: -1 } };
-let U, claves, demanda, plan, R;
+const S = { esc: 'base', over: {}, seed: 1, puente: 60, filtro: 'todas', sort: { k: 'diasSin', dir: -1 }, sel: null, playing: false, speed: 10 };
+let U, claves, demanda, plan, R, V = null;
 
 async function init() {
   const [iss, meds] = await Promise.all(['assets/estados_issste.json', 'assets/medicamentos.json'].map(u => fetch(u).then(r => r.json())));
@@ -37,12 +37,14 @@ async function init() {
   bind();
   $('#loading').remove();
   run();
+  start3d();
 }
 
 function cfg() { return { ...C.ESCENARIOS[S.esc], ...S.over }; }
 function run() {
   R = C.simular(claves, demanda, { esc: S.esc, over: S.over, seed: S.seed, puente: S.puente });
   paintControls(); kpis(); embudo(); calendario(); causas(); proveedores(); tabla(); comparar(); defs();
+  if (V) { const keep = V.t; V.setResult(R); const rg = $('#v-t'); rg.min = V.t0; rg.max = V.t1; V.setTime(keep || V.marks.ini); rg.value = V.t; ficha(); }
 }
 
 // ------------------------------------------------------------ controles
@@ -166,7 +168,8 @@ function tabla() {
   $('#filtro').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.v === S.filtro));
   const col = COLS.find(c => c.k === S.sort.k) || COLS.at(-1);
   const rows = filas().sort((a, b) => { const va = col.v(a), vb = col.v(b); return (typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb), 'es')) * S.sort.dir; });
-  $('#tabla').innerHTML = `<table class="cp-tbl"><thead><tr>${COLS.map(c => `<th class="${c.n ? 'n' : ''}" data-k="${c.k}" style="cursor:pointer">${c.h}${S.sort.k === c.k ? (S.sort.dir > 0 ? ' ↑' : ' ↓') : ''}</th>`).join('')}</tr></thead><tbody>${rows.map(x => `<tr>${COLS.map(c => `<td class="${c.n ? 'n' : ''}">${c.f(x)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${COLS.length}" class="empty">Ninguna clave en este filtro.</td></tr>`}</tbody></table><p class="note">* contratado en la segunda vuelta. Fuentes: reparto de la demanda entre proveedores (abastecimiento simultáneo).</p>`;
+  $('#tabla').innerHTML = `<table class="cp-tbl"><thead><tr>${COLS.map(c => `<th class="${c.n ? 'n' : ''}" data-k="${c.k}" style="cursor:pointer">${c.h}${S.sort.k === c.k ? (S.sort.dir > 0 ? ' ↑' : ' ↓') : ''}</th>`).join('')}</tr></thead><tbody>${rows.map(x => `<tr data-i="${R.rows.indexOf(x)}" class="${S.sel === R.rows.indexOf(x) ? 'sel' : ''}">${COLS.map(c => `<td class="${c.n ? 'n' : ''}">${c.f(x)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${COLS.length}" class="empty">Ninguna clave en este filtro.</td></tr>`}</tbody></table><p class="note">* contratado en la segunda vuelta. Fuentes: reparto de la demanda entre proveedores (abastecimiento simultáneo).</p>`;
+  $('#tabla').querySelectorAll('tr[data-i]').forEach(tr => tr.addEventListener('click', () => { pick(+tr.dataset.i); $('#c3d').scrollIntoView({ behavior: 'smooth', block: 'center' }); }));
   $('#tabla').querySelectorAll('th[data-k]').forEach(th => th.addEventListener('click', () => { const k = th.dataset.k; S.sort = { k, dir: S.sort.k === k ? -S.sort.dir : (COLS.find(c => c.k === k).n ? -1 : 1) }; tabla(); }));
 }
 function csv() {
@@ -183,6 +186,84 @@ function comparar() {
   $('#comp').innerHTML = `<table><thead><tr><th>Estrategia</th><th>Fallo</th><th class="n">Margen al 1 ene</th><th class="n">Adjudicadas en el fallo</th><th class="n">Sin contrato</th><th class="n">Vitales sin cubrir</th><th class="n">Piezas con contrato</th><th class="n">Costo contratado</th><th class="n">Compras de emergencia</th><th class="n">Claves con riesgo</th><th class="n">Días-clave sin medicamento</th></tr></thead><tbody>${rows.map(r => `<tr data-esc="${r.esc}" class="${r.esc === S.esc && !Object.keys(S.over).length ? 'sel' : ''}" style="cursor:pointer"><td><b>${esc(r.n)}</b></td><td>${fecha(r.fallo)}</td><td class="n" style="color:${r.margen < 0 ? 'var(--crit)' : 'inherit'}">${r.margen >= 0 ? `${r.margen} d` : `${-r.margen} d tarde`}</td><td class="n">${r.adjudicadas1} de ${r.licitadas}</td><td class="n">${r.sinContrato}</td><td class="n">${r.vitalesSin}</td><td class="n">${pct(r.cobertura, 1)}</td><td class="n">${money(r.costo)}</td><td class="n">${money(r.emergencia)}</td><td class="n" style="${r.clavesRiesgo === best('clavesRiesgo') ? 'color:var(--ok);font-weight:650' : ''}">${r.clavesRiesgo}</td><td class="n" style="${r.diasSin === best('diasSin') ? 'color:var(--ok);font-weight:650' : ''}">${n0(r.diasSin)}</td></tr>`).join('')}</tbody></table>
   <p class="note">Mismo plan, mismo mercado y mismos números aleatorios en las cuatro: la diferencia es solo la estrategia. Días-clave sin medicamento = suma, por clave, de los días de 2027 en que falta, ponderada por la fracción de la demanda sin cubrir.</p>`;
   $('#comp').querySelectorAll('tr[data-esc]').forEach(tr => tr.addEventListener('click', () => { S.esc = tr.dataset.esc; S.over = {}; run(); scrollTo({ top: 0, behavior: 'smooth' }); }));
+}
+
+// ------------------------------------------------------------ vista 3D
+async function start3d() {
+  const box = $('#c3d');
+  try {
+    const { Compra3D } = await import('./compra3d.js');
+    V = new Compra3D(window.PLAN_GLB);
+    await V.load(box);
+  } catch (err) { box.innerHTML = `<p class="empty">No se pudo cargar la vista 3D: ${esc(err.message)}</p>`; return; }
+  box.querySelector('.u3d-loading')?.remove();
+  V.setResult(R);
+  const rg = $('#v-t'); rg.min = V.t0; rg.max = V.t1; V.setTime(V.marks.ini); rg.value = V.t;
+  V.onPick = i => pick(i == null || i === S.sel ? null : i);
+  const tip = $('#c3d-tip');
+  V.onHover = (i, e) => {
+    if (i == null) { tip.hidden = true; return; }
+    const x = R.rows[i], st = V.stateAt(V.items[i], V.t);
+    tip.innerHTML = `<b>${esc(x.nombre)}</b>${esc(ZN[st.e.z] || st.e.z)} · ${n0(x.Q)} piezas`; tip.hidden = false;
+    const r = box.getBoundingClientRect(); tip.style.left = Math.min(r.width - 250, e.clientX - r.left + 14) + 'px'; tip.style.top = (e.clientY - r.top + 14) + 'px';
+  };
+  const setPlay = on => { S.playing = on; $('#v-play').textContent = on ? '❚❚' : '▶'; $('#v-play').setAttribute('aria-label', on ? 'Pausar' : 'Reproducir'); };
+  $('#v-play').onclick = () => { if (!S.playing && V.t >= V.t1 - 0.5) V.setTime(V.t0); setPlay(!S.playing); };
+  $('#v-speed').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.speed = +b.dataset.v; $('#v-speed').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b)); };
+  rg.oninput = () => { setPlay(false); V.setTime(+rg.value); };
+  $('#v-home').onclick = () => { pick(null); V.home(); };
+  ficha();
+  let last = performance.now(), lastDay = null;
+  const loop = now => {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (S.playing) { V.setTime(V.t + dt * S.speed); rg.value = V.t; if (V.t >= V.t1) setPlay(false); }
+    if (V.frame(dt, S.playing)) labels3d();
+    const day = Math.floor(V.t);
+    if (day !== lastDay) { lastDay = day; $('#v-date').textContent = fecha(V.dateOf(V.t)) + (V.t >= V.marks.ini ? ' · contrato en curso' : ''); ficha(); }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+}
+const ZN = { plan: 'En el plan, por convocar', convocatoria: 'Convocatoria y apertura', tecnica: 'Evaluación técnica', precio: 'Precio y ofertas de descuento', fallo: 'Esperando el fallo', firma: 'Adjudicada, firma y fabricación', patente: 'Patente o fuente única', desiertas: 'Desierta', segunda: 'Rescatada en la segunda vuelta', sincontrato: 'Sin contrato', cenadi: 'Entregada en el CENADI' };
+function labels3d() {
+  const L = [], c = V.counts || {};
+  for (const [z, txt] of [['desiertas', 'Desiertas'], ['sincontrato', 'Sin contrato'], ['cenadi', 'En el CENADI'], ['patente', 'Patente'], ['firma', 'Adjudicadas'], ['plan', 'Por convocar'], ['segunda', 'Segunda vuelta']]) {
+    if (!c[z]) continue;
+    const a = V.anchors[z]; if (!a) continue;
+    const [x, y, ok] = V.project(a.clone().setY(a.y + 9)); if (!ok) continue;
+    L.push(`<div class="u3d-label" style="transform:translate(${(x - 40).toFixed(0)}px,${(y - 12).toFixed(0)}px);${z === 'desiertas' || z === 'sincontrato' ? 'border-color:rgba(248,113,113,.6)' : ''}">${txt} · ${c[z]}</div>`);
+  }
+  $('#c3d-lab').innerHTML = L.join('');
+}
+function pick(i) {
+  S.sel = i; if (V) V.focus(i);
+  if (i == null && V) V.home();
+  ficha();
+  $('#tabla').querySelectorAll('tr[data-i]').forEach(tr => tr.classList.toggle('sel', +tr.dataset.i === i));
+}
+function ficha() {
+  const el = $('#ficha'); if (!el || !V) return;
+  if (S.sel != null) {
+    const x = R.rows[S.sel], st = V.stateAt(V.items[S.sel], V.t);
+    const fu = x.ganadores.map(g => `<div class="cp-zone"><span>${C.labName(g.lab)}${g.vuelta === 2 ? ' · 2a vuelta' : ''}<small class="muted" style="display:block">${C.labNacional(g.lab) ? 'Nacional' : 'Extranjero'} · ${pct(g.q / x.Q)} de la demanda</small></span><b>${money(g.precio)} <small class="muted">por pieza</small></b></div>`).join('');
+    el.innerHTML = `<span class="eyebrow">${x.clave} · ${VEN[x.ven]}${x.frio ? ' · red fría' : ''}</span><h2>${esc(x.nombre)}</h2>
+      <p class="sub">${esc(ZN[st.e.z])} el ${fecha(V.dateOf(V.t))}</p>
+      <div class="cp-kv"><span>Piezas 2027</span><b>${n0(x.Q)}</b><span>Resultado</span><b><span class="cp-st ${ST[x.estado][1]}">${ST[x.estado][0]}</span>${x.causa ? ` <small class="muted">${esc(x.causa)}</small>` : ''}</b>
+      <span>Ofertas</span><b>${x.tipo === 'patente' ? 'Adjudicación directa' : !x.ofertas ? 'Nadie ofertó' : `${x.ofertas} · ${x.solventes} solventes · ${x.aceptables} con precio aceptable`}</b>
+      <span>Precio de referencia</span><b>${money(x.ref)} por pieza</b>
+      <span>Primera entrega</span><b>${x.primeraEntrega ? fecha(x.primeraEntrega) : x.entrega2 ? `${fecha(x.entrega2)} (2a vuelta)` : 'sin entrega'}</b>
+      <span>Días sin medicamento</span><b style="color:${x.diasSin >= 30 ? 'var(--crit)' : x.diasSin > 0 ? 'var(--warn)' : 'var(--ok)'}">${n0(x.diasSin)}</b></div>
+      ${fu ? `<h3>Proveedores</h3>${fu}` : ''}
+      ${x.falla ? `<p class="note">En ${MES[x.falla.mes]} de 2027 incumple ${C.labName(x.falla.lab)} y se rescinde; ${x.falla.cubre > 0.95 ? 'los demás proveedores cubren su parte' : `se esperan ${x.falla.espera} días ${x.segundo ? 'al segundo lugar' : 'a un procedimiento nuevo'}`}.</p>` : ''}
+      <button class="seg-btn" id="f-close" type="button" style="margin-top:8px">Ver todas</button>`;
+    $('#f-close').onclick = () => pick(null);
+    return;
+  }
+  const c = V.counts || {}, m = V.marks, t = V.t;
+  const etapa = t < 0 ? 'Antes de la convocatoria' : t < m.apertura ? 'Convocatoria y junta de aclaraciones' : t < m.evalFin ? 'Evaluación técnica' : t < m.descFin ? 'Ofertas subsecuentes de descuento' : t < m.fallo ? 'Esperando el fallo' : t < m.firma ? 'Firma de contratos' : t < m.ini ? 'Fabricación, antes de arrancar el año' : t < m.puente ? 'Año en curso: aún hay inventario puente' : 'Año en curso: sin inventario puente';
+  el.innerHTML = `<span class="eyebrow">${fecha(V.dateOf(t))}</span><h2>${etapa}</h2><p class="sub">Dale ▶ para ver avanzar las ${R.rows.length} claves desde la convocatoria hasta su entrega en el CENADI.</p>
+    <h3>Dónde están las claves</h3>${Object.entries(ZN).filter(([z]) => c[z]).map(([z, n]) => `<div class="cp-zone"><span>${n}</span><b style="${z === 'desiertas' || z === 'sincontrato' ? 'color:var(--crit)' : ''}">${c[z]}</b></div>`).join('')}
+    <p class="note">Las lámparas de cada arco se encienden al terminar la etapa: verde agua si ninguna clave se quedó ahí, ámbar si una o dos, rojo si más.</p>`;
 }
 
 function defs() {

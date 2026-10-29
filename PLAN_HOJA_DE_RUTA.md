@@ -228,6 +228,15 @@ supuestos, resultados y fuentes en `docs/COMPRAS.md`.
   revisión previa de la documentación las baja a 5.
 - **Otros cambios:** enlace "Compras" en todas las vistas; en Planeación, "Contrataciones" lleva a esta ventana.
 
+## Fase 10 · Inventario físico con marbetes en el CEDIS (Proyecto 2) — HECHO (29 oct)
+Toma de inventario con marbetes, conteos, conciliación y ajustes, con la normativa general (LGCG art. 27 y el
+procedimiento 1821-A03-002 del IMSS). Detalle en `docs/MARBETES.md`.
+- **Código:** `web/js/marbetes-sim.js` (errores ocultos, estrategias de conteo, conciliación, autorización,
+  tolerancias y alertas por almacenista) y `web/js/marbetes-ui.js` (pestaña "Marbetes" del CEDIS 3D y capa con un
+  marbete por ubicación).
+- **Resultado:** con disciplina media solo la toma anual deja 1.23 % de diferencias físicas (tope 0.72 %); con
+  rotativo mensual baja a 0.68 % y con cíclico ABC a 0.46 %.
+
 Siguiente en la ruta: pasaporte del lote (trazabilidad del plan al paciente), pago a proveedores, proveedor y
 fabricación, logística inversa.
 

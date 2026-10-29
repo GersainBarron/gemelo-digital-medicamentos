@@ -20,6 +20,7 @@ import { installInventory } from './network-sim.js';
 import { Contratos } from './contratos.js';
 import { Contratos3D } from './contratos-3d.js';
 import { ContratosUI } from './contratos-ui.js';
+import { MarbetesUI } from './marbetes-ui.js';
 
 const MODEL_URL = 'assets/almacen_medicamentos.glb';
 const LAYOUT_URL = 'assets/warehouse_layout.json';
@@ -53,13 +54,14 @@ const LAYERS = [
   { id: 'zones', label: 'Zonas operativas', hint: 'Áreas coloreadas en el piso' },
   { id: 'slots', label: 'Ocupación de ubicaciones', hint: 'Verde libre · rojo ocupado' },
   { id: 'cover', label: 'Cobertura por clave', hint: 'Rojo sin existencia · ámbar reparto o < 10 días · verde normal · azul sobreinventario' },
+  { id: 'marbetes', label: 'Marbetes (inventario físico)', hint: 'Verde sin diferencia · azul aclarada · ámbar ajuste · rojo con acta · gris sin contar' },
   { id: 'nodes', label: 'Nodos de circulación', hint: 'Grafo para la simulación' },
   { id: 'labels', label: 'Etiquetas', hint: 'Nombres de equipos (y de zonas con su capa)' },
   { id: 'shadows', label: 'Sombras', hint: 'Más realista, más exigente' },
 ];
 
 const app = {
-  layers: { roof: false, walls: true, exterior: true, routes: true, zones: false, slots: false, cover: false, nodes: false, labels: true, shadows: false },
+  layers: { roof: false, walls: true, exterior: true, routes: true, zones: false, slots: false, cover: false, marbetes: false, nodes: false, labels: true, shadows: false },
   cats: { main: [], roof: [], walls: [], exterior: [] },
   pickables: [], parts: new Map(), byName: new Map(),
   selected: null, following: false, needsRender: true, flight: null,
@@ -118,7 +120,11 @@ async function init() {
   fetch('assets/medicamentos.json').then(r => r.json()).then(cat => {
     app.catalog = cat;
     app.inv = app.ops.inv = installInventory(app.ops.data, cat);
-    fetch('assets/slot_claves.json').then(r => r.json()).then(j => { app.slotClaves = j.slots; }).catch(() => {});
+    fetch('assets/slot_claves.json').then(r => r.json()).then(j => {
+      app.slotClaves = j.slots;
+      // inventario físico con marbetes (marbetes-sim.js): pestaña "Marbetes" y capa en el 3D
+      try { app.mb = new MarbetesUI(app, { b2t, focusPoint }); app.mb.init(j.slots, cat); } catch (err) { console.warn('Sin marbetes', err); }
+    }).catch(() => {});
     app.link = app.ops.link = new CedisLink(app.ops, cat);
     app.link.tick(app.ops.now, true);
     // Contratos, órdenes de suministro y patio de proveedores (contratos.js + contratos_patio.glb)
@@ -498,6 +504,7 @@ function setLayer(id, v, silent) {
   if (id === 'nodes') app.ovNodes.visible = v;
   if (id === 'slots') app.ovSlots.visible = v;
   if (id === 'cover') { updateCover(true); if (app.ovCover) app.ovCover.visible = v; }
+  if (id === 'marbetes') app.mb?.setVisible(v);
   if (id === 'labels') document.getElementById('labels').style.display = v ? '' : 'none';
   if (id === 'shadows') {
     app.renderer.shadowMap.enabled = v;
@@ -556,6 +563,17 @@ function flyTo(id) {
     f0: app.camera.fov, f1: fovFromLens(p.lens), lens: p.lens };
   app.ui.setActivePreset(id);
 }
+// vuelo a un punto (por ejemplo, una ubicación del rack)
+function focusPoint(c) {
+  stopFollow(true);
+  const dir = new THREE.Vector3().subVectors(app.camera.position, app.controls.target);
+  dir.y = 0; if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
+  dir.normalize().multiplyScalar(0.5); dir.y = 0.86; dir.normalize();
+  app.flight = { t: 0, dur: 1.0, p0: app.camera.position.clone(), t0: app.controls.target.clone(), p1: c.clone().addScaledVector(dir, 15), t1: c.clone(), f0: app.camera.fov, f1: app.camera.fov, lens: app.camLens };
+  app.ui.setActivePreset(null);
+}
+app.setLayer = (id, v) => setLayer(id, v);
+
 function focusOn(obj) {
   stopFollow(true);
   const box = selectionBox(obj);

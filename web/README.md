@@ -331,6 +331,10 @@ térmica.
 
 Modelo: `bodega/nacional/redfria_builder.py`.
 
+### Inventario físico con marbetes (pestaña "Marbetes" del CEDIS 3D)
+- `js/marbetes-sim.js`: un año ubicación por ubicación con errores ocultos, tomas anual, selectiva, rotativa o cíclica ABC, marbetes foliados, tres conteos, conciliación, ajustes por nivel de autorización, tolerancias del IMSS (0.72 % físicas, 0.80 % contables) y alertas por almacenista.
+- `js/marbetes-ui.js`: pestaña con toma, marbete, causas, integridad y comparación; capa 3D "Marbetes" con un marbete por ubicación. Detalle en `docs/MARBETES.md`.
+
 ### Compra consolidada · del plan al contrato (`compras.html`)
 - `js/compra-sim.js`: mercado por clave (supuesto), licitación con las reglas de la compra 2027-2028 y de la Ley de Adquisiciones 2025, desiertas, segunda vuelta, rescisiones en 2027 y comparación de cuatro estrategias con los mismos números aleatorios.
 - `js/compras.js`: lee el plan de Planeación (bitácora `planeacion.bitacora.v1` en localStorage o el plan de ejemplo) y pinta indicadores, embudo, calendario, causas, proveedores, tabla por clave con CSV y comparación.

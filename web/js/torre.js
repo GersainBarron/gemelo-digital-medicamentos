@@ -6,13 +6,14 @@
 //  detalle por eslabón, personas señaladas y la matriz de 32 delegaciones.
 // =====================================================================
 import { ESCENARIOS, ESLABONES, NIVELES, DEP, fmtV } from './torre-engine.js';
+import { ROLES, vistaRol, rolDe, rolKey, rolNombre, rolFoco, rolDeNombre } from './torre-roles.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pc = x => `${Math.round((x || 0) * 100)} %`;
 const ST_N = { ok: 'En meta', warn: 'Fuera de meta', crit: 'Crítico', nd: 'Sin dato' };
 
-const S = { esc: 'normal', sel: null, filtro: 'todas', cache: {}, R: null, id: 0, tab: 'tablero' };
+const S = { esc: 'normal', sel: null, filtro: 'todas', cache: {}, R: null, id: 0, tab: 'tablero', rol: { t: 'jefe' } };
 let V3 = null, V3p = null, ISS = null;
 let worker = null;
 
@@ -21,6 +22,8 @@ function params() {
   if (ESCENARIOS[q.get('esc')]) S.esc = q.get('esc');
   if (q.get('e')) S.sel = q.get('e');
   if (q.get('tab') === '3d') S.tab = '3d';
+  let rv = q.get('rol'); if (!rv) { try { rv = localStorage.getItem('torre.rol'); } catch { /* nada */ } }
+  S.rol = rolDe(rv);
 }
 function cfg() {
   let entries = null, integ = null;
@@ -56,6 +59,21 @@ function bind() {
     S.sel = c.dataset.e; url(); cadena(); detalle();
     if (c.dataset.go) $('#detalle').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
+  $('#rol-t').innerHTML = Object.entries(ROLES).map(([k, n]) => `<button data-v="${k}">${esc(n)}</button>`).join('');
+  $('#rol-t').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || !S.R) return; setRol(rolPorTipo(b.dataset.v)); });
+  $('#rol-sel').addEventListener('change', e => {
+    const x = e.target; if (!S.R) return;
+    if (x.id === 'rs-del-u') { const u = S.R.unidades.filter(u => u.cve === x.value).sort((a, b) => b.st - a.st)[0]; if (u) setRol({ t: 'unit', i: u.i }); return; }
+    setRol(rolDe(x.value));
+  });
+  document.addEventListener('click', e => { const b = e.target.closest('[data-rol]'); if (!b || !S.R || b.closest('#rol-sel')) return; const r = rolDe(b.dataset.rol); if (b.closest('#tw3') && r.t !== 'jefe') { S.tab = 'tablero'; } setRol(r); tabs(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  document.addEventListener('change', e => {
+    const c = e.target.closest('[data-hecho]'); if (!c) return;
+    let h = {}; try { h = JSON.parse(localStorage.getItem('torre.hecho') || '{}'); } catch { /* nada */ }
+    if (c.checked) h[c.dataset.hecho] = Date.now(); else delete h[c.dataset.hecho];
+    try { localStorage.setItem('torre.hecho', JSON.stringify(h)); } catch { /* nada */ }
+    c.closest('li')?.classList.toggle('hecho', c.checked);
+  });
   $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.tab = b.dataset.tab; url(); tabs(); });
   $('#tw3-patrol').addEventListener('click', () => { if (!V3) return; const on = !V3.patrol; V3.setPatrol(on); if (on) { V3.select(null, false); closePanel(); } patrolBtn(); });
   $('#tw3-home').addEventListener('click', () => { if (!V3) return; V3.select(null); closePanel(); });
@@ -63,7 +81,7 @@ function bind() {
   $('#tw3-queue').addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (!b || !V3) return; pick3(V3.queue[+b.dataset.q]); $('#tw3').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   $('#matriz').addEventListener('click', e => { const tr = e.target.closest('tr[data-cve]'); if (!tr) return; tr.classList.toggle('open'); });
 }
-function url() { const q = new URLSearchParams(location.search); q.set('esc', S.esc); if (S.sel) q.set('e', S.sel); if (S.tab === '3d') q.set('tab', '3d'); else q.delete('tab'); history.replaceState(null, '', `${location.pathname}?${q}`); }
+function url() { const q = new URLSearchParams(location.search); q.set('esc', S.esc); if (S.sel) q.set('e', S.sel); if (S.tab === '3d') q.set('tab', '3d'); else q.delete('tab'); if (S.rol.t !== 'jefe') q.set('rol', rolKey(S.rol)); else q.delete('rol'); history.replaceState(null, '', `${location.pathname}?${q}`); }
 function paintEsc() {
   for (const b of $('#esc').children) b.classList.toggle('active', b.dataset.v === S.esc);
   $('#esc-desc').textContent = ESCENARIOS[S.esc].desc;
@@ -74,8 +92,51 @@ function paint() {
   const R = S.R;
   if (!S.sel || !R.eslabones.some(e => e.id === S.sel)) S.sel = R.reparto[0].id;
   $('#plan-note').innerHTML = `Plan de Planeación: <a href="planeacion.html#/mitablero">${esc(R.plan.nombre)}</a>, día hábil ${R.plan.dia} de la aprobación${R.plan.proyectado ? ` (tu bitácora estaba en el día ${R.plan.dia - R.plan.proyectado}; la torre lo avanzó para tener qué vigilar)` : ''}. La torre lee tu bitácora y tus controles de integridad de este navegador.`;
-  veredicto(); norte(); reparto(); llamadas(); cadena(); detalle(); nombres(); matriz(); textos(); tabs();
+  veredicto(); norte(); reparto(); llamadas(); cadena(); detalle(); nombres(); matriz(); textos(); rolUI(); tabs();
   if (V3) { V3.setData(R); cola3d(); if (V3.sel) panel3d(V3.sel); }
+}
+
+// ------------------------------------------------------------------ ver como (vistas por rol)
+function rolPorTipo(t) {
+  const R = S.R;
+  if (t === 'area') return { t, id: S.rol.t === 'area' ? S.rol.id : R.reparto[0].id };
+  if (t === 'ana') return { t, a: S.rol.t === 'ana' ? S.rol.a : [...R.roles.analistas].sort((a, b) => b.venc - a.venc)[0].a };
+  if (t === 'del') return { t, cve: S.rol.t === 'del' ? S.rol.cve : S.rol.t === 'unit' ? R.unidades[S.rol.i].cve : R.matriz.rows[0].cve };
+  if (t === 'unit') { const cve = S.rol.t === 'del' ? S.rol.cve : null; const u = [...R.unidades].filter(u => !cve || u.cve === cve).sort((a, b) => b.st - a.st || (b.integ?.monto || 0) - (a.integ?.monto || 0))[0]; return S.rol.t === 'unit' ? S.rol : { t, i: u.i }; }
+  if (t === 'k') return { t, id: S.rol.t === 'k' ? S.rol.id : [...R.roles.contratos].sort((a, b) => (a.otif ?? 1) - (b.otif ?? 1))[0].id };
+  return { t: 'jefe' };
+}
+function setRol(r) {
+  if (!r) return;
+  S.rol = r; try { localStorage.setItem('torre.rol', rolKey(r)); } catch { /* nada */ }
+  url(); rolUI();
+  if (V3) { V3.setScope(scopeCve()); cola3d(); const f = rolFoco(S.R, r); if (f) pick3(f); else { V3.select(null, false); closePanel(); } }
+}
+function scopeCve() { const r = S.rol; return r.t === 'del' ? r.cve : r.t === 'unit' ? S.R.unidades[r.i].cve : r.t === 'k' ? '13' : null; }
+function rolUI() {
+  const R = S.R, r = S.rol;
+  for (const b of $('#rol-t').children) b.classList.toggle('active', b.dataset.v === r.t);
+  const opt = (v, n, sel) => `<option value="${esc(v)}"${sel ? ' selected' : ''}>${esc(n)}</option>`;
+  const dot = st => (st === 'crit' ? '● ' : st === 'warn' ? '◐ ' : '○ ');
+  let h = '';
+  if (r.t === 'area') h = `<select id="rs-area" aria-label="Eslabón">${R.eslabones.map(e => opt(`area:${e.id}`, `${dot(e.st)}${e.n} · ${e.dueno}`, e.id === r.id)).join('')}</select>`;
+  if (r.t === 'ana') h = `<select id="rs-ana" aria-label="Analista">${R.roles.analistas.map(a => opt(`ana:${a.a}`, `${dot(a.sem)}${a.nombre} · ${a.venc.toLocaleString('es-MX')} vencidas`, a.a === r.a)).join('')}</select>`;
+  if (r.t === 'del') h = `<select id="rs-del" aria-label="Delegación">${[...R.roles.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)).map(d => opt(`del:${d.cve}`, `${dot(d.sem)}${d.nombre}`, d.cve === r.cve)).join('')}</select>`;
+  if (r.t === 'unit') {
+    const cve = R.unidades[r.i].cve, us = R.unidades.filter(u => u.cve === cve).sort((a, b) => b.st - a.st || a.nombre.localeCompare(b.nombre));
+    h = `<select id="rs-del-u" aria-label="Delegación">${[...R.roles.delegaciones].sort((a, b) => a.nombre.localeCompare(b.nombre)).map(d => opt(d.cve, d.nombre, d.cve === cve)).join('')}</select>
+      <select id="rs-unit" aria-label="Unidad">${us.map(u => opt(`unit:${u.i}`, `${['○ ', '○ ', '◐ ', '● '][u.st]}${u.nombre}${u.hgo ? ' · piloto' : ''}`, u.i === r.i)).join('')}</select>`;
+  }
+  if (r.t === 'k') h = `<select id="rs-k" aria-label="Contrato">${R.roles.contratos.map(k => opt(`k:${k.id}`, `${k.id} · ${k.prov} · ${k.objeto}`, k.id === r.id)).join('')}</select>`;
+  $('#rol-sel').innerHTML = h;
+  const jefe = r.t === 'jefe';
+  $('#jefe-view').hidden = !jefe; $('#veredicto').hidden = !jefe; $('#rol-view').hidden = jefe;
+  if (!jefe) {
+    $('#rol-view').innerHTML = vistaRol(R, r);
+    let hh = {}; try { hh = JSON.parse(localStorage.getItem('torre.hecho') || '{}'); } catch { /* nada */ }
+    for (const c of $('#rol-view').querySelectorAll('[data-hecho]')) if (hh[c.dataset.hecho]) { c.checked = true; c.closest('li')?.classList.add('hecho'); }
+  }
+  document.title = jefe ? 'Torre de control del abasto' : `${rolNombre(R, r)} · Torre`;
 }
 
 // ------------------------------------------------------------------ pestaña Torre 3D
@@ -98,7 +159,8 @@ async function open3d() {
       v.onHover = h => { $('#tw3').title = h ? hoverTxt(h) : ''; };
       v.onTarget = t => { v.setTag(tagTxt(t)); markQueue(); };
       V3 = v; if (new URLSearchParams(location.search).has('debug')) window.__tw3 = v;
-      v.setData(S.R); cola3d(); patrolBtn();
+      v.scope = scopeCve(); v.setData(S.R); cola3d(); patrolBtn();
+      const f = rolFoco(S.R, S.rol); if (f) pick3(f);
       if (S.tab === '3d') v.start();
     } catch (err) { console.error(err); const l = $('#tw3 .u3d-loading'); if (l) l.textContent = 'No se pudo cargar la vista 3D: ' + err.message; }
   })();
@@ -159,6 +221,7 @@ function fichaUnidad(u) {
     ${dl([u.integ ? ['Pedidos maliciosos que pasaron', `${u.integ.n} · ${esc(fmtV(u.integ.monto, 'mxn'))}`, 'crit'] : ['Pedidos maliciosos que pasaron', 'Ninguno', 'ok']])}
     ${h ? `<p class="u3d-h">Farmacia · piloto Hidalgo, 30 días</p>${dl([['Recetas', h.rx.toLocaleString('es-MX')], ['Surtidas completas', fmtV(h.s, 'pct'), h.s < 0.9 ? 'crit' : h.s < 0.97 ? 'warn' : 'ok'], ['Negadas por completo', h.den.toLocaleString('es-MX')], ['PEX en plazo', h.pex ? fmtV(h.pe, 'pct') : '—', h.pex && h.pe < 0.75 ? 'warn' : ''], ['Urgencias tarde', `${h.reqLate} de ${h.reqs}`], ['Piezas caducadas', h.merma.toLocaleString('es-MX')]])}` : '<p class="note">Fuera del piloto: de esta unidad la torre solo ve el plan y la integridad.</p>'}
     ${u.m.length ? `<p class="u3d-h">Por qué está así</p><ul class="tw3-l">${u.m.map(([n, t]) => `<li class="${['', '', 'warn', 'crit'][n] || ''}">${esc(t)}</li>`).join('')}</ul>` : ''}
+    <button class="tw3-link" data-rol="unit:${u.i}">Ver el tablero del director →</button>
     <button class="tw3-link" data-goto="del:${u.cve}">Ver la delegación de ${esc(D?.nombre || '')} →</button>`;
 }
 function fichaDel(cve) {
@@ -173,6 +236,7 @@ function fichaDel(cve) {
     <p class="u3d-h">Sus ${us.length} unidades</p>
     <div class="tw3-bar">${n.map((x, k) => x ? `<i class="s${k}" style="flex:${x}" title="${ST_U[k]}: ${x}"></i>` : '').join('')}</div>
     <p class="tw3-cnt"><span class="crit">${n[3]} en rojo</span> · <span class="warn">${n[2]} en ámbar</span> · ${n[1]} en plazo · ${n[0]} sin pendientes</p>
+    <button class="tw3-link" data-rol="del:${cve}">Ver el tablero del administrador delegacional →</button>
     ${peores.length ? `<p class="u3d-h">Directores a llamar</p><ul class="tw3-l">${peores.map(u => `<li class="${ST_UC[u.st]}"><button data-goto="unit:${u.i}"><b>${esc(u.nombre)}</b> · ${esc(u.m[0]?.[1] || '')}</button></li>`).join('')}</ul>` : ''}`;
 }
 function fichaCenadi() {
@@ -253,8 +317,8 @@ function llamadas() {
       <b class="tw-who">${esc(l.quien)}</b>
       <div class="tw-call-k"><span>${esc(l.kn)}</span><strong class="${l.st}">${fmtV(l.v, l.fmt)}</strong><small>${l.dir > 0 ? 'meta ≥' : 'meta ≤'} ${fmtV(l.meta, l.fmt)}</small></div>
       ${l.culpa ? `<p class="tw-her">↑ ${Math.round((1 - l.f) * 100)} % de esta brecha se explica por <b>${esc(l.culpaK)}</b> (${esc(l.culpa)})${l.f < 0.5 ? ': primero se llama allá' : ''}.</p>` : ''}
-      ${l.of.length ? `<ul class="tw-of">${l.of.map(o => `<li><b>${esc(o.quien)}</b> · ${esc(o.txt)}</li>`).join('')}</ul>` : ''}
-      <p class="tw-plazo">${esc(NIVELES[l.nivel].plazo)}</p>
+      ${l.of.length ? `<ul class="tw-of">${l.of.map(o => { const g = rolDeNombre(S.R, o.quien); return `<li>${g ? `<button class="tw-lnk" data-rol="${g}"><b>${esc(o.quien)}</b></button>` : `<b>${esc(o.quien)}</b>`} · ${esc(o.txt)}</li>`; }).join('')}</ul>` : ''}
+      <p class="tw-plazo"><button class="tw-lnk" data-rol="area:${l.eslabon}">Ver el tablero de ${esc(l.en)}</button> · ${esc(NIVELES[l.nivel].plazo)}</p>
     </div>`).join('') + (S.R.llamadas.length > L.length ? `<p class="note">Y ${S.R.llamadas.length - L.length} indicadores más fuera de meta en el detalle de cada eslabón.</p>` : '')
     : '<p class="muted">Nadie: todos los indicadores están en meta.</p>';
 }
@@ -315,7 +379,7 @@ function detalle() {
 function nombres() {
   const N = S.R.nombres;
   $('#nombres').innerHTML = N.length ? `<table class="tw-tbl"><thead><tr><th>Nivel</th><th>Quién</th><th>Por qué</th></tr></thead><tbody>${N.map(n => `
-    <tr><td><span class="tw-niv n${n.nivel}">${n.nivel}</span></td><td><b>${esc(n.quien)}</b></td><td>${esc(n.txt)}<small class="tw-sub">${esc(n.en)} · ${esc(n.kn)}</small></td></tr>`).join('')}</tbody></table>`
+    <tr><td><span class="tw-niv n${n.nivel}">${n.nivel}</span></td><td>${rolDeNombre(S.R, n.quien) ? `<button class="tw-lnk" data-rol="${rolDeNombre(S.R, n.quien)}"><b>${esc(n.quien)}</b></button>` : `<b>${esc(n.quien)}</b>`}</td><td>${esc(n.txt)}<small class="tw-sub">${esc(n.en)} · ${esc(n.kn)}</small></td></tr>`).join('')}</tbody></table>`
     : '<p class="muted">Nadie señalado.</p>';
 }
 
@@ -324,7 +388,7 @@ function matriz() {
   for (const b of $('#mfiltro').children) b.classList.toggle('active', b.dataset.v === S.filtro);
   const rows = S.filtro === 'rojo' ? M.rows.filter(r => Object.values(r.c).some(c => c.st === 'crit')) : M.rows;
   $('#matriz').innerHTML = `<table class="tw-mtx"><thead><tr><th>Delegación</th>${M.cols.map(c => `<th>${c.ic} ${esc(c.n)}<small>${esc(c.sub)}</small></th>`).join('')}</tr></thead><tbody>${rows.map(r => `
-    <tr data-cve="${r.cve}"><td class="tw-mtx-d"><b>${esc(r.nombre)}</b>${r.piloto ? '<span class="chip accent">piloto</span>' : ''}<small>${esc(r.dueno)} · ${esc(r.analista)}</small></td>${M.cols.map(c => { const x = r.c[c.id]; return `<td class="tw-cell ${x.st}"><b>${esc(x.v)}</b><small>${esc(x.det)}</small></td>`; }).join('')}</tr>`).join('')}</tbody></table>`;
+    <tr data-cve="${r.cve}"><td class="tw-mtx-d"><b>${esc(r.nombre)}</b>${r.piloto ? '<span class="chip accent">piloto</span>' : ''}<small>${esc(r.dueno)} · ${esc(r.analista)}</small><button class="tw-lnk tw-mtx-go" data-rol="del:${r.cve}">Ver su tablero →</button></td>${M.cols.map(c => { const x = r.c[c.id]; return `<td class="tw-cell ${x.st}"><b>${esc(x.v)}</b><small>${esc(x.det)}</small></td>`; }).join('')}</tr>`).join('')}</tbody></table>`;
 }
 
 function textos() {

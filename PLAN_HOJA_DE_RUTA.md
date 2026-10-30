@@ -252,6 +252,9 @@ con qué nivel de escalamiento. Detalle en `docs/TORRE.md`.
   duplicados, la red fría del CENADI cargada al Estado de México y las fuentes que no respaldaban su meta.
 - **Torre 3D:** pestaña con la torre vigía (modelo propio, `nacional/vigia_builder.py`) en el Golfo de México; su ojo
   patrulla las delegaciones y unidades en rojo y al tocar cualquier cosa abre su ficha.
+- **Ver como:** la torre de cada responsable (`web/js/torre-roles.js`): dueño de área, analista de Central, administrador
+  delegacional, director de unidad y administrador de contrato, con acciones y plazos, dependencias, comparación con
+  sus pares y su gente; se navega de la dirección general a la persona en tres toques.
 - **Otros cambios:** enlace "Torre" en todas las vistas y botón en el CEDIS 3D.
 
 Siguiente en la ruta: pasaporte del lote (trazabilidad del plan al paciente), pago a proveedores, proveedor y

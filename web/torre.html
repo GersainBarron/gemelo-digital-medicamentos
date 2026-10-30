@@ -55,6 +55,10 @@
       </div>
       <p id="esc-desc" class="muted rf-desc"></p>
       <p id="plan-note" class="note"></p>
+      <div class="tw-ver">
+        <div class="f-group"><label>Ver como</label><div id="rol-t" class="seg rf-scroll"></div></div>
+        <div id="rol-sel" class="tw-rol-sel"></div>
+      </div>
       <div id="tabs" class="seg tw-tabs" role="tablist" aria-label="Vista">
         <button data-tab="tablero" class="active" role="tab">Tablero</button>
         <button data-tab="3d" role="tab">Torre 3D</button>
@@ -89,6 +93,8 @@
     </div>
 
     <div id="tab-tablero" class="tw-tab">
+    <div id="rol-view" class="tw-tab" hidden></div>
+    <div id="jefe-view" class="tw-tab">
 
     <section id="norte" class="kpis tw-norte" aria-label="Estrella del norte"></section>
 
@@ -137,6 +143,7 @@
       </section>
     </div>
 
+    </div>
     <section class="card">
       <div class="card-h"><h2>Referencias</h2></div>
       <div id="refs" class="rf-defs"></div>

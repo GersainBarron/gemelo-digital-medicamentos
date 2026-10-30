@@ -196,12 +196,13 @@ export function evaluar(D, cfg = {}, onProg = () => {}) {
   const norte = estrellaNorte({ Hg, N, C, F, G });
   const matriz = matrizDelegaciones({ G, N, F });
   const unidades = unidadesDe({ G, Hg });
+  const roles = rolesDe({ G, F, Hg });
   const nac = N.E.map(e => ({ cve: e.cve, outH: e.outH[NAC.H], abasto: e.cumD[NAC.H] ? e.cumS[NAC.H] / e.cumD[NAC.H] : 1, late: e.ships.filter(x => x.arr <= NAC.H && x.late).length, ships: e.ships.filter(x => x.arr <= NAC.H).length }));
   onProg({ txt: 'Listo', p: 1 });
   return {
     esc: escId, escN: esc.n, escDesc: esc.desc,
     plan: { dia: G.P.day, proyectado: G.proyectado, nombre: G.P.nombre || 'Plan anual 2027', status: G.P.status },
-    norte, eslabones, reparto: R.reparto, llamadas: R.llamadas, nombres: R.nombres, matriz, unidades, nac,
+    norte, eslabones, reparto: R.reparto, llamadas: R.llamadas, nombres: R.nombres, matriz, unidades, nac, roles,
   };
 }
 
@@ -620,6 +621,39 @@ function unidadesDe({ G, Hg }) {
   });
 }
 
+// ------------------------------------------------------------------ datos para las vistas por rol
+function rolesDe({ G, F, Hg }) {
+  const rs = G.rs, esc = {};
+  for (const c of G.ig.casos) if (c.estado === 'escapado') {
+    const a = c.actor, k = a.tipo === 'oc' ? 'oc' + a.i : a.tipo === 'del' ? 'del' + a.cve : a.tipo === 'um' ? 'um' + a.cve : null;
+    if (!k) continue;
+    const o = esc[k] ||= { n: 0, monto: 0, c: [] }; o.n++; o.monto += c.monto; const cn = INT.CONDUCTA[c.c]?.n || c.c; if (!o.c.includes(cn)) o.c.push(cn);
+  }
+  const frio = {};
+  for (const l of F.losses) {
+    if (l.t > RF.H) continue;
+    const n = F.byId[l.where] || F.byId[String(l.where).split(':')[1]];
+    if (!n || n.kind === 'cenadi') continue;
+    const o = frio[n.cve] ||= { oculto: 0, baja: 0, nodos: {} };
+    if (l.det) o.baja += l.mxn; else { o.oculto += l.mxn; const x = o.nodos[n.id] ||= { nombre: n.nombre, kind: n.kind, mxn: 0, label: l.label }; x.mxn += l.mxn; }
+  }
+  const mot = m => m.map(x => x.txt);
+  const analistas = rs.ana.map(A => ({ a: A.a, nombre: `Analista ${A.a + 1} de Oficina Central`, pend: A.pend, venc: A.venc, esc1: A.esc1, esc2: A.esc2, oldest: A.oldest, dels: A.dels.map(d => d.cve), alertas: A.alertas.length, motivos: mot(A.motivos), sem: A.sem, integ: esc['oc' + A.a] || null }));
+  const delegaciones = rs.del.map(D => {
+    const fr = frio[D.d.cve] || { oculto: 0, baja: 0, nodos: {} };
+    return {
+      cve: D.d.cve, nombre: D.d.nombre, abbr: D.d.abbr, analista: analistaDe(D.i), pend: D.pend, venc: D.venc, esc2: D.esc2, oldest: D.oldest,
+      uTot: D.uTot, uVenc: D.uVenc, uEsc2: D.uEsc2, uSinFin: D.uSinFin, uItemsVenc: D.uItemsVenc, desvCosto: D.desvCosto, sinCambios: D.sinCambios, aprob: D.aprob, neg: D.neg,
+      alertas: D.alertas.length, uAlertas: D.uAlertas, motivos: mot(D.motivos), sem: D.sem, costo: D.costo, costo0: D.costo0,
+      integ: esc['del' + D.d.cve] || null, integU: esc['um' + D.d.cve] || null,
+      frio: { oculto: fr.oculto, baja: fr.baja, nodos: Object.values(fr.nodos).sort((a, b) => b.mxn - a.mxn).slice(0, 5) },
+    };
+  });
+  const est = Object.fromEntries(Hg.est.map(c => [c.id, c]));
+  const contratos = Hg.porK.map(k => ({ id: k.id, prov: k.prov, objeto: k.objeto, otif: k.otifPct, cump: k.cumplimiento, rech: k.rechazoPct, atraso: k.atrasoProm, penas: k.penasDevengadas, cobradas: k.penasCobradas, rescisiones: k.rescisiones, entregas: k.entregas, vencidas: k.vencidas, estado: est[k.id]?.estado, sem: est[k.id]?.sem, penasTot: est[k.id]?.penas }));
+  return { analistas, delegaciones, contratos, plan: { now: rs.now, esc: rs.esc } };
+}
+
 // ------------------------------------------------------------------ matriz por delegación
 function matrizDelegaciones({ G, N, F }) {
   const H = NAC.H;
@@ -653,7 +687,7 @@ function matrizDelegaciones({ G, N, F }) {
       abasto: { st: semDe(brecha({ v: ab, meta: 0.97, crit: 0.9, dir: 1 })), v: `${(ab * 100).toFixed(1)} %`, det: e ? `${Math.round(e.outH[H] / 24 * 10) / 10} días en cero` : '' },
       llegada: { st: semDe(brecha({ v: 1 - late, meta: 0.95, crit: 0.85, dir: 1 })), v: `${Math.round((1 - late) * 100)} %`, det: `${sh.length - Math.round(late * sh.length)} de ${sh.length} embarques a tiempo` },
       frio: { st: semDe(brecha({ v: p.oculto, meta: 0, crit: 250000, dir: -1 })), v: p.oculto ? mxnK(p.oculto) : '—', det: `oculto ${mxn(p.oculto)} · dado de baja ${mxn(p.baja)}` },
-      integ: { st: semDe(brecha({ v: ig.monto, meta: 0, crit: 2e6, dir: -1 })), v: ig.n ? `${ig.n} · ${mxnK(ig.monto)}` : '—', det: ig.n ? `${ig.n} casos que pasaron los controles` : 'sin casos' },
+      integ: { st: semDe(brecha({ v: ig.monto, meta: 0, crit: 2e6, dir: -1 })), v: ig.n ? `${ig.n} · ${mxnK(ig.monto)}` : '—', det: ig.n ? `${pl(ig.n, 'caso que pasó', 'casos que pasaron')} los controles` : 'sin casos' },
     };
     const score = sum(Object.values(c).map(x => RANK[x.st] ** 2));
     return { cve: d.cve, nombre: d.nombre, abbr: d.abbr, dueno: `Administrador(a) delegacional de ${d.nombre}`, analista: `Analista ${analistaDe(i) + 1} de Oficina Central`, piloto: d.cve === '13', c, score };

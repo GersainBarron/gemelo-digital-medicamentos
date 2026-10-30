@@ -200,8 +200,14 @@ export class Torre3D {
     this.anim = 1;
   }
   // focos que recorre el ojo al patrullar: torre → peores delegaciones → unidades en rojo → CENADI
+  setScope(cve) { this.scope = cve || null; if (this.R) { this.buildQueue(); this.qi = -1; this.tNext = 0; } }
   buildQueue() {
     const R = this.R, q = [];
+    if (this.scope) {                               // vista de una delegación: su edificio y sus unidades en ámbar o rojo
+      q.push({ type: 'del', cve: this.scope });
+      R.unidades.filter(u => u.cve === this.scope && u.st >= 2).sort((a, b) => b.st - a.st || (b.integ?.monto || 0) - (a.integ?.monto || 0)).slice(0, 12).forEach(u => q.push({ type: 'unit', i: u.i }));
+      this.queue = q; return;
+    }
     const rows = [...R.matriz.rows].filter(r => r.score >= 4).slice(0, 6);
     const us = R.unidades.filter(u => u.st === 3).sort((a, b) => (b.integ?.monto || 0) - (a.integ?.monto || 0) || b.esc2 - a.esc2).slice(0, 8);
     const cen = R.eslabones.find(e => e.id === 'cenadi');

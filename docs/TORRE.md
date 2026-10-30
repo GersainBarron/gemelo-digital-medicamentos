@@ -127,6 +127,30 @@ Si más de la mitad de la brecha viene de arriba, baja un nivel: primero se llam
 - **Con la compra tardía cambia el culpable.** Es efecto de la regla de atribución, no de la simulación: los contratos de Hidalgo no leen la fecha de la compra. La regla dice que sin contrato a tiempo no hay a quién exigirle. Por eso 65 % de la brecha de entregas tarde pasa a Adquisiciones, que firmó 49 días después del 1 de enero.
 - **Cambiar de escenario tarda unos 2 segundos.** Planeación, integridad, red fría, el piloto de Hidalgo y marbetes se guardan mientras la página está abierta.
 
+## Ver como: la torre de cada responsable
+
+`web/js/torre-roles.js`. La misma corrida, recortada al alcance de cada puesto. Se elige en "Ver como" (arriba) o tocando cualquier nombre de la torre: una delegación de la matriz, un director en una llamada, un analista o un contrato. Se recuerda en el navegador y va en la dirección (`?rol=`), así que el enlace se puede mandar a esa persona.
+
+| Ver como | Alcance | Su gente | Se compara con |
+|---|---|---|---|
+| Jefe de jefes | Toda la torre | Dueños de los 10 eslabones | — |
+| Dueño de área | Su eslabón e indicadores | Lo que hay detrás de sus indicadores (nombres y objetos) | Los otros 9 eslabones (parte de la culpa) |
+| Analista de Central | Su bandeja de Central y sus 6 o 7 delegaciones | Sus administradores delegacionales | Los otros 4 analistas |
+| Delegación | Su fila de la matriz, almacén estatal, red fría, integridad y sus unidades | Sus directores de unidad | Las 32 delegaciones |
+| Unidad médica | Su bandeja del plan, integridad y, en el piloto, su farmacia | Su Jefatura de farmacia | Las unidades de su delegación (y del piloto) |
+| Contrato | OTIF, piezas a tiempo, rechazos, penas y semáforo del contrato | El proveedor (a través del contrato) | Los otros 7 contratos |
+
+Todas responden lo mismo en el mismo orden:
+
+1. **Encabezado:** a quién reporta, a quién supervisa, su semáforo y el nivel de escalamiento que le toca hoy.
+2. **Cómo voy:** sus indicadores contra la meta.
+3. **Lo que te toca hoy:** acciones concretas con plazo por nivel (24 a 48 h, antes de la junta semanal, esta semana con dirección general). Las marcadas "Reclamar hacia arriba" son fallas que le llegan de otro eslabón, con a quién reclamarlas. Cada acción se puede marcar como hecha (se guarda en el navegador).
+4. **Tu lugar en la cadena:** de quién depende y a quién afecta, con su semáforo; tocar uno abre su tablero.
+5. **Cómo te comparas:** su lugar entre sus pares y la mediana, con una barra por cada par.
+6. **Tu gente:** su equipo ordenado de peor a mejor; tocar una fila abre su tablero.
+
+Así se baja de la dirección general a la persona en tres toques: jefe → delegación → director de unidad. En la pestaña 3D, ver como una delegación, una unidad o un contrato enfoca el mapa y el ojo patrulla solo ese estado.
+
 ## Pestaña "Torre 3D"
 
 `web/js/torre3d.js` con el modelo `web/assets/vigia.glb` (`nacional/vigia_builder.py`, diseño propio). Ideas tomadas de torres de control de aeropuerto (cabina de vidrio inclinado), faros (haz que barre) y cámaras de vigilancia (lente con iris).
@@ -173,7 +197,9 @@ Si más de la mitad de la brecha viene de arriba, baja un nivel: primero se llam
 |---|---|---|
 | `esc` | `normal`, `proveedor`, `huracan`, `tardia` | Escenario |
 | `e` | `plan`, `compra`, `prov`, `cenadi`, `dnac`, `alm`, `dest`, `unidad`, `frio`, `integ` | Eslabón abierto |
-| `debug` | — | Expone `window.__torre` |
+| `rol` | `jefe`, `area:frio`, `ana:0`, `del:13`, `unit:377`, `k:C1` | Ver como |
+| `tab` | `3d` | Abre la pestaña Torre 3D |
+| `debug` | — | Expone `window.__torre` y `window.__tw3` |
 
 La primera corrida tarda unos 6 segundos, en segundo plano. Después se guardan los gemelos que no cambian con el escenario, y cada escenario ya calculado se muestra al instante.
 

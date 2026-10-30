@@ -295,7 +295,8 @@ export class Torre3D {
       if (m) return { type: 'del', cve: m.object.userData.cve };
       return null;
     };
-    el.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; this.fly = null; });
+    el.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; this.fly = null; this.lastTouch = performance.now() / 1000; });
+    el.addEventListener('wheel', () => { this.lastTouch = performance.now() / 1000; }, { passive: true });
     el.addEventListener('pointerup', e => {
       if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) { down = null; return; }
       down = null; this.onPick?.(hit(e), e);
@@ -320,9 +321,19 @@ export class Torre3D {
       this.anim = Math.max(0, this.anim - dt);
       for (const st of Object.values(this.states)) { st.cur.lerp(st.target, Math.min(1, dt * 6)); st.top.color.copy(st.cur); st.side.color.copy(st.cur).multiplyScalar(0.6); }
     }
-    // patrulla: cada 4 s el ojo pasa al siguiente foco
+    // si nadie toca la vista 20 s, el ojo vuelve a patrullar solo
+    this.lastTouch ??= now;
+    if (!this.patrol && now - this.lastTouch > 20) { this.patrol = true; this.tNext = 0; this.sel = null; this.placeUnits(); this.placeDelegaciones(); this.recolorStates(); this.onIdle?.(); }
+    // patrulla: el ojo pasa al siguiente foco; en los rojos se queda más tiempo
     if (this.patrol && this.queue.length && now >= this.tNext) {
-      this.qi = (this.qi + 1) % this.queue.length; this.aimAt(this.queue[this.qi]); this.tNext = now + 4;
+      this.qi = (this.qi + 1) % this.queue.length; const t = this.queue[this.qi]; this.aimAt(t);
+      this.tNext = now + (this.stOf(t) === 'crit' ? 7 : 4); this.blinkAt = now + 0.2;
+    }
+    // parpadeo: al cambiar de foco y cada ~6 s
+    if (this.eye) {
+      if (!this.blinkAt || now > this.blinkAt + 6 + (this.qi % 3)) this.blinkAt = now;
+      const b = now - this.blinkAt, k = b < 0.22 ? Math.max(0.08, Math.abs(1 - b / 0.11)) : 1;
+      this.eye.scale.y = k;
     }
     // el ojo gira hacia el objetivo (suave) y el haz lo sigue
     const L = this.look;

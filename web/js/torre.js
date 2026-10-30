@@ -229,7 +229,8 @@ async function open3d() {
       $('#tw3 .u3d-loading')?.remove();
       v.onPick = s => pick3(s);
       v.onHover = h => { $('#tw3').title = h ? hoverTxt(h) : ''; };
-      v.onTarget = t => { v.setTag(tagTxt(t)); markQueue(); };
+      v.onTarget = t => { v.setTag(tagTxt(t)); markQueue(); if (v.patrol) panel3d(t); };   // al patrullar muestra la ficha de lo que mira
+      v.onIdle = () => patrolBtn();
       V3 = v; if (new URLSearchParams(location.search).has('debug')) window.__tw3 = v;
       v.scope = scopeCve(); v.setData(S.R); cola3d(); patrolBtn();
       const f = rolFoco(S.R, S.rol); if (f) pick3(f);

@@ -177,6 +177,7 @@ Prueba (operación normal): se comprometieron las 20 llamadas del día 15 y las 
     - **delegación:** su fila de la matriz, almacén estatal a 30 días, reparto de sus unidades y directores a llamar;
     - **CENADI:** indicadores de CENADI y distribución nacional;
     - **torre:** reparto de la culpa, estrella del norte y a quién llamar primero.
+- **Ojo vivo:** parpadea al cambiar de foco y cada pocos segundos; en los focos rojos se queda 7 s (4 s en los demás). Al patrullar abre sola la ficha de lo que mira. Si nadie toca la vista 20 s, vuelve a patrullar.
 - Parámetro `tab=3d` para abrir directo en esta pestaña.
 
 ## Lo que la torre no ve

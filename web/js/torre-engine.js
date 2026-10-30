@@ -73,11 +73,14 @@ export const ESLABON = Object.fromEntries(ESLABONES.map(e => [e.id, e]));
 
 export const NIVELES = {
   1: { n: 'Nivel 1 · dueño directo', plazo: 'atender en 24 a 48 h con su procedimiento' },
-  2: { n: 'Nivel 2 · revisión semanal', plazo: 'a la junta semanal de operación (S&OE) con causa raíz y plan' },
+  2: { n: 'Nivel 2 · revisión semanal', plazo: 'a la junta semanal de operación con causa raíz y plan' },
   3: { n: 'Nivel 3 · dirección general', plazo: 'sistémico o de alto impacto: decisión de política esta semana' },
 };
 
 // ------------------------------------------------------------------ utilidades
+const MOTIVO = { RECHAZADA_TEMPERATURA: 'Rechazo por temperatura', RECHAZADA_FEUM: 'Rechazo por documentación (FEUM)', RECHAZADA_CADUCIDAD: 'Rechazo por caducidad corta' };
+const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const fechaISO = s => { const [y, m, d] = String(s).split('-').map(Number); return y && m && d ? `${d} ${MES[m - 1]} ${y}` : String(s); };
 const sum = a => a.reduce((x, y) => x + y, 0);
 const pct = (a, b) => (b ? a / b : null);
 export function brecha(k) {
@@ -86,22 +89,27 @@ export function brecha(k) {
   return Math.max(0, Math.min(3, g));
 }
 export const semDe = g => (g <= 1e-9 ? 'ok' : g < 1 ? 'warn' : 'crit');
-const RANK = { ok: 0, warn: 1, crit: 2 };
+export const sinDato = k => !k.info && (k.v == null || !isFinite(k.v));                    // gris: no cuenta como verde
+const RANK = { nd: 0, ok: 0, warn: 1, crit: 2 };
 
 // ------------------------------------------------------------------ cada gemelo
 function gemeloPlan(D, cfg, prog) {
   prog('Planeación: reconstruyendo el plan anual con tu bitácora');
   const U = PE.buildUniverse(D.iss, D.meds);
-  const plans = PE.replay(U, cfg.entries || PE.seedEntries());
+  let plans = Array.isArray(cfg.entries) && cfg.entries.length ? PE.replay(U, cfg.entries) : [];
+  if (!plans.length) plans = PE.replay(U, PE.seedEntries());                                   // bitácora vacía o dañada: plan de ejemplo
   const P = plans.find(p => p.items.size && p.status !== 'cancelado') || plans[0];          // el mismo plan que lee Compras
-  let proyectado = 0;
-  if (P.status === 'validacion' && P.day < 15) { proyectado = 15 - P.day; while (P.day < 15 && P.status === 'validacion') PE.ACTIONS.sim(U, P, { days: 1 }); }
-  const k = PE.kpis(U, P), sg = PE.seguimiento(U, P);
-  prog('Integridad: buscando pedidos maliciosos');
-  const ig = INT.simular(U, P, { ...INT.defaultCfg(), ...(cfg.integ || {}) });
-  const rs = responsables(U, P, ig);
+  // demanda (Compras) e integridad se calculan con el plan tal como está, igual que en compras.html e Integridad
   const dem = {};
   for (const it of P.items.values()) if (it.months && it.st.oc !== 'rechazado') dem[it.k] = (dem[it.k] || 0) + PE.total(it);
+  prog('Integridad: buscando pedidos maliciosos');
+  const ig = INT.simular(U, P, { ...INT.defaultCfg(), ...(cfg.integ || {}) });
+  // para vigilar bandejas, si la aprobación apenas empieza se avanza al día hábil 15
+  const d0 = P.day;
+  if (P.status === 'validacion' && P.day < 15) while (P.day < 15 && P.status === 'validacion') PE.ACTIONS.sim(U, P, { days: 1 });
+  const proyectado = P.day - d0;
+  const k = PE.kpis(U, P), sg = PE.seguimiento(U, P);
+  const rs = responsables(U, P, ig);
   return { U, P, k, sg, ig, rs, dem, proyectado };
 }
 
@@ -128,7 +136,7 @@ function gemeloHidalgo(D, esc) {
     return {
       clues: s.unit.clues, nombre: s.unit.nombre, tipo: s.unit.tipo, rx, full, den: sum(h.rxDen), part: sum(h.rxPart),
       reqs: h.reqs.length, reqLate: h.reqs.filter(r => r.deliver > r.deadline).length,
-      pex: h.pex.length, pexV: h.pex.filter(p => p.slaV).length, pexA: h.pex.filter(p => p.slaA).length,
+      pex: h.pex.length, pexV: h.pex.filter(p => p.slaV).length, pexA: h.pex.filter(p => p.slaA).length, pexOk: h.pex.filter(p => p.slaV && p.slaA).length,
       merma: [...h.byC.values()].reduce((n, b) => n + sum(b.merma), 0),
     };
   });
@@ -153,24 +161,33 @@ function gemeloMarbetes(D, esc) {
 }
 
 // ------------------------------------------------------------------ evaluación completa
+// resultados que no cambian con el escenario se guardan mientras el worker vive
+const CACHE = new Map();
+function memo(id, key, fn, prog, txt) {
+  const c = CACHE.get(id);
+  if (c && c.key === key) { if (prog) { prog(txt); prog(txt); } return c.v; }
+  const v = fn(); CACHE.set(id, { key, v }); return v;
+}
+
 export function evaluar(D, cfg = {}, onProg = () => {}) {
   const escId = ESCENARIOS[cfg.esc] ? cfg.esc : 'normal', esc = ESCENARIOS[escId];
-  let paso = 0; const PASOS = 8;
+  let paso = 0; const PASOS = 10;
   const prog = txt => onProg({ txt, p: Math.min(1, paso++ / PASOS) });
 
-  const G = gemeloPlan(D, cfg, prog);
+  const kPlan = JSON.stringify([cfg.entries || null, cfg.integ || null]);
+  const G = memo('plan', kPlan, () => gemeloPlan(D, cfg, prog), prog, 'Planeación e integridad: ya calculados');
   prog('Compra consolidada: licitando las claves del plan');
   const C = CS.simular(G.U.claves, G.dem, { esc: esc.compra, seed: 1 });
   prog('Distribución nacional: CENADI → 32 estados, 30 días');
   const N = NAC.simulate(D.iss, esc.nac, 'cob');
   prog('Red fría: 30 días de temperatura en la red');
-  const F = RF.simulate(D.iss, esc.rf, 2026);
+  const F = memo('rf', JSON.stringify(esc.rf), () => RF.simulate(D.iss, esc.rf, 2026));
   prog('CENADI: patio, andenes y surtido de un día');
   const Y = YD.simulate(YD.buildParams(esc.yard[0], esc.yard[1])).kpi;
   prog('Piloto Hidalgo: CEDIS, 60 unidades, rutas y contratos');
-  const Hg = gemeloHidalgo(D, esc);
+  const Hg = memo('hgo', esc.hgo, () => gemeloHidalgo(D, esc));
   prog('Inventario físico: marbetes del año en el CEDIS');
-  const M = gemeloMarbetes(D, esc);
+  const M = memo('marb', esc.marb, () => gemeloMarbetes(D, esc));
   prog('Torre: semáforos, atribución y a quién llamar');
 
   const eslabones = construir({ G, C, N, F, Y, Hg, M, escId });
@@ -211,7 +228,8 @@ function construir({ G, C, N, F, Y, Hg, M }) {
       det: `${venc.toLocaleString('es-MX')} vencidas: ${sg.vencidos.um.toLocaleString('es-MX')} en unidades, ${sg.vencidos.del.toLocaleString('es-MX')} en delegaciones y ${sg.vencidos.oc.toLocaleString('es-MX')} en Oficina Central.`,
       of: peorNivel === 'oc'
         ? anaRank.slice(0, 3).map(a => ({ quien: `Analista ${a.a + 1} de Oficina Central`, txt: `${a.venc.toLocaleString('es-MX')} partidas vencidas; la más vieja lleva ${a.oldest ?? 0} días · revisa ${a.dels.map(d => d.abbr).join(', ')}`, nivel: a.esc2 ? 2 : 1 }))
-        : delRank.filter(d => d.venc).slice(0, 3).map(d => ({ quien: `Administrador(a) delegacional de ${d.d.nombre}`, txt: `${d.venc.toLocaleString('es-MX')} partidas vencidas en su bandeja`, nivel: d.esc2 ? 2 : 1 })),
+        : peorNivel === 'del' ? [...rs.del].filter(d => d.venc).sort((a, b) => b.venc - a.venc).slice(0, 3).map(d => ({ quien: `Administrador(a) delegacional de ${d.d.nombre}`, txt: `${d.venc.toLocaleString('es-MX')} partidas vencidas en su bandeja`, nivel: d.esc2 ? 2 : 1 }))
+        : [...rs.unit].filter(u => u.venc).sort((a, b) => b.venc - a.venc).slice(0, 3).map(u => ({ quien: `Director(a) de ${u.u.nombre}`, txt: `${u.venc.toLocaleString('es-MX')} partidas vencidas en su bandeja`, nivel: u.esc2 ? 2 : 1 })),
     }),
     kp('avance', {
       n: 'Avance de validación vs programado', v: avance, fmt: 'pct', meta: 1, crit: 0.8, w: 2,
@@ -223,10 +241,10 @@ function construir({ G, C, N, F, Y, Hg, M }) {
         : delRank.slice(0, 3).map(d => ({ quien: `Administrador(a) delegacional de ${d.d.nombre}`, txt: d.motivos.map(m => m.txt).join('; ') || 'sin motivo registrado', nivel: 1 })),
     }),
     kp('holgura', {
-      n: 'Holgura del calendario', v: sg.holgura, fmt: 'dias', meta: 5, crit: 0, w: 1,
+      n: 'Holgura del calendario', v: sg.estimado == null ? -10 : sg.holgura, fmt: 'diash', meta: 5, crit: 0, w: 1,
       def: 'Días que sobran entre la fecha estimada de cierre (al ritmo actual) y la fecha límite del plan.',
       formula: 'fecha límite − fecha estimada de cierre', fuente: 'Calendario del plan anual 2027',
-      quien: 'Subdirección de Planeación de Insumos', det: `Al ritmo de ${sg.rate.toFixed(1)} unidades por día hábil se termina en ${sg.estimado} días hábiles; el plazo vence el ${sg.L.fin}.`,
+      quien: 'Subdirección de Planeación de Insumos', det: sg.estimado == null ? `Al ritmo actual no se termina dentro del periodo; el plazo vence el ${fechaISO(sg.L.fin)}.` : `Al ritmo de ${(sg.rate || 0).toFixed(1)} unidades por día hábil se termina en el día hábil ${sg.estimado} (hoy es el ${sg.now}; faltan ${sg.estimado - sg.now}); el plazo vence el ${fechaISO(sg.L.fin)}.`,
     }),
     kp('sobrepedido', {
       n: 'Pedido arriba de la propuesta', v: k.costo0 ? k.costo / k.costo0 - 1 : 0, fmt: 'pct', dir: -1, meta: 0.10, crit: 0.20, w: 1,
@@ -252,7 +270,7 @@ function construir({ G, C, N, F, Y, Hg, M }) {
       def: 'Del volumen que pidió el plan, cuánto quedó con contrato firmado (primera o segunda vuelta).',
       formula: 'piezas contratadas ÷ piezas requeridas', fuente: 'Compra consolidada 2025-26: 99 % de lo solicitado (Zeta, 7-nov-2025)',
       quien: 'Subdirección de Adquisiciones',
-      of: sinC.slice(0, 4).map(x => ({ obj: true, quien: x.nombre || x.c, txt: `${x.estado}${x.causa ? ' · ' + x.causa : ''}${x.ven === 'V' ? ' · VITAL' : ''} · ${Math.round(x.cobertura * 100)} % contratado`, nivel: x.ven === 'V' ? 3 : 2 })),
+      of: sinC.slice(0, 4).map(x => ({ obj: true, quien: x.nombre || x.clave, txt: `${x.estado}${x.causa ? ' · ' + x.causa : ''}${x.ven === 'V' ? ' · VITAL' : ''} · ${Math.round(x.cobertura * 100)} % contratado`, nivel: x.ven === 'V' ? 3 : 2 })),
     }),
     kp('vitales', {
       n: 'Claves vitales sin contrato completo', v: ck.vitalesSin, fmt: 'num', dir: -1, meta: 0, crit: 1, w: 3,
@@ -280,27 +298,27 @@ function construir({ G, C, N, F, Y, Hg, M }) {
     kp('otif', {
       n: 'Entregas a tiempo y completas (OTIF)', v: kc.otifPct, fmt: 'pct', meta: 0.93, crit: 0.88, w: 3,
       def: 'Partidas de las órdenes de suministro que llegaron completas y dentro del plazo.',
-      formula: 'partidas a tiempo y completas ÷ partidas con plazo vencido', fuente: 'Ejemplo de la industria: 88 % base y 93 % meta (DSG.ai; no es norma)',
+      formula: 'partidas a tiempo y completas ÷ partidas con plazo vencido', fuente: 'Ejemplo de la industria: 93 % meta (DSG.ai; no es norma). Usar su 88 % de base como nivel crítico es lectura propia',
       quien: 'Administración de contratos (exige al proveedor, aplica penas)',
       of: porK.slice(0, 3).map(x => ({ quien: `Administrador(a) del contrato ${x.id} · ${x.prov}`, txt: `OTIF ${Math.round(x.otifPct * 100)} % · ${x.objeto}`, nivel: x.otifPct < 0.6 ? 2 : 1 })),
     }),
     kp('cumplimiento', {
       n: 'Piezas entregadas a tiempo', v: kc.cumplimiento, fmt: 'pct', meta: 0.95, crit: 0.85, w: 2,
       def: 'De las piezas que ya debían haber llegado, cuántas llegaron a tiempo.',
-      formula: 'piezas a tiempo ÷ piezas con plazo vencido', fuente: 'Contratos de compra consolidada: entrega en plazo',
+      formula: 'piezas a tiempo ÷ piezas con plazo vencido', fuente: 'Meta interna del gemelo',
       quien: 'Administración de contratos',
     }),
     kp('rechazo', {
       n: 'Entregas rechazadas en recepción', v: kc.rechazoPct, fmt: 'pct', dir: -1, meta: 0.02, crit: 0.05, w: 1,
       def: 'Entregas que el almacén rechazó por caducidad corta, temperatura o documentación.',
-      formula: 'entregas rechazadas ÷ entregas', fuente: 'IAPHL: error ≥ 2 % es inaceptable',
+      formula: 'entregas rechazadas ÷ entregas', fuente: 'Meta interna (IAPHL usa 2 % como límite para el error de surtido, que es otro indicador)',
       quien: 'Administración de contratos (calidad del proveedor)',
-      of: Object.entries(kc.motivos || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([m, n]) => ({ obj: true, quien: m.replace('RECHAZADA_', 'Rechazo por ').toLowerCase().replace('feum', 'FEUM'), txt: `${n} entregas`, nivel: 1 })),
+      of: Object.entries(kc.motivos || {}).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([m, n]) => ({ obj: true, quien: MOTIVO[m] || m, txt: `${n} ${n === 1 ? 'entrega' : 'entregas'}`, nivel: 1 })),
     }),
     kp('pago', {
       n: 'Facturas pagadas a tiempo', v: kc.pagoATiempoPct, fmt: 'pct', meta: 0.95, crit: 0.80, w: 1,
       def: 'Facturas pagadas dentro del plazo legal. Si se paga tarde, el proveedor deja de surtir primero al ISSSTE.',
-      formula: 'facturas pagadas en plazo ÷ facturas pagadas', fuente: 'Plazo de pago a proveedores de la Ley de Adquisiciones (20 días naturales)',
+      formula: 'facturas pagadas en plazo ÷ facturas pagadas', fuente: 'Plazo del motor de Contratos: 17 días hábiles desde que se verifica la factura (Ley de Adquisiciones 2025). Meta interna 95 %',
       quien: 'Subdirección de Finanzas (pago a proveedores)',
       det: `Por pagar: ${mxn(kc.porPagar)}; ya vencido: ${mxn(kc.porPagarVencido)}.`,
     }),
@@ -317,22 +335,22 @@ function construir({ G, C, N, F, Y, Hg, M }) {
   E.cenadi = [
     kp('estancia', {
       n: 'Estancia del proveedor en el CENADI', v: Y.estancia, fmt: 'min', dir: -1, meta: 120, crit: 180, w: 1,
-      def: 'Minutos desde que el tráiler del proveedor llega hasta que sale descargado.',
+      def: 'Minutos desde que el tráiler del proveedor entra por la caseta hasta que sale descargado (sin contar la espera en carretera).',
       formula: 'promedio(salida − llegada)', fuente: 'Meta interna del gemelo (2 h); el proveedor cobra la espera',
-      quien: 'Gerencia del CENADI (recepción)', det: `Percentil 90: ${Math.round(Y.estanciaP90)} min. Cola máxima en carretera: ${Y.colaMax} tráileres.`,
+      quien: 'Gerencia del CENADI (recepción)', det: `Percentil 90: ${Math.round(Y.estanciaP90)} min. Antes de la caseta esperan en promedio ${Math.round(Y.esperaCarretera)} min en carretera; cola máxima: ${Y.colaMax} tráileres.`,
     }),
     kp('mas3h', {
       n: 'Tráileres con más de 3 h', v: Y.pctMas3h, fmt: 'pct', dir: -1, meta: 0.05, crit: 0.15, w: 1,
-      def: 'Proveedores que pasan más de 3 horas en el CENADI.', formula: 'tráileres con estancia > 180 min ÷ recibidos', fuente: 'Meta interna del gemelo',
+      def: 'Proveedores que pasan más de 3 horas dentro del CENADI (desde la caseta).', formula: 'tráileres con estancia > 180 min ÷ recibidos', fuente: 'Meta interna del gemelo',
       quien: 'Gerencia del CENADI (recepción)',
     }),
     kp('salidas', {
       n: 'Embarques que salen a tiempo', v: Y.salidasATiempo, fmt: 'pct', meta: 0.95, crit: 0.85, w: 2,
       def: 'Olas de embarque a los estados que salen en su horario.', formula: 'embarques a tiempo ÷ embarques', fuente: 'Meta interna del gemelo',
-      quien: 'Gerencia del CENADI (surtido y embarque)', det: `Atraso promedio de los que salen tarde: ${Math.round(Y.atrasoSalida)} min. Horas extra: ${Y.horasExtra}.`,
+      quien: 'Gerencia del CENADI (surtido y embarque)', det: `Atraso promedio por embarque: ${Math.round(Y.atrasoSalida)} min. Tiempo extra del turno: ${(Y.horasExtra / 60).toFixed(1)} h.`,
     }),
     kp('dock', {
-      n: 'Del andén al rack (dock to stock)', v: Y.dockToStock, fmt: 'min', dir: -1, meta: 120, crit: 240, w: 1,
+      n: 'Del andén a la ubicación en almacén', v: Y.dockToStock, fmt: 'min', dir: -1, meta: 120, crit: 240, w: 1,
       def: 'Minutos desde que se descarga hasta que la tarima queda ubicada y disponible para surtir.',
       formula: 'promedio(ubicada − descargada)', fuente: 'Meta interna del gemelo',
       quien: 'Gerencia del CENADI (almacenaje)',
@@ -355,19 +373,19 @@ function construir({ G, C, N, F, Y, Hg, M }) {
       of: [...est].filter(e => e.late).sort((a, b) => b.late - a.late).slice(0, 3).map(e => ({ obj: true, quien: `Ruta CENADI → ${e.nombre}`, txt: `${e.late} de ${e.ships} embarques tarde`, nivel: 1 })),
     }),
     kp('surtido', {
-      n: 'Lo pedido por los estados que embarcó el CENADI', v: fillCenadi, fmt: 'pct', meta: 0.98, crit: 0.90, w: 2,
-      def: 'Tarimas embarcadas contra las que pidieron los estados en sus días de embarque.', formula: 'tarimas embarcadas ÷ tarimas pedidas', fuente: 'IAPHL: tasa de surtimiento al nivel siguiente',
+      n: 'Tarimas pedidas por los estados que el CENADI embarcó', v: fillCenadi, fmt: 'pct', meta: 0.98, crit: 0.90, w: 2,
+      def: 'Tarimas embarcadas contra las que pidieron los estados en sus días de embarque.', formula: 'tarimas embarcadas ÷ tarimas pedidas', fuente: 'Indicador de IAPHL (tasa de surtimiento al nivel siguiente); la meta de 98 % es interna',
       quien: 'Coordinación de Distribución del CENADI',
     }),
     kp('estados', {
       n: 'Estados que se quedaron sin existencia', v: estOut.length, fmt: 'num', dir: -1, meta: 0, crit: 3, w: 3,
-      def: 'Almacenes estatales que llegaron a cero en algún momento de los 30 días.', formula: 'estados con horas en cero > 0', fuente: 'ISSSTE abr-2026: 0 farmacias debajo de 90 %',
+      def: 'Almacenes estatales que llegaron a cero en algún momento de los 30 días.', formula: 'estados con horas en cero > 0', fuente: 'Meta interna: ningún almacén estatal en cero',
       quien: 'Coordinación de Distribución del CENADI',
       of: estOut.slice(0, 4).map(e => ({ quien: `Jefe(a) del almacén estatal de ${e.nombre}`, txt: `${Math.round(e.outH / 24 * 10) / 10} días en cero · abasto ${(e.abasto * 100).toFixed(1)} %`, nivel: e.outH > 72 ? 2 : 1 })),
     }),
     kp('abastoEst', {
       n: 'Demanda estatal atendida', v: N.summary.abasto, fmt: 'pct', meta: 0.97, crit: 0.90, w: 2,
-      def: 'De lo que consumieron las unidades de cada estado, cuánto había en el almacén estatal.', formula: 'demanda servida ÷ demanda', fuente: 'ISSSTE 1-abr-2026: 97 % de abasto promedio nacional',
+      def: 'De lo que consumieron las unidades de cada estado, cuánto había en el almacén estatal.', formula: 'demanda servida ÷ demanda', fuente: 'Meta interna alineada al 97 % de abasto que el ISSSTE reporta en farmacias (1-abr-2026)',
       quien: 'Coordinación de Distribución del CENADI',
     }),
   ];
@@ -377,7 +395,7 @@ function construir({ G, C, N, F, Y, Hg, M }) {
   E.alm = [
     kp('fill', {
       n: 'Surtido completo del CEDIS a unidades', v: k90.fill, fmt: 'pct', meta: 0.95, crit: 0.90, w: 3,
-      def: 'Piezas surtidas por el CEDIS estatal contra las pedidas por las unidades en 90 días.', formula: 'piezas surtidas ÷ piezas pedidas', fuente: 'ISSSTE abr-2026: farmacias entre 90 y 100 %',
+      def: 'Piezas surtidas por el CEDIS estatal contra las pedidas por las unidades en 90 días.', formula: 'piezas surtidas ÷ piezas pedidas', fuente: 'Meta interna del gemelo',
       quien: 'Jefe(a) del almacén delegacional de Hidalgo', det: `${k90.stockoutDays} clave-días en cero y ${k90.partDays} con surtido parcial; ${k90.late} pedidos al proveedor llegaron tarde.`,
       of: Hg.claves.slice(0, 4).map(c => ({ obj: true, quien: c.n, txt: `${c.out} días en cero y ${c.part} parciales en 90 días`, nivel: c.out > 10 ? 2 : 1 })),
     }),
@@ -393,8 +411,8 @@ function construir({ G, C, N, F, Y, Hg, M }) {
     }),
     kp('almacenista', {
       n: 'Almacenistas con patrón de faltantes', v: M.alertas.length, fmt: 'num', dir: -1, meta: 0, crit: 1, w: 2,
-      def: 'Personas cuyas ubicaciones acumulan faltantes chicos repetidos (robo hormiga) muy por encima de la mediana.', formula: 'almacenistas con ≥ 5 faltantes chicos y > 1.5 × la mediana', fuente: 'Marbetes del gemelo; IAPHL: investigar mermas > 1 %',
-      quien: 'Administrador(a) del CEDIS y Órgano Interno de Control',
+      def: 'Personas cuyas ubicaciones acumulan faltantes chicos repetidos (robo hormiga) muy por encima de la mediana.', formula: 'almacenistas con ≥ 5 faltantes chicos y > 1.5 × la mediana', fuente: 'Regla de alerta de Marbetes del gemelo; meta: ninguno',
+      quien: 'Administrador(a) del CEDIS (con aviso al Órgano Interno de Control)',
       of: M.alertas.map(a => ({ quien: MB.almacenista(a.a), txt: a.motivo, nivel: 2 })),
     }),
   ];
@@ -418,20 +436,20 @@ function construir({ G, C, N, F, Y, Hg, M }) {
 
   // 8 · Unidad y farmacia (piloto Hidalgo) -------------------------------------
   const rx = sum(Hg.units.map(u => u.rx)), full = sum(Hg.units.map(u => u.full)), den = sum(Hg.units.map(u => u.den));
-  const pex = sum(Hg.units.map(u => u.pex)), pexA = sum(Hg.units.map(u => u.pexA));
+  const pex = sum(Hg.units.map(u => u.pex)), pexA = sum(Hg.units.map(u => u.pexOk));
   const uRank = [...Hg.units].map(u => ({ ...u, s: u.rx ? u.full / u.rx : 1 })).sort((a, b) => a.s - b.s);
   E.unidad = [
     kp('recetas', {
       n: 'Recetas surtidas completas', v: pct(full, rx), fmt: 'pct', meta: 0.97, crit: 0.90, w: 3, serie: Hg.serie,
-      def: 'Recetas con todos sus medicamentos entregados en la ventanilla, el mismo día.', formula: 'recetas completas ÷ recetas presentadas', fuente: 'MIR E018 ISSSTE: meta 97 % (logro 2017: 97.5 %); Cero Desabasto 2023: 98.1 %',
-      quien: 'Director(a) de la unidad y Jefatura de farmacia', det: `${rx.toLocaleString('es-MX')} recetas en 30 días: ${(rx - full).toLocaleString('es-MX')} incompletas, ${den.toLocaleString('es-MX')} negadas por completo.`,
+      def: 'Recetas con todos sus medicamentos entregados en la ventanilla, el mismo día.', formula: 'recetas completas ÷ recetas presentadas', fuente: 'MIR E018 del ISSSTE: meta 97 % (logro 2017: 97.5 %). En 2023 el ISSSTE surtió completas 98.1 % (Expansión, con datos de Cero Desabasto)',
+      quien: 'Director(a) de la unidad (con su Jefatura de farmacia)', det: `${rx.toLocaleString('es-MX')} recetas en 30 días: ${(rx - full).toLocaleString('es-MX')} incompletas, ${den.toLocaleString('es-MX')} negadas por completo.`,
       of: uRank.filter(u => u.s < 0.999).slice(0, 4).map(u => ({ quien: `Director(a) de ${u.nombre}`, txt: `${(u.s * 100).toFixed(1)} % completas · ${u.rx - u.full} recetas incompletas`, nivel: u.s < 0.9 ? 2 : 1 })),
     }),
     kp('pex', {
       n: 'Pedidos extraordinarios autorizados en plazo', v: pct(pexA, pex) ?? 1, fmt: 'pct', meta: 0.90, crit: 0.75, w: 1,
-      def: 'Pedidos especiales de la unidad (PEX) que se validaron y autorizaron dentro de su plazo de 4 horas.', formula: 'PEX autorizados en plazo ÷ PEX', fuente: 'Plazo del gemelo: validar en 2 h, autorizar en 4 h',
+      def: 'Pedidos especiales de la unidad (PEX) validados en 2 horas y autorizados en 4 horas.', formula: 'PEX con las dos etapas en plazo ÷ PEX', fuente: 'Plazo del gemelo: validar en 2 h, autorizar en 4 h',
       quien: 'Jefatura de farmacia de la unidad',
-      of: [...Hg.units].filter(u => u.pex).map(u => ({ ...u, s: u.pexA / u.pex })).sort((a, b) => a.s - b.s).slice(0, 3).map(u => ({ quien: `Jefatura de farmacia de ${u.nombre}`, txt: `${Math.round(u.s * 100)} % de ${u.pex} PEX en plazo`, nivel: 1 })),
+      of: [...Hg.units].filter(u => u.pex).map(u => ({ ...u, s: u.pexOk / u.pex })).sort((a, b) => a.s - b.s).slice(0, 3).map(u => ({ quien: `Jefatura de farmacia de ${u.nombre}`, txt: `${Math.round(u.s * 100)} % de ${u.pex} PEX en plazo`, nivel: 1 })),
     }),
     kp('merma', {
       n: 'Piezas caducadas en farmacias', v: sum(Hg.units.map(u => u.merma)), fmt: 'num', info: true, w: 0,
@@ -445,17 +463,17 @@ function construir({ G, C, N, F, Y, Hg, M }) {
   const fs = F.summary;
   const node = id => F.byId[id] || F.byId[id.split(':')[1]];
   const perd = new Map();
-  for (const l of F.losses) if (!l.det) { const n = node(l.where); const key = n ? n.id : l.where; const o = perd.get(key) || { n, mxn: 0, q: 0, label: l.label }; o.mxn += l.mxn; o.q += l.q; perd.set(key, o); }
+  for (const l of F.losses) if (!l.det && l.t <= RF.H) { const n = node(l.where); const key = n ? n.id : l.where; const o = perd.get(key) || { n, mxn: 0, q: 0, label: l.label }; o.mxn += l.mxn; o.q += l.q; perd.set(key, o); }
   const ocultos = [...perd.values()].sort((a, b) => b.mxn - a.mxn);
   E.frio = [
     kp('rango', {
       n: 'Tiempo dentro de 2 a 8 °C', v: fs.inRange, fmt: 'pct1', meta: 0.99, crit: 0.97, w: 2,
-      def: 'Horas-equipo con temperatura media, mínima y máxima dentro de 2 a 8 °C.', formula: 'horas en rango ÷ horas medidas', fuente: 'Rango de conservación de 2 a 8 °C de la FEUM; meta interna del gemelo',
+      def: 'Horas-equipo con temperatura media, mínima y máxima dentro de 2 a 8 °C.', formula: 'horas en rango ÷ horas medidas', fuente: 'El rango de 2 a 8 °C es el de conservación; las metas de 99 % y 97 % son internas',
       quien: 'Coordinación de Red Fría', det: `${fs.eps} excursiones de temperatura; ${fs.froze} con congelación.`,
     }),
     kp('detect', {
       n: 'Excursiones detectadas', v: fs.detPct, fmt: 'pct', meta: 0.90, crit: 0.60, w: 2,
-      def: 'Excursiones de temperatura que alguien detectó (registro manual, registrador o telemetría).', formula: 'excursiones detectadas ÷ excursiones', fuente: 'Meta interna del gemelo: lo que no se detecta se aplica',
+      def: 'Excursiones de temperatura que alguien detectó (registro manual, registrador o telemetría).', formula: 'excursiones detectadas ÷ excursiones', fuente: 'Meta interna del gemelo: lo que no se detecta termina aplicándose a pacientes',
       quien: 'Coordinación de Red Fría (monitoreo)', det: `Se detectan en promedio ${fs.detDelay.toFixed(1)} h después de empezar.`,
     }),
     kp('oculto', {
@@ -471,33 +489,34 @@ function construir({ G, C, N, F, Y, Hg, M }) {
   const porActor = new Map();
   for (const c of ig.casos) if (c.estado === 'escapado') { const key = c.actor.nombre; const o = porActor.get(key) || { a: c.actor, monto: 0, n: 0, conductas: new Set() }; o.monto += c.monto; o.n++; o.conductas.add(INT.CONDUCTA[c.c]?.n || c.c); porActor.set(key, o); }
   const actores = [...porActor.values()].sort((a, b) => b.monto - a.monto);
-  const PU = { um: a => `Director(a) de ${a.nombre}`, del: a => `Administrador(a) delegacional de ${a.nombre}`, oc: a => a.nombre };
+  const PU = { um: a => `Director(a) de ${a.nombre}`, del: a => `Administrador(a) delegacional de ${String(a.nombre).replace(/^Delegación /, '')}`, oc: a => a.nombre };
   E.integ = [
     kp('escapado', {
       n: 'Pedidos maliciosos que pasaron', v: ig.planCost ? ig.escapado / ig.planCost : 0, fmt: 'pct2', dir: -1, meta: 0.005, crit: 0.02, w: 3,
       def: 'Valor de pedidos inflados, duplicados o desviados que ningún control frenó, contra el costo del plan.', formula: 'Σ monto escapado ÷ costo del plan', fuente: 'Meta interna del gemelo (Integridad del plan)',
-      quien: 'Área central (faltan datos para los controles) y Órgano Interno de Control', det: `${mxn(ig.escapado)} en ${ig.nE} casos; los controles frenaron ${mxn(ig.frenado)}.`,
+      quien: 'Área central (dueña de los controles; el Órgano Interno de Control investiga)', det: `${mxn(ig.escapado)} en ${ig.nE} casos; los controles frenaron ${mxn(ig.frenado)}.`,
       of: actores.slice(0, 4).map(o => ({ quien: (PU[o.a.tipo] || (a => a.nombre))(o.a), txt: `${mxn(o.monto)} · ${[...o.conductas].join(', ')}`, nivel: o.monto > 1e6 ? 3 : 2 })),
     }),
     kp('falsas', {
-      n: 'Alertas falsas de los controles', v: ig.fp, fmt: 'num', dir: -1, meta: 50, crit: 300, w: 1,
-      def: 'Pedidos legítimos que los controles frenaron por error: quitan tiempo a las unidades honestas.', formula: 'pedidos legítimos frenados', fuente: 'Meta interna del gemelo',
+      n: 'Alertas falsas de los controles', v: ig.fp, fmt: 'num', dir: -1, meta: 50, crit: 300, w: 0, info: true,
+      def: 'Pedidos legítimos que los controles frenaron por error: quitan tiempo a las unidades honestas. Informativo: con los datos mínimos el control de consumo está apagado y por eso casi no hay falsas alarmas.', formula: 'pedidos legítimos frenados', fuente: 'Meta interna del gemelo',
       quien: 'Área central (calibración de reglas)',
     }),
   ];
-  return ESLABONES.map(e => ({ ...e, kpis: E[e.id].map(k => ({ ...k, g: brecha(k), st: semDe(brecha(k)) })) }));
+  return ESLABONES.map(e => ({ ...e, kpis: E[e.id].map(k => ({ ...k, g: brecha(k), st: sinDato(k) ? 'nd' : semDe(brecha(k)) })) }));
 }
 
 // ------------------------------------------------------------------ atribución y llamadas
 // Indicadores de resultado y los indicadores de arriba que los explican.
 // Si alguno de arriba está fuera de meta, parte de la brecha se pasa a su eslabón
 // (65 % si está en rojo, 25 % si está en ámbar).
+// Una referencia "a?b" sólo cuenta si el indicador b también está fuera de meta (la falla de a sí llegó hasta aquí).
+// Son reglas de atribución: los gemelos no están conectados, así que la torre aplica la regla, no la deduce.
 export const DEP = {
-  'compra.contratado': ['plan.holgura', 'plan.avance'], 'compra.vitales': ['plan.holgura', 'plan.avance'],
-  'compra.riesgo': ['plan.holgura', 'plan.avance'], 'compra.margen': ['plan.holgura', 'plan.avance'],
   'prov.otif': ['compra.margen'], 'prov.cumplimiento': ['compra.margen'],                // sin contrato a tiempo no hay a quién exigirle
   'dnac.atiempo': ['cenadi.salidas'],
-  'dnac.surtido': ['prov.otif', 'compra.contratado'], 'dnac.estados': ['prov.otif', 'compra.contratado', 'cenadi.salidas'], 'dnac.abastoEst': ['prov.otif', 'compra.contratado'],
+  'dnac.surtido': ['prov.otif', 'compra.contratado'],
+  'dnac.estados': ['cenadi.salidas?dnac.atiempo', 'prov.otif?dnac.surtido'], 'dnac.abastoEst': ['cenadi.salidas?dnac.atiempo', 'prov.otif?dnac.surtido'],
   'alm.fill': ['prov.otif', 'dnac.surtido'],
   'dest.urg': ['alm.fill'],
   'unidad.recetas': ['alm.fill', 'dest.urg'],
@@ -513,12 +532,12 @@ function atribuir(eslabones) {
   const K = {}; for (const e of eslabones) for (const k of e.kpis) K[e.id + '.' + k.id] = { e, k };
   for (const e of eslabones) {
     for (const k of e.kpis) {
-      const refs = (DEP[e.id + '.' + k.id] || []).map(r => K[r]).filter(Boolean);
+      const refs = (DEP[e.id + '.' + k.id] || []).filter(r => { const g = r.split('?')[1]; return !g || (K[g] && K[g].k.st !== 'ok' && K[g].k.st !== 'nd'); }).map(r => K[r.split('?')[0]]).filter(Boolean);
       k.hereda = refs.length > 0; k.deN = refs.map(r => `${r.k.n} (${r.e.n})`);
       const x = k.g * k.w;
       if (!x) { k.f = 1; continue; }
       // el indicador de arriba que explica la falla: el peor de los que alimentan a éste
-      const culpa = refs.filter(r => r.k.st !== 'ok').sort((a, b) => RANK[b.k.st] - RANK[a.k.st] || b.k.g - a.k.g)[0] || null;
+      const culpa = refs.filter(r => r.k.st === 'warn' || r.k.st === 'crit').sort((a, b) => RANK[b.k.st] - RANK[a.k.st] || b.k.g - a.k.g)[0] || null;
       const p = culpa ? (culpa.k.st === 'crit' ? 0.65 : 0.25) : 0;
       k.f = 1 - p; k.culpa = culpa ? culpa.e.id : null; k.culpaK = culpa ? culpa.k.n : null;
       resp[e.id].propio += x * (1 - p);
@@ -533,14 +552,14 @@ function atribuir(eslabones) {
   for (const e of eslabones) { e.share = reparto.find(r => r.id === e.id).share; e.resp = resp[e.id]; }
 
   // llamadas: una por indicador fuera de meta, ordenadas por responsabilidad propia
-  const sistemico = ['dnac', 'alm', 'unidad'].filter(id => by[id].st === 'crit').length >= 2;   // el desabasto ya cruza varios eslabones
+  const sistemico = ['dnac.estados', 'alm.fill', 'unidad.recetas'].filter(r => { const [a, b] = r.split('.'); const st = by[a].kpis.find(k => k.id === b).st; return st === 'warn' || st === 'crit'; }).length >= 2;   // el desabasto ya cruza varios eslabones
   const llamadas = [];
   for (const e of eslabones) for (const k of e.kpis) {
-    if (k.info || k.st === 'ok') continue;
+    if (k.info || k.st === 'ok' || k.st === 'nd') continue;
     const peso = k.g * k.w * k.f;
     // nivel 1: ámbar · nivel 2: rojo · nivel 3: rojo propio de alto impacto (peso 3 y muy lejos de la meta) o falla sistémica
     let nivel = k.st === 'warn' ? 1 : 2;
-    if (k.st === 'crit' && k.f >= 0.7 && k.w >= 3 && (k.g >= 1.5 || sistemico)) nivel = 3;
+    if (k.st === 'crit' && k.w >= 3 && ((k.f >= 0.7 && k.g >= 1.5) || sistemico)) nivel = 3;
     if (k.f < 0.5 && nivel > 1) nivel -= 1;                                                 // la mayor parte viene de arriba: primero se llama allá
     llamadas.push({ eslabon: e.id, en: e.n, ic: e.ic, kpi: k.id, kn: k.n, quien: k.quien || e.dueno, v: k.v, fmt: k.fmt, meta: k.meta, dir: k.dir, st: k.st, nivel, peso, culpa: k.culpa ? by[k.culpa].n : null, culpaK: k.culpaK || null, f: k.f, of: k.of.slice(0, 3) });
   }
@@ -560,9 +579,9 @@ function estrellaNorte({ Hg, N, C, F, G }) {
     { id: 'recetas', n: 'Recetas surtidas completas', v: rx ? full / rx : 1, fmt: 'pct', meta: 0.97, crit: 0.90, dir: 1, alc: 'Piloto Hidalgo · 60 unidades · 30 días', fuente: 'MIR E018 ISSSTE: 97 %', serie: Hg.serie },
     { id: 'abasto', n: 'Abasto de los almacenes estatales', v: N.summary.abasto, fmt: 'pct', meta: 0.97, crit: 0.90, dir: 1, alc: 'Nacional · 32 estados · 30 días', fuente: 'ISSSTE abr-2026: 97 %', serie: dailyAbasto(N) },
     { id: 'contratado', n: 'Piezas del plan 2027 con contrato', v: C.kpi.cobertura, fmt: 'pct', meta: 0.99, crit: 0.95, dir: 1, alc: 'Nacional · compra consolidada 2027', fuente: 'Compra 2025-26: 99 %' },
-    { id: 'expuesto', n: 'Dinero expuesto sin control', v: G.ig.escapado + F.summary.ocultoMxn, fmt: 'mxn', meta: 0, crit: 50e6, dir: -1, alc: 'Pedidos maliciosos que pasaron + producto de red fría dañado sin detectar', fuente: 'Meta: cero' },
+    { id: 'expuesto', n: 'Dinero expuesto sin control', v: G.ig.escapado + F.summary.ocultoMxn, fmt: 'mxn', meta: 0, crit: 50e6, dir: -1, alc: 'Pedidos maliciosos del plan anual 2027 + producto de red fría dañado sin detectar en 30 días (periodos distintos)', fuente: 'Meta: cero' },
   ];
-  for (const x of items) { x.g = brecha(x); x.st = semDe(x.g); }
+  for (const x of items) { x.g = brecha(x); x.st = sinDato(x) ? 'nd' : semDe(x.g); }
   return items;
 }
 function dailyAbasto(N) {
@@ -578,7 +597,8 @@ function matrizDelegaciones({ G, N, F }) {
   const perd = {};
   for (const l of F.losses) {
     const n = F.byId[l.where] || F.byId[String(l.where).split(':')[1]];
-    const cve = n?.cve; if (!cve) continue;
+    if (l.t > RF.H || !n || n.kind === 'cenadi') continue;                             // el CENADI no es de ninguna delegación
+    const cve = n.cve; if (!cve) continue;
     const o = perd[cve] ||= { oculto: 0, baja: 0 };
     if (l.det) o.baja += l.mxn; else o.oculto += l.mxn;
   }
@@ -616,10 +636,11 @@ export const mxnK = v => (v >= 1e6 ? `$${(v / 1e6).toFixed(1)} M` : v >= 1e3 ? `
 export function fmtV(v, f) {
   if (v == null || !isFinite(v)) return '—';
   switch (f) {
-    case 'pct': return `${(v * 100).toFixed(v > 0.995 && v < 1 ? 1 : v < 0.1 && v > 0 ? 1 : 0)} %`;
+    case 'pct': return `${(v * 100).toFixed((v >= 0.9 && v < 1) || (v < 0.1 && v > 0) ? 1 : 0).replace(/\.0$/, '')} %`;
     case 'pct1': return `${(v * 100).toFixed(1)} %`;
     case 'pct2': return `${(v * 100).toFixed(2)} %`;
     case 'dias': return `${Math.round(v)} días`;
+    case 'diash': return `${Math.round(v)} días hábiles`;
     case 'min': return `${Math.round(v)} min`;
     case 'mxn': return mxnK(v);
     default: return Math.round(v).toLocaleString('es-MX');

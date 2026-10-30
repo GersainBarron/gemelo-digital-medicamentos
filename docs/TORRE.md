@@ -78,15 +78,19 @@ Los indicadores de resultado dependen de otros de arriba (`DEP` en el motor):
 
 | Indicador | Depende de |
 |---|---|
-| Compra: con contrato, vitales, 30 días sin medicamento, margen | Planeación: holgura y avance |
 | Proveedores: OTIF y piezas a tiempo | Compra: días entre la firma y el 1 de enero (sin contrato a tiempo no hay a quién exigirle) |
 | Distribución nacional: llegadas a tiempo | CENADI: embarques que salen a tiempo |
-| Distribución nacional: surtido, estados en cero, demanda atendida | Proveedores: OTIF; Compra: con contrato (y CENADI: salidas, para estados en cero) |
+| Distribución nacional: surtido | Proveedores: OTIF; Compra: con contrato |
+| Distribución nacional: estados en cero, demanda atendida | CENADI: salidas, si también llegan tarde; Proveedores: OTIF, si el CENADI tampoco surtió |
 | Almacén estatal: surtido a unidades | Proveedores: OTIF; Distribución nacional: surtido |
 | Distribución estatal: urgencias | Almacén estatal: surtido |
 | Unidad: recetas completas | Almacén estatal: surtido; Distribución estatal: urgencias |
 
 Si el indicador de arriba está en rojo, **65 %** de la brecha pasa a su eslabón; si está en ámbar, **25 %**. En "¿De quién es el problema?" la parte que llega de abajo se ve rayada.
+
+Como los gemelos no están conectados entre sí, estas son **reglas de atribución** que la torre aplica, no causas que deduzca de la simulación. Planeación no explica la compra: el periodo de aprobación del plan termina después de la firma de los contratos.
+
+La brecha se topa en 3 para que un solo indicador no se lleve todo. Un indicador sin dato se pinta gris y no cuenta como verde.
 
 ### Escalamiento
 
@@ -94,33 +98,34 @@ Si el indicador de arriba está en rojo, **65 %** de la brecha pasa a su eslabó
 |---|---|---|
 | 1 · dueño directo | Indicador en ámbar | Atender en 24 a 48 h con su procedimiento |
 | 2 · revisión semanal | Indicador en rojo | A la junta semanal de operación (S&OE), con causa raíz y plan |
-| 3 · dirección general | Rojo de peso 3, mayormente propio (≥ 70 %) y con brecha ≥ 1.5, o desabasto que ya cruza dos de los tres eslabones de entrega (distribución nacional, almacén, unidad) | Decisión de política esta semana |
+| 3 · dirección general | Rojo de peso 3, mayormente propio (≥ 70 %) y con brecha ≥ 1.5; o cualquier rojo de peso 3 cuando el desabasto ya se ve en dos de tres indicadores (estados en cero, surtido del almacén estatal, recetas completas) | Decisión de política esta semana |
 
 Si más de la mitad de la brecha viene de arriba, baja un nivel: primero se llama allá.
 
 ### Reparto
 
-"¿De quién es el problema?" = Σ brecha × peso por eslabón, después de la atribución, como porcentaje del total.
+"¿De quién es el problema?" = Σ brecha × peso por eslabón, después de la atribución, como porcentaje del total. Un eslabón con más indicadores puede acumular más; por eso cada uno muestra cuántos tiene en rojo y en ámbar.
 
 ## Resultados (navegador, plan en el día hábil 15)
 
 | Escenario | El problema es de… | Llamadas a dirección / semanal / dueño | Paciente |
 |---|---|---|---|
-| Operación normal | Red fría 26 %, Proveedores y contratos 24 % | 3 / 12 / 5 | 99.9 % de recetas completas, 100 % de abasto estatal |
-| Un proveedor falla | Proveedores y contratos 31 %, Red fría 21 % | 3 / 13 / 6 | 97.9 % de recetas (todavía en meta) |
-| Temporada de huracanes | Proveedores y contratos 25 %, Red fría 25 % | 3 / 12 / 6 | 2 estados de la península llegan a cero |
-| Compra tardía (como 2025) | **Compra consolidada 19 %**, Red fría 18 %, Proveedores 16 % | 3 / 14 / 10 | 97.9 % de recetas; contratos firmados 49 días después del 1 de enero |
+| Operación normal | Red fría 25 %, Proveedores y contratos 23 % | 3 / 13 / 4 | 99.9 % de recetas completas, 100 % de abasto estatal |
+| Un proveedor falla | Proveedores y contratos 30 %, Red fría 21 % | 3 / 14 / 5 | 97.9 % de recetas (todavía en meta) |
+| Temporada de huracanes | Red fría 25 %, Proveedores y contratos 23 % | 3 / 13 / 5 | 2 estados de la península llegan a cero |
+| Compra tardía (como 2025) | **Compra consolidada 22 %**, Red fría 18 %, Proveedores 16 % | 3 / 15 / 9 | 97.9 % de recetas; contratos firmados 49 días después del 1 de enero |
 
 ### Hallazgos
 
-- **El paciente es lo último en enterarse.** Con un proveedor que falla, las recetas completas del piloto bajan de 99.9 % a 97.9 %, todavía en meta. Mientras, el CENADI solo embarca 66 % de lo que piden los estados y 86 % de las urgencias llegan tarde. La torre lo ve semanas antes que la ventanilla.
+- **El paciente es lo último en enterarse.** Con un proveedor que falla, las recetas completas del piloto bajan de 99.9 % a 97.9 %, todavía en meta. Mientras, el CENADI solo embarca 66 % de lo que piden los estados y 86 % de las urgencias llegan tarde. La torre lo ve antes que la ventanilla.
 - **Siempre en rojo, aunque la operación sea normal:**
     - **Red fría:** con registro manual se detecta menos de la mitad de las excursiones y hay $6.6 M de producto dañado sin detectar.
-    - **Integridad:** 4.6 % del costo del plan son pedidos maliciosos que pasan los controles mínimos.
+    - **Integridad:** 4.7 % del costo del plan son pedidos maliciosos que pasan los controles mínimos.
     - **Bandeja de Oficina Central:** 53 % de las partidas están vencidas con 5 analistas.
 
   No son de un mal día: son de diseño. Por eso van a dirección general.
-- **Compra tardía cambia al culpable.** Las entregas tarde de los proveedores dejan de ser de los proveedores. 65 % de la brecha pasa a Adquisiciones, porque los contratos se firmaron después del 1 de enero.
+- **Con la compra tardía cambia el culpable.** Es efecto de la regla de atribución, no de la simulación: los contratos de Hidalgo no leen la fecha de la compra. La regla dice que sin contrato a tiempo no hay a quién exigirle. Por eso 65 % de la brecha de entregas tarde pasa a Adquisiciones, que firmó 49 días después del 1 de enero.
+- **Cambiar de escenario tarda unos 2 segundos.** Planeación, integridad, red fría, el piloto de Hidalgo y marbetes se guardan mientras la página está abierta.
 
 ## Lo que la torre no ve
 
@@ -156,7 +161,7 @@ Si más de la mitad de la brecha viene de arriba, baja un nivel: primero se llam
 | `e` | `plan`, `compra`, `prov`, `cenadi`, `dnac`, `alm`, `dest`, `unidad`, `frio`, `integ` | Eslabón abierto |
 | `debug` | — | Expone `window.__torre` |
 
-Tarda unos 6 segundos por escenario, en segundo plano, y guarda el resultado mientras la página está abierta.
+La primera corrida tarda unos 6 segundos, en segundo plano. Después se guardan los gemelos que no cambian con el escenario, y cada escenario ya calculado se muestra al instante.
 
 ---
 © 2026 Gersain Barron · Licencia MIT

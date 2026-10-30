@@ -132,7 +132,7 @@ a { color: inherit; }
 .tw-mtx-d .chip { height: 20px; font-size: 10.5px; margin-left: 6px; padding: 0 7px; }
 .tw-cell b { display: block; font-variant-numeric: tabular-nums; font-size: 13px; }
 .tw-cell small { display: none; font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
-tr.open .tw-cell small { display: block; }
+tr.open .tw-cell small, tr.open .tw-mtx-d small { display: block !important; }
 .tw-cell { border-left: 1px solid var(--line); }
 .tw-cell.ok b { color: var(--ok); } .tw-cell.warn b { color: var(--warn); } .tw-cell.crit b { color: var(--crit); }
 .tw-cell.warn { background: rgba(251,191,36,.06); } .tw-cell.crit { background: rgba(248,113,113,.09); }
@@ -165,3 +165,7 @@ tr.open .tw-cell small { display: block; }
   .tw-mtx-d small { display: none; }
   .tw-mtx td:first-child, .tw-mtx th:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 120px; }
 }
+
+/* sin dato */
+.tw-k.nd .dot, .tw-node-c i.nd, .kpi.nd small .dot { background: var(--faint); }
+.tw-k.nd summary b, .kpi.nd small { color: var(--muted); }

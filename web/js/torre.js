@@ -10,7 +10,7 @@ import { ESCENARIOS, ESLABONES, NIVELES, DEP, fmtV } from './torre-engine.js';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pc = x => `${Math.round((x || 0) * 100)} %`;
-const ST_N = { ok: 'En meta', warn: 'Fuera de meta', crit: 'Crítico' };
+const ST_N = { ok: 'En meta', warn: 'Fuera de meta', crit: 'Crítico', nd: 'Sin dato' };
 
 const S = { esc: 'normal', sel: null, filtro: 'todas', cache: {}, R: null, id: 0 };
 let worker = null;
@@ -91,7 +91,7 @@ function veredicto() {
     <div class="tw-v-main">
       <span class="eyebrow">Veredicto de la torre · ${esc(R.escN)}</span>
       <h1>${top.length ? `El problema hoy es de <em>${esc(top[0].n)}</em> (${pc(top[0].share)})${top[1] ? ` y de <em>${esc(top[1].n)}</em> (${pc(top[1].share)})` : ''}.` : 'Toda la cadena está en meta.'}</h1>
-      <p>${pac} ${top[0] ? `Llamar primero a <b>${esc(R.llamadas[0]?.quien || top[0].dueno)}</b>.` : ''}</p>
+      <p>${pac} ${top[0] ? `Llamar primero a <b>${esc((R.llamadas.find(l => l.eslabon === top[0].id) || {}).quien || top[0].dueno)}</b>.` : ''}</p>
     </div>
     <div class="tw-v-niv">
       <div class="n3"><b>${n3}</b><span>a dirección general</span></div>
@@ -129,7 +129,7 @@ function llamadas() {
       <div class="tw-call-h"><span class="tw-niv n${l.nivel}">${esc(NIVELES[l.nivel].n)}</span><button class="tw-link" data-e="${l.eslabon}" data-go="1">${l.ic} ${esc(l.en)}</button></div>
       <b class="tw-who">${esc(l.quien)}</b>
       <div class="tw-call-k"><span>${esc(l.kn)}</span><strong class="${l.st}">${fmtV(l.v, l.fmt)}</strong><small>${l.dir > 0 ? 'meta ≥' : 'meta ≤'} ${fmtV(l.meta, l.fmt)}</small></div>
-      ${l.culpa ? `<p class="tw-her">↑ ${Math.round((1 - l.f) * 100)} % de esta brecha se explica por <b>${esc(l.culpaK)}</b> (${esc(l.culpa)}): primero se llama allá.</p>` : ''}
+      ${l.culpa ? `<p class="tw-her">↑ ${Math.round((1 - l.f) * 100)} % de esta brecha se explica por <b>${esc(l.culpaK)}</b> (${esc(l.culpa)})${l.f < 0.5 ? ': primero se llama allá' : ''}.</p>` : ''}
       ${l.of.length ? `<ul class="tw-of">${l.of.map(o => `<li><b>${esc(o.quien)}</b> · ${esc(o.txt)}</li>`).join('')}</ul>` : ''}
       <p class="tw-plazo">${esc(NIVELES[l.nivel].plazo)}</p>
     </div>`).join('') + (S.R.llamadas.length > L.length ? `<p class="note">Y ${S.R.llamadas.length - L.length} indicadores más fuera de meta en el detalle de cada eslabón.</p>` : '')
@@ -206,22 +206,22 @@ function matriz() {
 
 function textos() {
   $('#reglas').innerHTML = `
-    <p><b>Una cadena, diez eslabones, un dueño por indicador.</b> Cada indicador tiene una meta escrita, un nivel crítico y una sola persona o área que responde (la A de la matriz RACI). La torre no inventa responsables: los toma de cada gemelo.</p>
-    <p><b>Semáforo contra una referencia.</b> Brecha = (meta − valor) ÷ (meta − crítico). Cero es verde, menos de uno es ámbar, uno o más es rojo. Cada meta dice de dónde sale: MIR del ISSSTE, cifras públicas, IAPHL, una norma o, cuando no hay fuente, una meta interna del gemelo que se dice como tal.</p>
-    <p><b>Atribuir la falla al eslabón correcto.</b> Un indicador de resultado sólo cuenta completo contra su dueño si lo de arriba cumplió. Si el indicador que lo alimenta está en rojo, 65 % de la brecha pasa a ese eslabón; si está en ámbar, 25 %. Las dependencias que usa la torre:</p>
+    <p><b>Una cadena, diez eslabones, un dueño por indicador.</b> Cada indicador tiene una meta escrita, un nivel crítico y un área que responde (la A de la matriz RACI); cuando otra área tiene que enterarse, se dice entre paréntesis. Los nombres concretos (analistas, delegaciones, unidades, contratos, almacenistas) salen de cada gemelo.</p>
+    <p><b>Semáforo contra una referencia.</b> Brecha = (meta − valor) ÷ (meta − crítico). Cero es verde, menos de uno es ámbar, uno o más es rojo, y se topa en 3 para que un solo indicador no se lleve todo. Gris: sin dato, que no cuenta como verde. Cada meta dice de dónde sale: MIR del ISSSTE, cifras públicas, IAPHL, una norma o, cuando no hay fuente, una meta interna del gemelo que se dice como tal.</p>
+    <p><b>Atribuir la falla al eslabón correcto.</b> Un indicador de resultado sólo cuenta completo contra su dueño si lo de arriba cumplió. Como los gemelos no están conectados entre sí, son reglas de atribución que la torre aplica, no causas que deduzca. Si el indicador que lo alimenta está en rojo, 65 % de la brecha pasa a ese eslabón; si está en ámbar, 25 %. Las dependencias que usa la torre:</p>
     <ul class="tw-dep">${Object.entries(DEP).map(([k, v]) => `<li><b>${esc(nameK(k))}</b> ← ${v.map(x => esc(nameK(x))).join(' · ')}</li>`).join('')}</ul>
-    <p><b>Escalamiento.</b> Nivel 1: el dueño directo atiende en 24 a 48 horas (ámbar). Nivel 2: rojo, a la junta semanal de operación con causa raíz. Nivel 3: rojo propio de alto impacto (indicador de peso 3 muy lejos de la meta) o desabasto que ya cruza dos o más eslabones de entrega: decide la dirección general. Si la mayor parte de la brecha viene de arriba, baja un nivel: primero se llama allá.</p>
-    <p><b>¿De quién es el problema?</b> Suma de brecha × peso por eslabón, después de la atribución, como porcentaje del total.</p>`;
+    <p><b>Escalamiento.</b> Nivel 1: el dueño directo atiende en 24 a 48 horas (ámbar). Nivel 2: rojo, a la junta semanal de operación con causa raíz. Nivel 3: rojo de peso 3, mayormente propio y muy lejos de la meta; o cualquier rojo de peso 3 cuando el desabasto ya se ve en dos de estos tres: estados en cero, surtido del almacén estatal y recetas completas. Decide la dirección general. Si la mayor parte de la brecha viene de arriba, baja un nivel: primero se llama allá.</p>
+    <p><b>¿De quién es el problema?</b> Suma de brecha × peso por eslabón, después de la atribución, como porcentaje del total. Un eslabón con más indicadores puede acumular más; por eso cada uno muestra cuántos tiene en rojo y en ámbar.</p>`;
   $('#huecos').innerHTML = `
     <p><b>Los gemelos no están conectados entre sí.</b> Cada uno corre el escenario elegido con sus propios datos: la falla de proveedor del CENADI nacional no sale de los contratos de Hidalgo. La torre los pone lado a lado con su alcance y periodo, no como un solo modelo.</p>
     <p><b>El detalle fino sólo existe en el piloto Hidalgo.</b> CEDIS estatal, rutas, 60 unidades y recetas se simulan para Hidalgo; los otros 31 estados se ven a nivel de almacén estatal, planeación, red fría e integridad.</p>
-    <p><b>La causa de cada receta no surtida no se registra.</b> El INAI ordenó al ISSSTE informarla y la respuesta fue que no lo registra. Sin ese dato no se puede separar desabasto de clave fuera de cuadro o error de captura.</p>
+    <p><b>La causa de cada receta no surtida no se registra.</b> El INAI ordenó al ISSSTE transparentar sus recetas no surtidas de 2024 con su causa, y la causa no se registra. Sin ese dato no se puede separar desabasto de clave fuera de cuadro o error de captura.</p>
     <p><b>Al proveedor no se le regaña: se le aplica el contrato.</b> La torre señala al administrador del contrato, que es quien exige, aplica penas o inicia la rescisión.</p>
-    <p><b>Encuestas no.</b> CONEVAL advirtió que la satisfacción reportada por el propio personal (98 %) no coincidía con la evaluación externa (76 %). La torre sólo usa datos de transacciones: recetas, entregas, conteos y registros de temperatura.</p>
+    <p><b>Encuestas no.</b> CONEVAL señaló que la satisfacción reportada por el ISSSTE (98.4 %) chocaba con una evaluación de 76 % para farmacias, y que las encuestas las aplica el propio personal de la unidad. La torre sólo usa datos de transacciones: recetas, entregas, conteos y registros de temperatura.</p>
     <p><b>Todo es simulado.</b> Los números sirven para decidir qué datos hay que capturar y quién responde por cada uno, no para calificar a personas reales.</p>`;
   $('#refs').innerHTML = REFS.map(([t, u, d]) => `<p><a href="${u}" target="_blank" rel="noopener">${esc(t)}</a> · ${esc(d)}</p>`).join('');
 }
-function nameK(k) { const [e, id] = k.split('.'); const E = S.R.eslabones.find(x => x.id === e); const K = E?.kpis.find(x => x.id === id); return K ? `${K.n} (${E.n})` : k; }
+function nameK(k) { const [ref, si] = k.split('?'); if (si) return `${nameK(ref)}, si también falla ${nameK(si)}`; const [e, id] = ref.split('.'); const E = S.R.eslabones.find(x => x.id === e); const K = E?.kpis.find(x => x.id === id); return K ? `${K.n} (${E.n})` : k; }
 
 const REFS = [
   ['Gartner, vía SupplyChain247: qué es una torre de control', 'https://www.supplychain247.com/article/what_is_a_supply_chain_control_tower_and_whats_needed_to_deploy_one', 'personas, procesos, datos, organización y tecnología; de la visibilidad a la decisión'],

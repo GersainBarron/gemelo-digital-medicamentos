@@ -245,9 +245,11 @@ con qué nivel de escalamiento. Detalle en `docs/TORRE.md`.
 - **Reglas:** semáforo contra meta escrita con su fuente, un dueño por indicador (RACI), atribución al eslabón de
   arriba (65 % si está en rojo, 25 % en ámbar) y tres niveles de escalamiento (dueño en 24 a 48 h, junta semanal,
   dirección general).
-- **Resultado:** en operación normal el problema es de Red fría (26 %) y de Proveedores y contratos (24 %). Con un
-  proveedor que falla, Proveedores sube a 31 % y las recetas completas siguen en 97.9 %. Con la compra tardía,
-  Adquisiciones pasa a primer lugar (19 %) porque los contratos se firman 49 días después del 1 de enero.
+- **Resultado:** en operación normal el problema es de Red fría (25 %) y de Proveedores y contratos (23 %). Con un
+  proveedor que falla, Proveedores sube a 30 % y las recetas completas siguen en 97.9 %. Con la compra tardía,
+  Adquisiciones pasa a primer lugar (22 %) porque los contratos se firman 49 días después del 1 de enero.
+- **Revisión independiente:** se corrigieron unidades (horas extra en minutos), el estado "sin dato", nombres
+  duplicados, la red fría del CENADI cargada al Estado de México y las fuentes que no respaldaban su meta.
 - **Otros cambios:** enlace "Torre" en todas las vistas y botón en el CEDIS 3D.
 
 Siguiente en la ruta: pasaporte del lote (trazabilidad del plan al paciente), pago a proveedores, proveedor y

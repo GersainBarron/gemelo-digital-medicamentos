@@ -169,3 +169,45 @@ tr.open .tw-cell small, tr.open .tw-mtx-d small { display: block !important; }
 /* sin dato */
 .tw-k.nd .dot, .tw-node-c i.nd, .kpi.nd small .dot { background: var(--faint); }
 .tw-k.nd summary b, .kpi.nd small { color: var(--muted); }
+
+/* pestañas y Torre 3D */
+.tw-tabs { margin-top: 12px; width: max-content; max-width: 100%; }
+.tw-tabs button { min-width: 110px; }
+.tw-tab { display: flex; flex-direction: column; gap: 14px; }
+.tw3-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.tw3-tools .seg-btn.on { color: var(--accent); background: rgba(45,212,191,.16); }
+.tw3-box { height: clamp(460px, 74vh, 860px); }
+.tw3-tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; gap: 2px; max-width: 260px; padding: 6px 10px 7px 30px; border-radius: 10px;
+  background: rgba(8, 16, 24, .86); border: 1px solid var(--line-strong); font-size: 12px; pointer-events: none; }
+.tw3-tag b { font-size: 12.5px; }
+.tw3-tag small { color: var(--muted); font-size: 11.5px; line-height: 1.3; }
+.tw3-eye { position: absolute; left: 9px; top: 9px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent); box-shadow: inset 0 0 0 3px #081018, inset 0 0 0 7px var(--accent); }
+.tw3-panel { width: min(360px, calc(100% - 20px)); }
+.tw3-panel header small { display: block; margin-top: 2px; line-height: 1.35; }
+.tw3-panel .chip { margin-bottom: 4px; }
+.tw3-panel dd small { display: block; font-weight: 400; color: var(--faint); font-size: 11px; }
+.tw3-panel dd.ok { color: var(--ok); } .tw3-panel dd.warn { color: var(--warn); } .tw3-panel dd.crit { color: var(--crit); }
+.tw3-l { list-style: none; margin: 0; padding: 0; }
+.tw3-l li { padding: 6px 0 6px 12px; border-top: 1px solid var(--line); position: relative; color: var(--muted); line-height: 1.4; }
+.tw3-l li::before { content: ""; position: absolute; left: 0; top: 12px; width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
+.tw3-l li.warn::before { background: var(--warn); } .tw3-l li.crit::before { background: var(--crit); } .tw3-l li.ok::before { background: var(--ok); }
+.tw3-l b { color: var(--text); }
+.tw3-l button { text-align: left; color: inherit; padding: 0; }
+.tw3-l button:hover b { color: var(--accent); }
+.tw3-link { margin-top: 10px; color: var(--accent); font-weight: 600; font-size: 12.5px; }
+.tw3-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; }
+.tw3-bar .s0 { background: #334155; } .tw3-bar .s1 { background: var(--accent); } .tw3-bar .s2 { background: var(--warn); } .tw3-bar .s3 { background: var(--crit); }
+.tw3-cnt { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.tw3-queue { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.tw3-q { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: start; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); }
+.tw3-q:hover { border-color: var(--line-strong); }
+.tw3-q.now { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.tw3-q .dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 4px; background: var(--ok); }
+.tw3-q.warn .dot { background: var(--warn); } .tw3-q.crit .dot { background: var(--crit); }
+.tw3-q b { display: block; font-size: 13px; line-height: 1.3; }
+.tw3-q small { display: block; font-size: 11.5px; color: var(--muted); line-height: 1.35; margin-top: 2px; }
+.tw3-q em { font-style: normal; font-size: 11px; color: var(--faint); }
+@media (max-width: 700px) {
+  .tw3-box { height: 64vh; }
+  .tw3-panel { top: auto; bottom: 10px; max-height: 58%; }
+}

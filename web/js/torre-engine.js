@@ -82,6 +82,7 @@ const MOTIVO = { RECHAZADA_TEMPERATURA: 'Rechazo por temperatura', RECHAZADA_FEU
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const fechaISO = s => { const [y, m, d] = String(s).split('-').map(Number); return y && m && d ? `${d} ${MES[m - 1]} ${y}` : String(s); };
 const sum = a => a.reduce((x, y) => x + y, 0);
+const pl = (n, s, p) => `${n.toLocaleString('es-MX')} ${n === 1 ? s : p}`;
 const pct = (a, b) => (b ? a / b : null);
 export function brecha(k) {
   if (k.info || k.v == null || !isFinite(k.v)) return 0;
@@ -194,11 +195,13 @@ export function evaluar(D, cfg = {}, onProg = () => {}) {
   const R = atribuir(eslabones);
   const norte = estrellaNorte({ Hg, N, C, F, G });
   const matriz = matrizDelegaciones({ G, N, F });
+  const unidades = unidadesDe({ G, Hg });
+  const nac = N.E.map(e => ({ cve: e.cve, outH: e.outH[NAC.H], abasto: e.cumD[NAC.H] ? e.cumS[NAC.H] / e.cumD[NAC.H] : 1, late: e.ships.filter(x => x.arr <= NAC.H && x.late).length, ships: e.ships.filter(x => x.arr <= NAC.H).length }));
   onProg({ txt: 'Listo', p: 1 });
   return {
     esc: escId, escN: esc.n, escDesc: esc.desc,
     plan: { dia: G.P.day, proyectado: G.proyectado, nombre: G.P.nombre || 'Plan anual 2027', status: G.P.status },
-    norte, eslabones, reparto: R.reparto, llamadas: R.llamadas, nombres: R.nombres, matriz,
+    norte, eslabones, reparto: R.reparto, llamadas: R.llamadas, nombres: R.nombres, matriz, unidades, nac,
   };
 }
 
@@ -588,6 +591,33 @@ function dailyAbasto(N) {
   const out = [];
   for (let d = 1; d <= NAC.DAYS; d++) { const h = d * 24; let D = 0, S = 0; for (const e of N.E) { D += e.cumD[h] - e.cumD[h - 24]; S += e.cumS[h] - e.cumS[h - 24]; } out.push(D ? S / D : 1); }
   return out;
+}
+
+// ------------------------------------------------------------------ cada unidad médica (para la vista 3D)
+// st: 0 sin pendientes, 1 en plazo, 2 ámbar, 3 rojo. m: motivos para la ficha.
+function unidadesDe({ G, Hg }) {
+  const ig = {};
+  for (const c of G.ig.casos) if (c.estado === 'escapado' && c.actor.tipo === 'um') { const o = ig[c.actor.clues] ||= { n: 0, monto: 0, c: new Set() }; o.n++; o.monto += c.monto; o.c.add(INT.CONDUCTA[c.c]?.n || c.c); }
+  const hg = Object.fromEntries(Hg.units.map(u => [u.clues, u]));
+  return G.U.units.map((u, i) => {
+    const r = G.rs.unit[i], x = ig[u.clues], h = hg[u.clues], m = [];
+    let st = r.inPlan ? (r.pend ? 1 : 0) : 0;
+    const up = v => { if (v > st) st = v; };
+    if (r.esc2) { up(3); m.push([3, `${pl(r.esc2, 'partida', 'partidas')} del plan con escalamiento a Central en su bandeja`]); }
+    else if (r.venc) { up(2); m.push([2, `${pl(r.venc, 'partida', 'partidas')} del plan ${r.venc === 1 ? 'vencida' : 'vencidas'} en su bandeja`]); }
+    if (r.infl) m.push([1, `${pl(r.infl, 'clave pedida', 'claves pedidas')} 50 % arriba de su consumo`]);
+    if (r.alertas.length) { up(2); m.push([2, `${pl(r.alertas.length, 'alerta', 'alertas')} de integridad ${r.alertas.length === 1 ? 'frenada' : 'frenadas'} por los controles`]); }
+    if (x) { up(3); m.push([3, `${pl(x.n, 'pedido malicioso que pasó', 'pedidos maliciosos que pasaron')} (${mxn(x.monto)}): ${[...x.c].join(', ')}`]); }
+    let hgo = null;
+    if (h) {
+      const s = h.rx ? h.full / h.rx : 1, pe = h.pex ? h.pexOk / h.pex : 1;
+      hgo = { rx: h.rx, s, den: h.den, reqs: h.reqs, reqLate: h.reqLate, pex: h.pex, pe, merma: h.merma };
+      if (s < 0.9) { up(3); m.push([3, `recetas completas ${(s * 100).toFixed(1)} %`]); } else if (s < 0.97) { up(2); m.push([2, `recetas completas ${(s * 100).toFixed(1)} %`]); }
+      if (h.pex && pe < 0.75) { up(2); m.push([2, `solo ${Math.round(pe * 100)} % de sus PEX en plazo`]); }
+      if (h.reqLate) m.push([1, `${h.reqLate} de ${pl(h.reqs, 'urgencia', 'urgencias')} le ${h.reqLate === 1 ? 'llegó' : 'llegaron'} tarde`]);
+    }
+    return { i, clues: u.clues, nombre: u.nombre, tipo: u.tipo, nivel: u.nivel, cve: u.cve, st, venc: r.venc, esc2: r.esc2, pend: r.pend, fin: r.fin, inPlan: r.inPlan, integ: x ? { n: x.n, monto: x.monto } : null, hgo, m: m.sort((a, b) => b[0] - a[0]) };
+  });
 }
 
 // ------------------------------------------------------------------ matriz por delegación

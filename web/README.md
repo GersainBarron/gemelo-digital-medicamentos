@@ -334,7 +334,8 @@ Modelo: `bodega/nacional/redfria_builder.py`.
 ### Torre de control del abasto (`torre.html`)
 - `js/torre-engine.js`: corre sin DOM Planeación, Integridad, Compras, Nacional, Red fría, el patio del CENADI, el piloto Hidalgo (CEDIS, 60 unidades, rutas y contratos) y Marbetes con un mismo escenario; 10 eslabones, 36 indicadores con meta, fuente y dueño; semáforo por brecha, atribución al eslabón de arriba (`DEP`), reparto de la culpa, llamadas por nivel de escalamiento, nombres concretos y matriz de 32 delegaciones.
 - `js/torre-worker.js`: corre el motor en segundo plano (≈ 6 s por escenario). `js/torre.js`: pantalla. Lee la bitácora de Planeación y los controles de integridad del navegador.
-- Parámetros: `esc` (normal, proveedor, huracan, tardia), `e` (eslabón abierto), `debug`. Detalle en `docs/TORRE.md`.
+- `js/torre3d.js`: pestaña "Torre 3D". Mapa con los 32 edificios delegacionales y las 1,033 unidades en semáforo, y la torre vigía (`assets/vigia.glb`) cuyo ojo patrulla los focos rojos con un haz de luz; fichas al tocar unidad, delegación, CENADI o torre.
+- Parámetros: `esc` (normal, proveedor, huracan, tardia), `e` (eslabón abierto), `tab=3d`, `debug`. Detalle en `docs/TORRE.md`.
 
 ### Inventario físico con marbetes (pestaña "Marbetes" del CEDIS 3D)
 - `js/marbetes-sim.js`: un año ubicación por ubicación con errores ocultos, tomas anual, selectiva, rotativa o cíclica ABC, marbetes foliados, tres conteos, conciliación, ajustes por nivel de autorización, tolerancias del IMSS (0.72 % físicas, 0.80 % contables) y alertas por almacenista.

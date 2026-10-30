@@ -250,6 +250,8 @@ con qué nivel de escalamiento. Detalle en `docs/TORRE.md`.
   Adquisiciones pasa a primer lugar (22 %) porque los contratos se firman 49 días después del 1 de enero.
 - **Revisión independiente:** se corrigieron unidades (horas extra en minutos), el estado "sin dato", nombres
   duplicados, la red fría del CENADI cargada al Estado de México y las fuentes que no respaldaban su meta.
+- **Torre 3D:** pestaña con la torre vigía (modelo propio, `nacional/vigia_builder.py`) en el Golfo de México; su ojo
+  patrulla las delegaciones y unidades en rojo y al tocar cualquier cosa abre su ficha.
 - **Otros cambios:** enlace "Torre" en todas las vistas y botón en el CEDIS 3D.
 
 Siguiente en la ruta: pasaporte del lote (trazabilidad del plan al paciente), pago a proveedores, proveedor y

@@ -13,6 +13,9 @@
   <link rel="stylesheet" href="css/unidad.css">
   <link rel="stylesheet" href="css/redfria.css">
   <link rel="stylesheet" href="css/torre.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/jsm/" } }
+  </script>
 </head>
 <body>
   <header class="topbar">
@@ -52,9 +55,40 @@
       </div>
       <p id="esc-desc" class="muted rf-desc"></p>
       <p id="plan-note" class="note"></p>
+      <div id="tabs" class="seg tw-tabs" role="tablist" aria-label="Vista">
+        <button data-tab="tablero" class="active" role="tab">Tablero</button>
+        <button data-tab="3d" role="tab">Torre 3D</button>
+      </div>
     </section>
 
     <section id="veredicto" class="tw-verdict" aria-live="polite"></section>
+
+    <div id="tab-3d" class="tw-tab" hidden>
+      <section class="card u3d-card">
+        <div class="card-h wrap">
+          <h2>La torre vigía <small>el ojo recorre los focos rojos del país · toca una unidad, un edificio, un estado, el CENADI o la torre</small></h2>
+          <div class="tw3-tools">
+            <button id="tw3-patrol" class="seg-btn on" type="button" aria-pressed="true">Patrullar</button>
+            <button id="tw3-home" class="seg-btn" type="button">Vista general</button>
+            <button id="tw3-tower" class="seg-btn" type="button">Ver la torre</button>
+          </div>
+        </div>
+        <div id="tw3" class="u3d tw3-box"><div class="u3d-loading">Levantando la torre vigía…</div></div>
+        <div class="legend u3d-legend">
+          <span><i class="sw" style="background:#f87171"></i>Rojo</span>
+          <span><i class="sw" style="background:#fbbf24"></i>Ámbar</span>
+          <span><i class="sw" style="background:#2dd4bf"></i>En plazo</span>
+          <span><i class="sw" style="background:#334155"></i>Sin pendientes</span>
+          <span class="muted">Columnas: 1,033 unidades, más altas cuanto peor · Edificios: 32 delegaciones · Estados teñidos por su fila en la matriz · El haz del ojo apunta a lo que la torre señala</span>
+        </div>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Lo que mira el ojo <small>focos en el orden en que la torre los recorre</small></h2></div>
+        <div id="tw3-queue" class="tw3-queue"></div>
+      </section>
+    </div>
+
+    <div id="tab-tablero" class="tw-tab">
 
     <section id="norte" class="kpis tw-norte" aria-label="Estrella del norte"></section>
 
@@ -107,6 +141,7 @@
       <div class="card-h"><h2>Referencias</h2></div>
       <div id="refs" class="rf-defs"></div>
     </section>
+    </div>
   </main>
 
   <div id="loading" class="loading"><div class="tw-load"><b>Corriendo los gemelos de toda la cadena…</b><div class="tw-prog"><i id="prog-bar"></i></div><span id="prog-txt">Preparando</span></div></div>

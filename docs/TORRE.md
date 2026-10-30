@@ -127,6 +127,20 @@ Si más de la mitad de la brecha viene de arriba, baja un nivel: primero se llam
 - **Con la compra tardía cambia el culpable.** Es efecto de la regla de atribución, no de la simulación: los contratos de Hidalgo no leen la fecha de la compra. La regla dice que sin contrato a tiempo no hay a quién exigirle. Por eso 65 % de la brecha de entregas tarde pasa a Adquisiciones, que firmó 49 días después del 1 de enero.
 - **Cambiar de escenario tarda unos 2 segundos.** Planeación, integridad, red fría, el piloto de Hidalgo y marbetes se guardan mientras la página está abierta.
 
+## Pestaña "Torre 3D"
+
+`web/js/torre3d.js` con el modelo `web/assets/vigia.glb` (`nacional/vigia_builder.py`, diseño propio). Ideas tomadas de torres de control de aeropuerto (cabina de vidrio inclinado), faros (haz que barre) y cámaras de vigilancia (lente con iris).
+
+- **Torre vigía en el Golfo de México**, exagerada (unos 210 m llevados a unos 840 km). Su **ojo-sensor gira** hacia lo que la torre señala y proyecta un haz con el color del semáforo; los anillos de los balcones toman el estado general (rojo con 5 o más eslabones en rojo).
+- **Patrullar:** el ojo recorre los focos cada 4 segundos: las delegaciones con peor fila en la matriz, las unidades en rojo (primero las de pedidos maliciosos más grandes) y el CENADI si está fuera de meta. La lista "Lo que mira el ojo" muestra el recorrido; tocar uno lo enfoca.
+- **Mapa:** cada estado se tiñe con su fila de la matriz; cada delegación tiene su edificio con franja y baliza en semáforo; las 1,033 unidades son columnas más altas y rojas cuanto peor están (plan vencido o escalado, alertas y pedidos maliciosos de integridad y, en el piloto Hidalgo, recetas completas y PEX).
+- **Fichas** (como en el CENADI 3D), al tocar:
+    - **unidad:** a quién se le reclama, su supervisor, nivel de escalamiento, plan, integridad, farmacia (solo en el piloto) y por qué está así;
+    - **delegación:** su fila de la matriz, almacén estatal a 30 días, reparto de sus unidades y directores a llamar;
+    - **CENADI:** indicadores de CENADI y distribución nacional;
+    - **torre:** reparto de la culpa, estrella del norte y a quién llamar primero.
+- Parámetro `tab=3d` para abrir directo en esta pestaña.
+
 ## Lo que la torre no ve
 
 - **Los gemelos no están conectados entre sí.** Cada uno corre su escenario con sus propios datos. La torre los pone lado a lado con alcance y periodo, no como un solo modelo.

@@ -12,13 +12,15 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const pc = x => `${Math.round((x || 0) * 100)} %`;
 const ST_N = { ok: 'En meta', warn: 'Fuera de meta', crit: 'Crítico', nd: 'Sin dato' };
 
-const S = { esc: 'normal', sel: null, filtro: 'todas', cache: {}, R: null, id: 0 };
+const S = { esc: 'normal', sel: null, filtro: 'todas', cache: {}, R: null, id: 0, tab: 'tablero' };
+let V3 = null, V3p = null, ISS = null;
 let worker = null;
 
 function params() {
   const q = new URLSearchParams(location.search);
   if (ESCENARIOS[q.get('esc')]) S.esc = q.get('esc');
   if (q.get('e')) S.sel = q.get('e');
+  if (q.get('tab') === '3d') S.tab = '3d';
 }
 function cfg() {
   let entries = null, integ = null;
@@ -54,9 +56,14 @@ function bind() {
     S.sel = c.dataset.e; url(); cadena(); detalle();
     if (c.dataset.go) $('#detalle').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
+  $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.tab = b.dataset.tab; url(); tabs(); });
+  $('#tw3-patrol').addEventListener('click', () => { if (!V3) return; const on = !V3.patrol; V3.setPatrol(on); if (on) { V3.select(null, false); closePanel(); } patrolBtn(); });
+  $('#tw3-home').addEventListener('click', () => { if (!V3) return; V3.select(null); closePanel(); });
+  $('#tw3-tower').addEventListener('click', () => pick3({ type: 'tower' }));
+  $('#tw3-queue').addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (!b || !V3) return; pick3(V3.queue[+b.dataset.q]); $('#tw3').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   $('#matriz').addEventListener('click', e => { const tr = e.target.closest('tr[data-cve]'); if (!tr) return; tr.classList.toggle('open'); });
 }
-function url() { const q = new URLSearchParams(location.search); q.set('esc', S.esc); if (S.sel) q.set('e', S.sel); history.replaceState(null, '', `${location.pathname}?${q}`); }
+function url() { const q = new URLSearchParams(location.search); q.set('esc', S.esc); if (S.sel) q.set('e', S.sel); if (S.tab === '3d') q.set('tab', '3d'); else q.delete('tab'); history.replaceState(null, '', `${location.pathname}?${q}`); }
 function paintEsc() {
   for (const b of $('#esc').children) b.classList.toggle('active', b.dataset.v === S.esc);
   $('#esc-desc').textContent = ESCENARIOS[S.esc].desc;
@@ -67,7 +74,123 @@ function paint() {
   const R = S.R;
   if (!S.sel || !R.eslabones.some(e => e.id === S.sel)) S.sel = R.reparto[0].id;
   $('#plan-note').innerHTML = `Plan de Planeación: <a href="planeacion.html#/mitablero">${esc(R.plan.nombre)}</a>, día hábil ${R.plan.dia} de la aprobación${R.plan.proyectado ? ` (tu bitácora estaba en el día ${R.plan.dia - R.plan.proyectado}; la torre lo avanzó para tener qué vigilar)` : ''}. La torre lee tu bitácora y tus controles de integridad de este navegador.`;
-  veredicto(); norte(); reparto(); llamadas(); cadena(); detalle(); nombres(); matriz(); textos();
+  veredicto(); norte(); reparto(); llamadas(); cadena(); detalle(); nombres(); matriz(); textos(); tabs();
+  if (V3) { V3.setData(R); cola3d(); if (V3.sel) panel3d(V3.sel); }
+}
+
+// ------------------------------------------------------------------ pestaña Torre 3D
+function tabs() {
+  for (const b of $('#tabs').children) { const on = b.dataset.tab === S.tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); }
+  $('#tab-3d').hidden = S.tab !== '3d'; $('#tab-tablero').hidden = S.tab === '3d';
+  if (S.tab === '3d') open3d(); else V3?.stop();
+}
+async function open3d() {
+  if (V3) { V3.start(); V3.resize(); return; }
+  if (V3p || !S.R) return;
+  V3p = (async () => {
+    try {
+      ISS ||= await fetch('assets/estados_issste.json').then(r => r.json());
+      const { Torre3D } = await import('./torre3d.js');
+      const v = new Torre3D({ iss: ISS, getGLB: window.PLAN_GLB });
+      await v.load($('#tw3'));
+      $('#tw3 .u3d-loading')?.remove();
+      v.onPick = s => pick3(s);
+      v.onHover = h => { $('#tw3').title = h ? hoverTxt(h) : ''; };
+      v.onTarget = t => { v.setTag(tagTxt(t)); markQueue(); };
+      V3 = v; if (new URLSearchParams(location.search).has('debug')) window.__tw3 = v;
+      v.setData(S.R); cola3d(); patrolBtn();
+      if (S.tab === '3d') v.start();
+    } catch (err) { console.error(err); const l = $('#tw3 .u3d-loading'); if (l) l.textContent = 'No se pudo cargar la vista 3D: ' + err.message; }
+  })();
+}
+function patrolBtn() { const b = $('#tw3-patrol'); b.classList.toggle('on', !!V3?.patrol); b.setAttribute('aria-pressed', !!V3?.patrol); b.textContent = V3?.patrol ? 'Patrullando' : 'Patrullar'; }
+function pick3(s) {
+  if (!V3) return;
+  if (!s) { V3.select(null, false); closePanel(); return; }
+  V3.select(s); patrolBtn(); panel3d(s);
+}
+const unitOf = i => S.R.unidades[i];
+const rowOf = cve => S.R.matriz.rows.find(r => r.cve === cve);
+const ST_U = ['Sin pendientes', 'En plazo', 'Ámbar', 'Rojo'];
+const ST_UC = ['', 'ok', 'warn', 'crit'];
+function nameOf(t) {
+  if (t.type === 'unit') return unitOf(t.i).nombre;
+  if (t.type === 'del') return `Delegación ${rowOf(t.cve)?.nombre || t.cve}`;
+  if (t.type === 'cenadi') return 'CENADI';
+  return 'Torre vigía';
+}
+function whyOf(t) {
+  if (t.type === 'unit') return unitOf(t.i).m[0]?.[1] || 'sin observaciones';
+  if (t.type === 'del') { const r = rowOf(t.cve); if (!r) return ''; const c = Object.entries(r.c).filter(([, x]) => x.st === 'crit').map(([k]) => S.R.matriz.cols.find(c => c.id === k).n); return c.length ? `en rojo: ${c.join(', ')}` : 'sin rojos'; }
+  if (t.type === 'cenadi') { const e = S.R.eslabones.find(x => x.id === 'cenadi'); const k = e.kpis.filter(k => k.st === 'crit').map(k => `${k.n} ${fmtV(k.v, k.fmt)}`); return k.join(' · ') || 'en meta'; }
+  return '';
+}
+function tagTxt(t) { return `<span class="tw3-eye" aria-hidden="true"></span><b>${esc(nameOf(t))}</b><small>${esc(whyOf(t))}</small>`; }
+function hoverTxt(h) { return h.type === 'tower' ? 'Torre vigía' : nameOf(h); }
+function cola3d() {
+  const q = V3.queue;
+  $('#tw3-queue').innerHTML = q.length ? q.map((t, k) => {
+    const st = V3.stOf(t);
+    return `<button class="tw3-q ${st}" data-q="${k}"><i class="dot"></i><span><b>${esc(nameOf(t))}</b><small>${esc(whyOf(t))}</small></span><em>${t.type === 'unit' ? 'Unidad' : t.type === 'del' ? 'Delegación' : 'CENADI'}</em></button>`;
+  }).join('') : '<p class="muted">Nada en rojo: el ojo descansa.</p>';
+  markQueue();
+}
+function markQueue() { if (!V3) return; [...$('#tw3-queue').querySelectorAll('[data-q]')].forEach(b => b.classList.toggle('now', V3.patrol && +b.dataset.q === V3.qi)); }
+
+// ficha flotante, como la del CENADI 3D
+function closePanel() { $('#tw3 .u3d-panel')?.remove(); }
+function panel3d(s) {
+  let pn = $('#tw3 .u3d-panel');
+  if (!pn) { pn = document.createElement('div'); pn.className = 'u3d-panel tw3-panel'; $('#tw3').appendChild(pn); pn.addEventListener('click', e => { if (e.target.closest('.u3d-x')) { closePanel(); V3.select(null, false); } const g = e.target.closest('[data-goto]'); if (g) { const [t, v] = g.dataset.goto.split(':'); pick3(t === 'unit' ? { type: 'unit', i: +v } : t === 'del' ? { type: 'del', cve: v } : { type: t }); } const ge = e.target.closest('[data-eslabon]'); if (ge) { S.sel = ge.dataset.eslabon; S.tab = 'tablero'; url(); tabs(); cadena(); detalle(); $('#detalle').scrollIntoView({ behavior: 'smooth' }); } }); }
+  pn.innerHTML = s.type === 'unit' ? fichaUnidad(unitOf(s.i)) : s.type === 'del' ? fichaDel(s.cve) : s.type === 'cenadi' ? fichaCenadi() : fichaTorre();
+}
+const hdr = (t, sub, st) => `<header><div><b>${esc(t)}</b><small>${sub}</small></div><button class="u3d-x" aria-label="Cerrar">×</button></header>${st ? `<span class="chip ${st}">${esc(st === 'crit' ? 'Rojo' : st === 'warn' ? 'Ámbar' : st === 'ok' ? 'En meta' : 'Sin dato')}</span>` : ''}`;
+const dl = rows => `<dl>${rows.filter(Boolean).map(([k, v, c]) => `<dt>${esc(k)}</dt><dd class="${c || ''}">${v}</dd>`).join('')}</dl>`;
+function fichaUnidad(u) {
+  const D = rowOf(u.cve), st = ST_UC[u.st];
+  const h = u.hgo;
+  const nivel = u.st === 3 ? (u.integ ? 3 : 2) : u.st === 2 ? 1 : 0;
+  return hdr(u.nombre, `${esc(u.tipo)} · ${esc(D?.nombre || u.cve)} · CLUES ${esc(u.clues)}`, st || null) + `
+    <p class="u3d-h">A quién se le reclama</p>
+    ${dl([['Responsable', `Director(a) de ${esc(u.nombre)}`], ['Supervisa', esc(D?.dueno || '')], nivel ? ['Escalamiento', esc(NIVELES[nivel].n), ['', 'ok', 'warn', 'crit'][nivel]] : ['Escalamiento', 'No hace falta', 'ok']])}
+    <p class="u3d-h">Plan anual 2027</p>
+    ${dl([['En el plan', u.inPlan ? 'Sí' : 'No'], ['Pedido de la unidad', u.fin ? 'Concluido' : 'Abierto'], ['Partidas en su bandeja', u.pend.toLocaleString('es-MX')], ['Vencidas', u.venc.toLocaleString('es-MX'), u.venc ? 'warn' : ''], ['Con escalamiento', u.esc2.toLocaleString('es-MX'), u.esc2 ? 'crit' : '']])}
+    <p class="u3d-h">Integridad</p>
+    ${dl([u.integ ? ['Pedidos maliciosos que pasaron', `${u.integ.n} · ${esc(fmtV(u.integ.monto, 'mxn'))}`, 'crit'] : ['Pedidos maliciosos que pasaron', 'Ninguno', 'ok']])}
+    ${h ? `<p class="u3d-h">Farmacia · piloto Hidalgo, 30 días</p>${dl([['Recetas', h.rx.toLocaleString('es-MX')], ['Surtidas completas', fmtV(h.s, 'pct'), h.s < 0.9 ? 'crit' : h.s < 0.97 ? 'warn' : 'ok'], ['Negadas por completo', h.den.toLocaleString('es-MX')], ['PEX en plazo', h.pex ? fmtV(h.pe, 'pct') : '—', h.pex && h.pe < 0.75 ? 'warn' : ''], ['Urgencias tarde', `${h.reqLate} de ${h.reqs}`], ['Piezas caducadas', h.merma.toLocaleString('es-MX')]])}` : '<p class="note">Fuera del piloto: de esta unidad la torre solo ve el plan y la integridad.</p>'}
+    ${u.m.length ? `<p class="u3d-h">Por qué está así</p><ul class="tw3-l">${u.m.map(([n, t]) => `<li class="${['', '', 'warn', 'crit'][n] || ''}">${esc(t)}</li>`).join('')}</ul>` : ''}
+    <button class="tw3-link" data-goto="del:${u.cve}">Ver la delegación de ${esc(D?.nombre || '')} →</button>`;
+}
+function fichaDel(cve) {
+  const r = rowOf(cve), us = S.R.unidades.filter(u => u.cve === cve), n = [0, 0, 0, 0]; us.forEach(u => n[u.st]++);
+  const nac = S.R.nac.find(x => x.cve === cve);
+  const st = Object.values(r.c).some(x => x.st === 'crit') ? 'crit' : Object.values(r.c).some(x => x.st === 'warn') ? 'warn' : 'ok';
+  const peores = us.filter(u => u.st >= 2).sort((a, b) => b.st - a.st || (b.integ?.monto || 0) - (a.integ?.monto || 0) || b.venc - a.venc).slice(0, 6);
+  return hdr(`Delegación ${r.nombre}`, `${esc(r.dueno)} · revisa ${esc(r.analista)}${r.piloto ? ' · piloto' : ''}`, st) + `
+    <p class="u3d-h">Su fila en la matriz</p>
+    ${dl(S.R.matriz.cols.map(c => [c.n, `${esc(r.c[c.id].v)}<small>${esc(r.c[c.id].det)}</small>`, r.c[c.id].st]))}
+    ${nac ? `<p class="u3d-h">Almacén estatal · 30 días</p>${dl([['Demanda atendida', fmtV(nac.abasto, 'pct1'), nac.abasto < 0.97 ? 'warn' : 'ok'], ['Días en cero', (Math.round(nac.outH / 24 * 10) / 10).toLocaleString('es-MX'), nac.outH ? 'crit' : ''], ['Embarques del CENADI tarde', `${nac.late} de ${nac.ships}`, nac.late ? 'warn' : '']])}` : ''}
+    <p class="u3d-h">Sus ${us.length} unidades</p>
+    <div class="tw3-bar">${n.map((x, k) => x ? `<i class="s${k}" style="flex:${x}" title="${ST_U[k]}: ${x}"></i>` : '').join('')}</div>
+    <p class="tw3-cnt"><span class="crit">${n[3]} en rojo</span> · <span class="warn">${n[2]} en ámbar</span> · ${n[1]} en plazo · ${n[0]} sin pendientes</p>
+    ${peores.length ? `<p class="u3d-h">Directores a llamar</p><ul class="tw3-l">${peores.map(u => `<li class="${ST_UC[u.st]}"><button data-goto="unit:${u.i}"><b>${esc(u.nombre)}</b> · ${esc(u.m[0]?.[1] || '')}</button></li>`).join('')}</ul>` : ''}`;
+}
+function fichaCenadi() {
+  const E = ['cenadi', 'dnac'].map(id => S.R.eslabones.find(e => e.id === id));
+  return hdr('CENADI', 'Centro Nacional de Distribución · Tlalnepantla', E[0].st) + E.map(e => `
+    <p class="u3d-h">${esc(e.n)} · ${esc(e.dueno)}</p>
+    ${dl(e.kpis.map(k => [k.n, fmtV(k.v, k.fmt), k.st]))}`).join('') + `
+    <button class="tw3-link" data-eslabon="cenadi">Ver los indicadores en el tablero →</button>`;
+}
+function fichaTorre() {
+  const R = S.R, top = R.reparto.slice(0, 3);
+  return hdr('Torre vigía', `${esc(R.escN)} · lo que ve el jefe de jefes`, null) + `
+    <p class="u3d-h">¿De quién es el problema?</p>
+    ${dl(top.map(t => [t.n, pc(t.share), t.st]))}
+    <p class="u3d-h">Estrella del norte</p>
+    ${dl(R.norte.map(n => [n.n, fmtV(n.v, n.fmt), n.st]))}
+    <p class="u3d-h">A quién llamar primero</p>
+    <ul class="tw3-l">${R.llamadas.slice(0, 4).map(l => `<li class="${l.st}"><b>${esc(l.quien)}</b> · ${esc(l.kn)} ${fmtV(l.v, l.fmt)} · ${esc(NIVELES[l.nivel].n)}</li>`).join('')}</ul>`;
 }
 
 function spark(serie, meta, dir = 1) {
@@ -242,4 +365,4 @@ const REFS = [
 ];
 
 if (new URLSearchParams(location.search).has('debug')) window.__torre = S;
-params(); bind(); run();
+params(); bind(); tabs(); run();

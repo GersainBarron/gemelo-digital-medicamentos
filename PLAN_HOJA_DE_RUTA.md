@@ -237,6 +237,19 @@ procedimiento 1821-A03-002 del IMSS). Detalle en `docs/MARBETES.md`.
 - **Resultado:** con disciplina media solo la toma anual deja 1.23 % de diferencias físicas (tope 0.72 %); con
   rotativo mensual baja a 0.68 % y con cíclico ABC a 0.46 %.
 
+## Fase 11 · Torre de control del abasto — HECHO (29 oct)
+Una sola pantalla que vigila todos los gemelos "como el jefe de jefes": de quién es el problema, a quién llamar y
+con qué nivel de escalamiento. Detalle en `docs/TORRE.md`.
+- **Código:** `web/torre.html`, `web/css/torre.css`, `web/js/torre-engine.js` (motor sin DOM),
+  `web/js/torre-worker.js` y `web/js/torre.js`.
+- **Reglas:** semáforo contra meta escrita con su fuente, un dueño por indicador (RACI), atribución al eslabón de
+  arriba (65 % si está en rojo, 25 % en ámbar) y tres niveles de escalamiento (dueño en 24 a 48 h, junta semanal,
+  dirección general).
+- **Resultado:** en operación normal el problema es de Red fría (26 %) y de Proveedores y contratos (24 %). Con un
+  proveedor que falla, Proveedores sube a 31 % y las recetas completas siguen en 97.9 %. Con la compra tardía,
+  Adquisiciones pasa a primer lugar (19 %) porque los contratos se firman 49 días después del 1 de enero.
+- **Otros cambios:** enlace "Torre" en todas las vistas y botón en el CEDIS 3D.
+
 Siguiente en la ruta: pasaporte del lote (trazabilidad del plan al paciente), pago a proveedores, proveedor y
 fabricación, logística inversa.
 

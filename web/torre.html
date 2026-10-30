@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Gersain Barron">
+  <meta name="copyright" content="© 2026 Gersain Barron · Licencia MIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d1117">
+  <title>Torre de control del abasto</title>
+  <link rel="stylesheet" href="css/unidad.css">
+  <link rel="stylesheet" href="css/redfria.css">
+  <link rel="stylesheet" href="css/torre.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <b>Torre de control del abasto</b>
+        <span>Gemelo digital · <em class="author">Gersain Barron</em> · toda la cadena en una pantalla, con dueño por indicador</span>
+      </div>
+    </div>
+    <nav class="views" aria-label="Vistas">
+      <a class="active" href="torre.html" aria-current="page">Torre</a>
+      <a href="planeacion.html">Planeación</a>
+      <a href="compras.html">Compras</a>
+      <a href="index.html">CEDIS 3D</a>
+      <a href="mapa.html">Red estatal</a>
+      <a href="unidad.html">Unidad médica</a>
+      <a href="contratos.html">Contratos</a>
+      <a href="expedientes.html">Recorrido</a>
+      <a href="cenadi.html">CENADI</a>
+      <a href="nacional.html">Nacional</a>
+      <a href="redfria.html">Red fría</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="rf-scn">
+        <div class="f-group tw-wide">
+          <label>Escenario para toda la cadena</label>
+          <div id="esc" class="seg rf-scroll"></div>
+        </div>
+        <button id="rerun" class="seg-btn" type="button">Volver a correr</button>
+      </div>
+      <p id="esc-desc" class="muted rf-desc"></p>
+      <p id="plan-note" class="note"></p>
+    </section>
+
+    <section id="veredicto" class="tw-verdict" aria-live="polite"></section>
+
+    <section id="norte" class="kpis tw-norte" aria-label="Estrella del norte"></section>
+
+    <div class="split tw-split">
+      <section class="card">
+        <div class="card-h"><h2>¿De quién es el problema? <small>brecha contra la meta, ponderada, ya atribuida al eslabón correcto</small></h2></div>
+        <div id="reparto"></div>
+        <p class="note">Barra llena: la falla es del propio eslabón. Barra rayada: fallas de los eslabones de abajo que se explican por éste (por ejemplo, la unidad que no surte porque el almacén no le mandó).</p>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>A quién llamar hoy <small>ordenado por nivel de escalamiento y peso</small></h2></div>
+        <div id="llamadas"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-h"><h2>La cadena, de la planeación al paciente <small>toca un eslabón para ver sus indicadores</small></h2></div>
+      <div id="cadena" class="tw-chain"></div>
+      <div id="trans" class="tw-trans"></div>
+    </section>
+
+    <section id="detalle" class="card tw-det" aria-live="polite"></section>
+
+    <section class="card">
+      <div class="card-h"><h2>Personas señaladas <small>los nombres concretos detrás de cada indicador fuera de meta</small></h2></div>
+      <div id="nombres" class="m-table"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-h wrap">
+        <h2>Las 32 delegaciones <small>lo que la torre puede ver estado por estado · peores primero</small></h2>
+        <div id="mfiltro" class="seg"><button data-v="todas" class="active">Todas</button><button data-v="rojo">Con algo en rojo</button></div>
+      </div>
+      <div id="matriz" class="m-table"></div>
+      <p class="note">Hidalgo es el piloto con detalle de CEDIS, rutas y 60 unidades; los demás estados se ven a nivel de almacén estatal. Toca una fila para ver a quién le toca.</p>
+    </section>
+
+    <div class="split cp-half tw-half">
+      <section class="card">
+        <div class="card-h"><h2>Cómo decide la torre</h2></div>
+        <div id="reglas" class="rf-defs"></div>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Lo que la torre no ve</h2></div>
+        <div id="huecos" class="rf-defs"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-h"><h2>Referencias</h2></div>
+      <div id="refs" class="rf-defs"></div>
+    </section>
+  </main>
+
+  <div id="loading" class="loading"><div class="tw-load"><b>Corriendo los gemelos de toda la cadena…</b><div class="tw-prog"><i id="prog-bar"></i></div><span id="prog-txt">Preparando</span></div></div>
+  <script type="module" src="js/torre.js"></script>
+</body>
+</html>

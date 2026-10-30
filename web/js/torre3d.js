@@ -252,7 +252,7 @@ export class Torre3D {
   aspectK() { const a = this.camera.aspect || 1.6; return a < 1.2 ? Math.min(2.1, 1.35 / a) : 1; }
   home(now = false) {
     const a = this.camera.aspect || 1.6, f = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
-    const need = Math.max(this.mapS.z * 0.62 / f, this.mapS.x * 0.55 / (f * a));
+    const need = a < 1 ? this.mapS.x * 0.36 / (f * a) : Math.max(this.mapS.z * 0.62 / f, this.mapS.x * 0.55 / (f * a));   // en teléfono, centro del país y la torre
     this.flyTo(this.mapC.clone().setY(80).add(new THREE.Vector3(80, 0, 40)), need, now);
   }
   flyTo(tgt, dist, now = false) {

@@ -336,6 +336,7 @@ Modelo: `bodega/nacional/redfria_builder.py`.
 - `js/torre-worker.js`: corre el motor en segundo plano (≈ 6 s por escenario). `js/torre.js`: pantalla. Lee la bitácora de Planeación y los controles de integridad del navegador.
 - `js/torre3d.js`: pestaña "Torre 3D". Mapa con los 32 edificios delegacionales y las 1,033 unidades en semáforo, y la torre vigía (`assets/vigia.glb`) cuyo ojo patrulla los focos rojos con un haz de luz; fichas al tocar unidad, delegación, CENADI o torre.
 - `js/torre-roles.js`: "Ver como": la torre de cada responsable (dueño de área, analista de Central, delegación, director de unidad, administrador de contrato) con lo que le toca hoy, de quién depende, cómo se compara y su gente.
+- `js/torre-seguimiento.js`: compromisos de la torre: se crean desde cualquier llamada o acción, la torre los verifica con cada corrida y los escala solos si vencen; reloj por día hábil del plan, reincidentes y CSV.
 - Parámetros: `esc` (normal, proveedor, huracan, tardia), `e` (eslabón abierto), `rol` (p. ej. `del:13`, `unit:377`), `tab=3d`, `debug`. Detalle en `docs/TORRE.md`.
 
 ### Inventario físico con marbetes (pestaña "Marbetes" del CEDIS 3D)

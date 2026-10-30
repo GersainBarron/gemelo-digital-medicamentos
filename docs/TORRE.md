@@ -151,6 +151,20 @@ Todas responden lo mismo en el mismo orden:
 
 Así se baja de la dirección general a la persona en tres toques: jefe → delegación → director de unidad. En la pestaña 3D, ver como una delegación, una unidad o un contrato enfoca el mapa y el ojo patrulla solo ese estado.
 
+## Seguimiento: la torre da seguimiento a sus propios regaños
+
+`web/js/torre-seguimiento.js` y la pestaña **Seguimiento**. Una torre que solo señala termina en regaños que se olvidan; aquí cada llamada se vuelve compromiso y la torre lo verifica sola.
+
+- **Comprometer:** botón en cada llamada del tablero y en cada acción de "Lo que te toca hoy" de cualquier responsable. Queda el responsable, qué se mide, el valor de partida, la meta, el nivel y el plazo (2 días hábiles en nivel 1, 5 en niveles 2 y 3). "Comprometer todas las llamadas de hoy" las registra de una vez.
+- **Verificación:** con cada corrida la torre vuelve a medir. **Cumplido** solo cuando el dato llega a la meta; si no, queda en mejora, sin cambio o empeora. "Cerrar sin verificar" existe para el responsable, pero se cuenta aparte y baja la tasa de cumplimiento.
+- **Escalamiento automático:** si vence sin cumplirse sube un nivel con plazo nuevo (dueño → junta semanal → dirección general); en dirección general queda "vencido".
+- **Reloj:** el día hábil de la aprobación del plan. "+1" y "+5 días hábiles" simulan el plan (cambian bandejas de unidades, delegaciones y analistas); los demás gemelos siguen en su escenario y se recuperan cambiando el escenario.
+- **Indicadores de la propia torre:** abiertos, escalamientos, vencidos en dirección general, cumplidos verificados, tasa de cumplimiento y días hábiles promedio para cumplir. **Reincidentes:** quienes acumulan 2 o más escalamientos, o 3 compromisos sin cumplir ninguno: candidatos a cambio de política.
+- **Dónde se ve:** pestaña Seguimiento (con CSV), una línea en el veredicto del jefe, "Tus compromisos" en la vista de cada responsable y el estado junto a cada botón.
+- Se guarda en el navegador (`torre.compromisos.v1`). En la plataforma real es una tabla compartida con usuario, fecha y evidencia de cada movimiento.
+
+Prueba (operación normal): se comprometieron las 20 llamadas del día 15 y las 6 acciones de Jalisco. Al día hábil 30, las peticiones vencidas de Jalisco pasaron de 1,238 a 0 y sus unidades sin concluir de 3 a 0 (cumplidos verificados). Las partidas vencidas nacionales bajaron de 53 % a 12 % sin llegar a la meta. Lo que no depende del reloj del plan (red fría, integridad, contratos) se escaló hasta dirección general y quedó vencido. Jalisco y Adquisiciones aparecen como reincidentes.
+
 ## Pestaña "Torre 3D"
 
 `web/js/torre3d.js` con el modelo `web/assets/vigia.glb` (`nacional/vigia_builder.py`, diseño propio). Ideas tomadas de torres de control de aeropuerto (cabina de vidrio inclinado), faros (haz que barre) y cámaras de vigilancia (lente con iris).
@@ -198,7 +212,8 @@ Así se baja de la dirección general a la persona en tres toques: jefe → dele
 | `esc` | `normal`, `proveedor`, `huracan`, `tardia` | Escenario |
 | `e` | `plan`, `compra`, `prov`, `cenadi`, `dnac`, `alm`, `dest`, `unidad`, `frio`, `integ` | Eslabón abierto |
 | `rol` | `jefe`, `area:frio`, `ana:0`, `del:13`, `unit:377`, `k:C1` | Ver como |
-| `tab` | `3d` | Abre la pestaña Torre 3D |
+| `tab` | `seg`, `3d` | Abre la pestaña Seguimiento o Torre 3D |
+| `dia` | 16 a 120 | Reloj de la torre (día hábil del plan) |
 | `debug` | — | Expone `window.__torre` y `window.__tw3` |
 
 La primera corrida tarda unos 6 segundos, en segundo plano. Después se guardan los gemelos que no cambian con el escenario, y cada escenario ya calculado se muestra al instante.

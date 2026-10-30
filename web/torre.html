@@ -61,11 +61,38 @@
       </div>
       <div id="tabs" class="seg tw-tabs" role="tablist" aria-label="Vista">
         <button data-tab="tablero" class="active" role="tab">Tablero</button>
+        <button data-tab="seg" role="tab">Seguimiento <em id="seg-n"></em></button>
         <button data-tab="3d" role="tab">Torre 3D</button>
       </div>
     </section>
 
     <section id="veredicto" class="tw-verdict" aria-live="polite"></section>
+
+    <div id="tab-seg" class="tw-tab" hidden>
+      <section class="card">
+        <div class="card-h wrap">
+          <h2>Seguimiento de compromisos <small>la torre verifica con los datos si se cumplió; si vence sin cumplirse, sube de nivel sola</small></h2>
+          <div class="tw3-tools"><button id="seg-csv" class="seg-btn" type="button">Descargar CSV</button></div>
+        </div>
+        <div class="tw-reloj">
+          <div><span>Reloj de la torre</span><b id="seg-dia">Día hábil 15</b><small id="seg-dia-sub"></small></div>
+          <div class="tw-reloj-b"><button class="seg-btn" data-dia="1" type="button">+1 día hábil</button><button class="seg-btn" data-dia="5" type="button">+5 días hábiles</button><button class="seg-btn" data-dia="0" type="button">Volver al día 15</button></div>
+        </div>
+        <section id="seg-kpis" class="kpis tw-segk" style="--kc:6"></section>
+      </section>
+      <div class="split tw-split">
+        <section class="card">
+          <div class="card-h wrap"><h2>Compromisos</h2><div id="seg-f" class="seg rf-scroll"><button data-v="abiertos" class="active">Abiertos</button><button data-v="escalados">Subieron de nivel</button><button data-v="cumplidos">Cumplidos</button><button data-v="cerrados">Cerrados sin verificar</button><button data-v="todos">Todos</button></div></div>
+          <div id="seg-list"></div>
+        </section>
+        <section class="card">
+          <div class="card-h"><h2>Reincidentes <small>2 o más escalamientos, o 3 compromisos sin cumplir ninguno</small></h2></div>
+          <div id="seg-reinc"></div>
+          <div class="card-h" style="margin-top:16px"><h2>Cómo funciona</h2></div>
+          <div class="rf-defs" id="seg-reglas"></div>
+        </section>
+      </div>
+    </div>
 
     <div id="tab-3d" class="tw-tab" hidden>
       <section class="card u3d-card">

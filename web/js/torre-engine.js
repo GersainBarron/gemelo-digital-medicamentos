@@ -105,13 +105,17 @@ function gemeloPlan(D, cfg, prog) {
   for (const it of P.items.values()) if (it.months && it.st.oc !== 'rechazado') dem[it.k] = (dem[it.k] || 0) + PE.total(it);
   prog('Integridad: buscando pedidos maliciosos');
   const ig = INT.simular(U, P, { ...INT.defaultCfg(), ...(cfg.integ || {}) });
-  // para vigilar bandejas, si la aprobación apenas empieza se avanza al día hábil 15
-  const d0 = P.day;
-  if (P.status === 'validacion' && P.day < 15) while (P.day < 15 && P.status === 'validacion') PE.ACTIONS.sim(U, P, { days: 1 });
-  const proyectado = P.day - d0;
-  const k = PE.kpis(U, P), sg = PE.seguimiento(U, P);
-  const rs = responsables(U, P, ig);
-  return { U, P, k, sg, ig, rs, dem, proyectado };
+  const G = { U, P, ig, dem, d0: P.day };
+  avanzar(G, 15);
+  return G;
+}
+// el reloj de la torre es el día hábil de la aprobación del plan: se puede avanzar para dar seguimiento
+export const DIA_BASE = 15;
+function avanzar(G, dia) {
+  const P = G.P;
+  while (P.status === 'validacion' && P.day < dia) PE.ACTIONS.sim(G.U, P, { days: 1 });
+  G.proyectado = P.day - G.d0;
+  G.k = PE.kpis(G.U, P); G.sg = PE.seguimiento(G.U, P); G.rs = responsables(G.U, P, G.ig);
 }
 
 function gemeloHidalgo(D, esc) {
@@ -176,7 +180,10 @@ export function evaluar(D, cfg = {}, onProg = () => {}) {
   const prog = txt => onProg({ txt, p: Math.min(1, paso++ / PASOS) });
 
   const kPlan = JSON.stringify([cfg.entries || null, cfg.integ || null]);
+  const dia = Math.max(DIA_BASE, Math.min(120, cfg.dia || DIA_BASE));
+  if (CACHE.get('plan')?.key === kPlan && CACHE.get('plan').v.P.day > Math.max(dia, CACHE.get('plan').v.d0)) CACHE.delete('plan');   // para regresar en el tiempo se rehace
   const G = memo('plan', kPlan, () => gemeloPlan(D, cfg, prog), prog, 'Planeación e integridad: ya calculados');
+  if (G.P.day < dia && G.P.status === 'validacion') { prog(`Planeación: avanzando al día hábil ${dia}`); avanzar(G, dia); }
   prog('Compra consolidada: licitando las claves del plan');
   const C = CS.simular(G.U.claves, G.dem, { esc: esc.compra, seed: 1 });
   prog('Distribución nacional: CENADI → 32 estados, 30 días');
@@ -201,7 +208,7 @@ export function evaluar(D, cfg = {}, onProg = () => {}) {
   onProg({ txt: 'Listo', p: 1 });
   return {
     esc: escId, escN: esc.n, escDesc: esc.desc,
-    plan: { dia: G.P.day, proyectado: G.proyectado, nombre: G.P.nombre || 'Plan anual 2027', status: G.P.status },
+    plan: { dia: G.P.day, pedido: dia, proyectado: G.proyectado, nombre: G.P.nombre || 'Plan anual 2027', status: G.P.status, fin: G.sg.L?.D },
     norte, eslabones, reparto: R.reparto, llamadas: R.llamadas, nombres: R.nombres, matriz, unidades, nac, roles,
   };
 }

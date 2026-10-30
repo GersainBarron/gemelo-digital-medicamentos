@@ -14,6 +14,7 @@
 //  quién afecto, mi gente y cómo me comparo con mis pares.
 // =====================================================================
 import { ESLABONES, NIVELES, DEP, fmtV } from './torre-engine.js';
+import { abiertoDe, EST, EST_ST } from './torre-seguimiento.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const n0 = x => Math.round(x || 0).toLocaleString('es-MX');
@@ -66,18 +67,27 @@ export function rolFoco(R, r) {
 
 // ------------------------------------------------------------------ piezas comunes
 const tile = (n, v, st, sub) => `<div class="kpi ${st || ''}"><span>${esc(n)}</span><b>${v}</b><small><i class="dot"></i>${esc(sub || ST_TXT[st] || '')}</small></div>`;
-function acciones(items, key) {
+// botón para convertir una acción en compromiso, o su estado si ya existe
+export function compBtn(L, d) {
+  const c = abiertoDe(L, d.ref) || [...L].reverse().find(x => x.ref === d.ref && x.estado === 'cumplido');
+  if (c) return `<button class="tw-comp-st ${EST_ST[c.estado]}" data-tab-go="seg" title="Ver en Seguimiento">${esc(EST[c.estado])} · ${c.estado === 'cumplido' ? `día ${c.cerradoDia}` : `vence día ${c.vence}`}${c.nivel > c.nivel0 ? ` · subió a nivel ${c.nivel}` : ''}</button>`;
+  return `<button class="tw-comp" data-comp="${esc(encodeURIComponent(JSON.stringify(d)))}">Comprometer</button>`;
+}
+function acciones(items, ctx) {
   if (!items.length) return '<p class="tw-ok-msg">Nada pendiente: todo lo tuyo está en meta.</p>';
   items.sort((a, b) => b.nivel - a.nivel);
-  return `<ol class="tw-acc">${items.map((x, k) => `
+  return `<ol class="tw-acc">${items.map(x => {
+    const d = x.m && !x.arriba ? { ...x.m, quien: x.quien || ctx.quien, rol: x.rol || ctx.rol, txt: x.txt, nivel: x.nivel } : null;
+    return `
     <li class="n${x.nivel}${x.arriba ? ' up' : ''}">
-      <label><input type="checkbox" data-hecho="${esc(key)}|${k}|${esc(x.txt.slice(0, 40))}"><span>
+      <span class="tw-acc-t">
         <b>${esc(x.txt)}</b>
         ${x.det ? `<small>${esc(x.det)}</small>` : ''}
         <em>${x.arriba ? 'Reclamar hacia arriba' : esc(NIVELES[x.nivel].n)} · ${esc(x.arriba ? (x.a || '') : PLAZO[x.nivel])}</em>
-      </span></label>
-      ${x.go ? `<button class="tw-go" data-rol="${esc(x.go)}">Ver →</button>` : ''}
-    </li>`).join('')}</ol>`;
+      </span>
+      <span class="tw-acc-b">${d ? compBtn(ctx.L, d) : ''}${x.go ? `<button class="tw-go" data-rol="${esc(x.go)}">Ver →</button>` : ''}</span>
+    </li>`;
+  }).join('')}</ol>`;
 }
 function relaciones(arriba, abajo) {
   const row = x => `<li class="${x.st || ''}">${x.go ? `<button data-rol="${esc(x.go)}">` : '<span>'}<i class="dot"></i><b>${esc(x.n)}</b><small>${esc(x.det || '')}</small>${x.go ? '</button>' : '</span>'}</li>`;
@@ -108,7 +118,7 @@ function encabezado(R, r, st, reporta, supervisa, alcance, nivel) {
       <div class="tw-rh-chips"><span class="chip ${st}">${esc(ST_TXT[st])}</span>${nivel ? `<span class="chip ${['', 'info', 'warn', 'crit'][nivel]}">${esc(NIVELES[nivel].n)}</span>` : '<span class="chip ok">Sin escalamiento</span>'}</div>
     </div>
     <dl class="tw-rh-dl"><dt>Reporta a</dt><dd>${reporta}</dd><dt>Supervisa a</dt><dd>${supervisa}</dd></dl>
-  </section>`;
+  </section><!--misc-->`;
 }
 function gente(titulo, cols, filas) {
   if (!filas.length) return '';
@@ -121,13 +131,13 @@ const stDot = st => `<span class="tw-sd ${st}"><i></i>${esc(ST_TXT[st] || st)}</
 const nivelMax = items => items.reduce((m, x) => (x.arriba ? m : Math.max(m, x.nivel)), 0);
 
 // ------------------------------------------------------------------ vista por rol
-export function vistaRol(R, r) {
-  if (r.t === 'del') return vistaDel(R, r.cve);
-  if (r.t === 'unit') return vistaUnidad(R, r.i);
-  if (r.t === 'ana') return vistaAnalista(R, r.a);
-  if (r.t === 'area') return vistaArea(R, r.id);
-  if (r.t === 'k') return vistaContrato(R, r.id);
-  return '';
+let CTX = null;
+export function vistaRol(R, r, L = []) {
+  CTX = { L, quien: rolNombre(R, r), rol: rolKey(r) };
+  const mis = L.filter(c => c.rol === CTX.rol), ab = mis.filter(c => !['cumplido', 'cerrado'].includes(c.estado));
+  const banda = mis.length ? `<div class="tw-misc"><b>Tus compromisos:</b> ${ab.length} abiertos${ab.filter(c => c.estado === 'vencido' || c.escalado).length ? ` · <span class="crit">${ab.filter(c => c.estado === 'vencido' || c.escalado).length} ya subieron de nivel</span>` : ''} · ${mis.filter(c => c.estado === 'cumplido').length} cumplidos <button class="tw-lnk" data-tab-go="seg">Ver en Seguimiento →</button></div>` : '';
+  const html = r.t === 'del' ? vistaDel(R, r.cve) : r.t === 'unit' ? vistaUnidad(R, r.i) : r.t === 'ana' ? vistaAnalista(R, r.a) : r.t === 'area' ? vistaArea(R, r.id) : r.t === 'k' ? vistaContrato(R, r.id) : '';
+  return html.replace('<!--misc-->', banda);
 }
 
 // ---- Administrador(a) delegacional
@@ -137,15 +147,15 @@ function vistaDel(R, cve) {
   const A = R.roles.analistas[D.analista], piloto = cve === '13';
   const rojas = us.filter(u => u.esc2 > 0 || u.integ).sort((a, b) => (b.integ?.monto || 0) - (a.integ?.monto || 0) || b.esc2 - a.esc2);
   const acc = [];
-  if (D.venc) acc.push({ nivel: D.esc2 ? 2 : 1, txt: `Desahoga ${n0(D.venc)} peticiones vencidas de tu bandeja`, det: `La más vieja lleva ${D.oldest} días; ${n0(D.esc2)} ya pasaron el plazo de escalamiento a Central.` });
-  if (rojas.length) acc.push({ nivel: 2, txt: `Llama a ${rojas.length === 1 ? 'un director' : `${rojas.length} directores`} de unidad en rojo`, det: rojas.slice(0, 3).map(u => `${u.nombre}: ${u.m[0]?.[1] || ''}`).join(' · '), go: `unit:${rojas[0].i}` });
-  if (D.uSinFin) acc.push({ nivel: 1, txt: `${D.uSinFin} ${D.uSinFin === 1 ? 'unidad no ha' : 'unidades no han'} concluido su pedido del plan`, det: 'Sin su pedido concluido, tu validación no puede cerrar.' });
-  if (D.desvCosto > 0.1) acc.push({ nivel: D.desvCosto > 0.2 ? 2 : 1, txt: `Justifica o recorta: tu plan cuesta ${pc(D.desvCosto)} más que la propuesta`, det: `${mxn(D.costo)} contra ${mxn(D.costo0)} propuestos.` });
-  if (D.frio.oculto > 0) acc.push({ nivel: D.frio.oculto > 250000 ? 2 : 1, txt: `Revisa la red fría: ${mxn(D.frio.oculto)} de producto dañado que nadie detectó`, det: D.frio.nodos.map(x => `${x.nombre} (${x.label})`).join(' · ') });
+  if (D.venc) acc.push({ m: { ref: `del:${cve}.venc`, meta: 0, dir: -1, fmt: 'num' }, nivel: D.esc2 ? 2 : 1, txt: `Desahoga ${n0(D.venc)} peticiones vencidas de tu bandeja`, det: `La más vieja lleva ${D.oldest} días; ${n0(D.esc2)} ya pasaron el plazo de escalamiento a Central.` });
+  if (rojas.length) acc.push({ m: { ref: `del:${cve}.rojas`, meta: 0, dir: -1, fmt: 'num' }, nivel: 2, txt: `Llama a ${rojas.length === 1 ? 'un director' : `${rojas.length} directores`} de unidad en rojo`, det: rojas.slice(0, 3).map(u => `${u.nombre}: ${u.m[0]?.[1] || ''}`).join(' · '), go: `unit:${rojas[0].i}` });
+  if (D.uSinFin) acc.push({ m: { ref: `del:${cve}.uSinFin`, meta: 0, dir: -1, fmt: 'num' }, nivel: 1, txt: `${D.uSinFin} ${D.uSinFin === 1 ? 'unidad no ha' : 'unidades no han'} concluido su pedido del plan`, det: 'Sin su pedido concluido, tu validación no puede cerrar.' });
+  if (D.desvCosto > 0.1) acc.push({ m: { ref: `del:${cve}.desvCosto`, meta: 0.1, dir: -1, fmt: 'pct' }, nivel: D.desvCosto > 0.2 ? 2 : 1, txt: `Justifica o recorta: tu plan cuesta ${pc(D.desvCosto)} más que la propuesta`, det: `${mxn(D.costo)} contra ${mxn(D.costo0)} propuestos.` });
+  if (D.frio.oculto > 0) acc.push({ m: { ref: `del:${cve}.frio`, meta: 0, dir: -1, fmt: 'mxn' }, nivel: D.frio.oculto > 250000 ? 2 : 1, txt: `Revisa la red fría: ${mxn(D.frio.oculto)} de producto dañado que nadie detectó`, det: D.frio.nodos.map(x => `${x.nombre} (${x.label})`).join(' · ') });
   const ig = { n: (D.integ?.n || 0) + (D.integU?.n || 0), monto: (D.integ?.monto || 0) + (D.integU?.monto || 0), c: [...new Set([...(D.integ?.c || []), ...(D.integU?.c || [])])] };
-  if (ig.n) acc.push({ nivel: ig.monto > 1e6 ? 3 : 2, txt: `Da vista al Órgano Interno de Control: ${ig.n} ${ig.n === 1 ? 'pedido malicioso pasó' : 'pedidos maliciosos pasaron'} los controles`, det: `${mxn(ig.monto)} · ${ig.c.join(', ')}` });
+  if (ig.n) acc.push({ m: { ref: `del:${cve}.integ`, meta: 0, dir: -1, fmt: 'mxn' }, nivel: ig.monto > 1e6 ? 3 : 2, txt: `Da vista al Órgano Interno de Control: ${ig.n} ${ig.n === 1 ? 'pedido malicioso pasó' : 'pedidos maliciosos pasaron'} los controles`, det: `${mxn(ig.monto)} · ${ig.c.join(', ')}` });
   if (nac?.outH) acc.push({ arriba: true, nivel: 1, txt: `Tu almacén estatal estuvo ${(Math.round(nac.outH / 24 * 10) / 10).toLocaleString('es-MX')} días en cero`, det: `Demanda atendida ${fmtV(nac.abasto, 'pct1')}; ${nac.late} de ${nac.ships} embarques llegaron tarde.`, a: 'a la Coordinación de Distribución del CENADI', go: 'area:dnac' });
-  if (piloto) for (const id of ['alm', 'dest']) { const e = R.eslabones.find(x => x.id === id); for (const k of e.kpis) if (k.st === 'crit') acc.push({ nivel: 2, txt: `${e.id === 'alm' ? 'Almacén' : 'Distribución'}: ${k.n} en ${fmtV(k.v, k.fmt)}`, det: `Meta ${fmtV(k.meta, k.fmt)}. Responde: ${k.quien}.`, go: `area:${id}` }); }
+  if (piloto) for (const id of ['alm', 'dest']) { const e = R.eslabones.find(x => x.id === id); for (const k of e.kpis) if (k.st === 'crit') acc.push({ m: { ref: `kpi:${id}.${k.id}`, meta: k.meta, dir: k.dir, fmt: k.fmt }, quien: k.quien, rol: `area:${id}`, nivel: 2, txt: `${e.id === 'alm' ? 'Almacén' : 'Distribución'}: ${k.n} en ${fmtV(k.v, k.fmt)}`, det: `Meta ${fmtV(k.meta, k.fmt)}. Responde: ${k.quien}.`, go: `area:${id}` }); }
   const st = worstSt(Object.values(row.c).map(c => c.st));
   const tiles = R.matriz.cols.map(c => tile(c.n, esc(row.c[c.id].v), row.c[c.id].st, row.c[c.id].det)).join('') + tile('Unidades en rojo', `${cnt[3]}<i> de ${us.length}</i>`, cnt[3] ? 'crit' : cnt[2] ? 'warn' : 'ok', `${cnt[2]} en ámbar`);
   const ups = [
@@ -168,7 +178,7 @@ function vistaDel(R, cve) {
   }));
   return encabezado(R, { t: 'del', cve }, st, `<button class="tw-lnk" data-rol="ana:${A.a}">${esc(A.nombre)}</button> en Oficina Central`, `${us.length} directores de unidad`, `Delegación ${D.nombre}${piloto ? ' · piloto con detalle de almacén, rutas y farmacias' : ''}`, nivelMax(acc))
     + `<section class="kpis tw-rtiles" style="--kc:6">${tiles}</section>`
-    + `<div class="split tw-split"><section class="card"><div class="card-h"><h2>Lo que te toca hoy <small>con plazo según su nivel · marca lo que ya hiciste</small></h2></div>${acciones(acc, 'del' + cve)}</section>
+    + `<div class="split tw-split"><section class="card"><div class="card-h"><h2>Lo que te toca hoy <small>con plazo según su nivel · marca lo que ya hiciste</small></h2></div>${acciones(acc, CTX)}</section>
        <section class="card"><div class="card-h"><h2>Tu lugar en la cadena</h2></div>${relaciones(ups, downs)}<p class="u3d-h">Cómo te comparas con las 32 delegaciones</p><div class="tw-cmps">${cmp}</div></section></div>`
     + gente('Tus unidades', [{ h: 'Unidad' }, { h: 'Estado' }, { h: 'Motivo principal' }, { h: 'Vencidas', n: 1 }, { h: 'Integridad', n: 1 }, ...(piloto ? [{ h: 'Recetas completas', n: 1 }] : [])], fil);
 }
@@ -177,15 +187,15 @@ function vistaDel(R, cve) {
 function vistaUnidad(R, i) {
   const u = R.unidades[i], D = R.roles.delegaciones.find(d => d.cve === u.cve), nac = R.nac.find(x => x.cve === u.cve), h = u.hgo;
   const acc = [];
-  if (u.esc2) acc.push({ nivel: 2, txt: `Atiende ${n0(u.esc2)} partidas del plan que ya se escalaron`, det: 'Llevan más días en tu bandeja que el plazo más la tolerancia: Central ya las ve.' });
-  else if (u.venc) acc.push({ nivel: 1, txt: `Atiende ${n0(u.venc)} partidas del plan vencidas en tu bandeja` });
-  if (u.inPlan && !u.fin) acc.push({ nivel: 1, txt: 'Concluye tu pedido del plan anual', det: 'Tu delegación no puede validar hasta que lo concluyas.' });
-  if (u.integ) acc.push({ nivel: u.integ.monto > 1e6 ? 3 : 2, txt: `Aclara ante el Órgano Interno de Control ${u.integ.n === 1 ? 'un pedido que pasó' : `${u.integ.n} pedidos que pasaron`} como malicioso`, det: `${mxn(u.integ.monto)} · ${u.m.find(x => /malicios/.test(x[1]))?.[1] || ''}` });
+  if (u.esc2) acc.push({ m: { ref: `unit:${i}.venc`, meta: 0, dir: -1, fmt: 'num' }, nivel: 2, txt: `Atiende ${n0(u.esc2)} partidas del plan que ya se escalaron`, det: 'Llevan más días en tu bandeja que el plazo más la tolerancia: Central ya las ve.' });
+  else if (u.venc) acc.push({ m: { ref: `unit:${i}.venc`, meta: 0, dir: -1, fmt: 'num' }, nivel: 1, txt: `Atiende ${n0(u.venc)} partidas del plan vencidas en tu bandeja` });
+  if (u.inPlan && !u.fin) acc.push({ m: { ref: `unit:${i}.abierto`, meta: 0, dir: -1, fmt: 'num' }, nivel: 1, txt: 'Concluye tu pedido del plan anual', det: 'Tu delegación no puede validar hasta que lo concluyas.' });
+  if (u.integ) acc.push({ m: { ref: `unit:${i}.integ`, meta: 0, dir: -1, fmt: 'mxn' }, nivel: u.integ.monto > 1e6 ? 3 : 2, txt: `Aclara ante el Órgano Interno de Control ${u.integ.n === 1 ? 'un pedido que pasó' : `${u.integ.n} pedidos que pasaron`} como malicioso`, det: `${mxn(u.integ.monto)} · ${u.m.find(x => /malicios/.test(x[1]))?.[1] || ''}` });
   const infl = u.m.find(x => /arriba de su consumo/.test(x[1]));
   if (infl) acc.push({ nivel: 1, txt: `Justifica: ${infl[1]}` });
   if (h) {
-    if (h.s < 0.97) acc.push({ nivel: h.s < 0.9 ? 2 : 1, txt: `Revisa con tu Jefatura de farmacia las recetas incompletas: ${fmtV(h.s, 'pct')} completas`, det: `${n0(h.rx - Math.round(h.s * h.rx))} recetas incompletas y ${n0(h.den)} negadas en 30 días. Pide traspaso o PEX antes de negar.` });
-    if (h.pex && h.pe < 0.9) acc.push({ nivel: h.pe < 0.75 ? 2 : 1, txt: `Valida y autoriza los PEX en plazo: solo ${fmtV(h.pe, 'pct')} a tiempo`, det: 'Validar en 2 h y autorizar en 4 h.' });
+    if (h.s < 0.97) acc.push({ m: { ref: `unit:${i}.s`, meta: 0.97, dir: 1, fmt: 'pct' }, nivel: h.s < 0.9 ? 2 : 1, txt: `Revisa con tu Jefatura de farmacia las recetas incompletas: ${fmtV(h.s, 'pct')} completas`, det: `${n0(h.rx - Math.round(h.s * h.rx))} recetas incompletas y ${n0(h.den)} negadas en 30 días. Pide traspaso o PEX antes de negar.` });
+    if (h.pex && h.pe < 0.9) acc.push({ m: { ref: `unit:${i}.pe`, meta: 0.9, dir: 1, fmt: 'pct' }, nivel: h.pe < 0.75 ? 2 : 1, txt: `Valida y autoriza los PEX en plazo: solo ${fmtV(h.pe, 'pct')} a tiempo`, det: 'Validar en 2 h y autorizar en 4 h.' });
     if (h.reqLate) acc.push({ arriba: true, nivel: 1, txt: `${h.reqLate} de ${h.reqs} urgencias te llegaron tarde`, a: 'a la Jefatura de Distribución delegacional', go: 'area:dest' });
   }
   const st = U_ST[u.st];
@@ -212,7 +222,7 @@ function vistaUnidad(R, i) {
   ].join('');
   return encabezado(R, { t: 'unit', i }, st, `<button class="tw-lnk" data-rol="del:${u.cve}">Administrador(a) delegacional de ${esc(D.nombre)}</button>`, 'su Jefatura de farmacia', `${u.tipo} · ${D.nombre} · CLUES ${u.clues}${h ? ' · piloto Hidalgo' : ''}`, nivelMax(acc))
     + `<section class="kpis tw-rtiles" style="--kc:${h ? 6 : 4}">${tiles}</section>`
-    + `<div class="split tw-split"><section class="card"><div class="card-h"><h2>Lo que te toca hoy <small>con plazo según su nivel · marca lo que ya hiciste</small></h2></div>${acciones(acc, 'unit' + i)}
+    + `<div class="split tw-split"><section class="card"><div class="card-h"><h2>Lo que te toca hoy <small>con plazo según su nivel · marca lo que ya hiciste</small></h2></div>${acciones(acc, CTX)}
        ${u.m.length ? `<p class="u3d-h">Por qué la torre te señala</p><ul class="tw3-l">${u.m.map(([n, t]) => `<li class="${['', '', 'warn', 'crit'][n]}">${esc(t)}</li>`).join('')}</ul>` : ''}</section>
        <section class="card"><div class="card-h"><h2>Tu lugar en la cadena</h2></div>${relaciones(ups, downs)}<p class="u3d-h">Cómo te comparas con las unidades de ${esc(D.nombre)}</p><div class="tw-cmps">${cmp}</div></section></div>`;
 }
@@ -221,8 +231,8 @@ function vistaUnidad(R, i) {
 function vistaAnalista(R, a) {
   const A = R.roles.analistas[a], dels = R.roles.delegaciones.filter(d => A.dels.includes(d.cve));
   const acc = [];
-  if (A.venc) acc.push({ nivel: A.esc2 ? 2 : 1, txt: `Desahoga ${n0(A.venc)} peticiones vencidas en tu bandeja de Central`, det: `La más vieja lleva ${A.oldest} días; ${n0(A.esc2)} ya están escaladas.` });
-  if (A.integ) acc.push({ nivel: 3, txt: `Tienes ${A.integ.n === 1 ? 'un caso' : `${A.integ.n} casos`} de integridad a tu nombre que pasaron los controles`, det: `${mxn(A.integ.monto)} · ${A.integ.c.join(', ')}. Se da vista al Órgano Interno de Control.` });
+  if (A.venc) acc.push({ m: { ref: `ana:${a}.venc`, meta: 0, dir: -1, fmt: 'num' }, nivel: A.esc2 ? 2 : 1, txt: `Desahoga ${n0(A.venc)} peticiones vencidas en tu bandeja de Central`, det: `La más vieja lleva ${A.oldest} días; ${n0(A.esc2)} ya están escaladas.` });
+  if (A.integ) acc.push({ m: { ref: `ana:${a}.integ`, meta: 0, dir: -1, fmt: 'mxn' }, nivel: 3, txt: `Tienes ${A.integ.n === 1 ? 'un caso' : `${A.integ.n} casos`} de integridad a tu nombre que pasaron los controles`, det: `${mxn(A.integ.monto)} · ${A.integ.c.join(', ')}. Se da vista al Órgano Interno de Control.` });
   const lentas = dels.filter(d => d.venc).sort((x, y) => y.venc - x.venc);
   if (lentas.length) acc.push({ nivel: 1, txt: `Presiona a ${lentas.length === 1 ? 'la delegación' : `${lentas.length} delegaciones`} con peticiones vencidas`, det: lentas.slice(0, 4).map(d => `${d.nombre} ${n0(d.venc)}`).join(' · '), go: `del:${lentas[0].cve}` });
   const caras = dels.filter(d => d.desvCosto > 0.2);
@@ -245,7 +255,7 @@ function vistaAnalista(R, a) {
   const fil = [...dels].sort((x, y) => y.venc - x.venc).map(d => ({ go: `del:${d.cve}`, st: d.sem, c: [`<b>${esc(d.nombre)}</b>`, stDot(d.sem), n0(d.venc), `${d.uSinFin}`, `+${pc(d.desvCosto)}`, esc(d.motivos[0] || '—')] }));
   return encabezado(R, { t: 'ana', a }, A.sem, '<button class="tw-lnk" data-rol="area:plan">Subdirección de Planeación de Insumos</button>', `${dels.length} administradores delegacionales`, `Revisa en Central las peticiones de ${dels.map(d => d.nombre).join(', ')}`, nivelMax(acc))
     + `<section class="kpis tw-rtiles" style="--kc:4">${tiles}</section>`
-    + `<div class="split tw-split"><section class="card"><div class="card-h"><h2>Lo que te toca hoy <small>con plazo según su nivel · marca lo que ya hiciste</small></h2></div>${acciones(acc, 'ana' + a)}</section>
+    + `<div class="split tw-split"><section class="card"><div class="card-h"><h2>Lo que te toca hoy <small>con plazo según su nivel · marca lo que ya hiciste</small></h2></div>${acciones(acc, CTX)}</section>
        <section class="card"><div class="card-h"><h2>Tu lugar en la cadena</h2></div>${relaciones(ups, downs)}<p class="u3d-h">Cómo te comparas con los otros analistas</p><div class="tw-cmps">${cmp}</div></section></div>`
     + gente('Tus delegaciones', [{ h: 'Delegación' }, { h: 'Estado' }, { h: 'Vencidas', n: 1 }, { h: 'Unidades sin concluir', n: 1 }, { h: 'Costo vs propuesta', n: 1 }, { h: 'Motivo principal' }], fil);
 }
@@ -253,7 +263,7 @@ function vistaAnalista(R, a) {
 // ---- Dueño de un eslabón
 function vistaArea(R, id) {
   const e = R.eslabones.find(x => x.id === id), mine = R.llamadas.filter(l => l.eslabon === id);
-  const acc = mine.map(l => ({ nivel: l.nivel, txt: `${l.kn}: ${fmtV(l.v, l.fmt)} (meta ${l.dir > 0 ? '≥' : '≤'} ${fmtV(l.meta, l.fmt)})`, det: [l.culpa ? `${Math.round((1 - l.f) * 100)} % se explica por ${l.culpaK} (${l.culpa}).` : '', l.of.length ? `Empieza por: ${l.of.map(o => o.quien).join(' · ')}.` : ''].filter(Boolean).join(' ') }));
+  const acc = mine.map(l => ({ m: { ref: `kpi:${id}.${l.kpi}`, meta: l.meta, dir: l.dir, fmt: l.fmt }, quien: l.quien, nivel: l.nivel, txt: `${l.kn}: ${fmtV(l.v, l.fmt)} (meta ${l.dir > 0 ? '≥' : '≤'} ${fmtV(l.meta, l.fmt)})`, det: [l.culpa ? `${Math.round((1 - l.f) * 100)} % se explica por ${l.culpaK} (${l.culpa}).` : '', l.of.length ? `Empieza por: ${l.of.map(o => o.quien).join(' · ')}.` : ''].filter(Boolean).join(' ') }));
   for (const k of e.kpis) if (k.culpa) { const up = ESLABONES.find(x => x.id === k.culpa); acc.push({ arriba: true, nivel: 1, txt: `Parte de "${k.n}" viene de ${up.n}`, det: `${Math.round((1 - k.f) * 100)} % de esa brecha se explica por ${k.culpaK}.`, a: `a ${up.dueno}`, go: `area:${up.id}` }); }
   const tiles = e.kpis.map(k => tile(k.n, fmtV(k.v, k.fmt), k.info ? '' : k.st, k.info ? 'informativo' : `meta ${k.dir > 0 ? '≥' : '≤'} ${fmtV(k.meta, k.fmt)}`)).join('');
   const ref = s => s.split('?')[0].split('.')[0];
@@ -269,7 +279,7 @@ function vistaArea(R, id) {
   for (const k of e.kpis) for (const o of k.of) of.push({ st: ['', 'warn', 'crit', 'crit'][o.nivel || 1] || 'warn', go: rolDeNombre(R, o.quien), c: [`<b>${esc(o.quien)}</b>`, esc(o.txt), esc(k.n)] });
   return encabezado(R, { t: 'area', id }, e.st, '<button class="tw-lnk" data-rol="jefe">Jefe de jefes</button> (dirección general)', esc(SUPERVISA[id]), `${e.alcance} · ${e.nCrit} indicadores en rojo y ${e.nWarn} en ámbar`, nivelMax(acc))
     + `<section class="kpis tw-rtiles" style="--kc:${Math.min(5, e.kpis.length)}">${tiles}</section>`
-    + `<div class="split tw-split"><section class="card"><div class="card-h"><h2>Lo que te toca hoy <small>con plazo según su nivel · marca lo que ya hiciste</small></h2></div>${acciones(acc, 'area' + id)}</section>
+    + `<div class="split tw-split"><section class="card"><div class="card-h"><h2>Lo que te toca hoy <small>con plazo según su nivel · marca lo que ya hiciste</small></h2></div>${acciones(acc, CTX)}</section>
        <section class="card"><div class="card-h"><h2>Tu lugar en la cadena</h2></div>${relaciones(ups, downs)}<p class="u3d-h">Cómo te comparas con los otros 9 eslabones</p><div class="tw-cmps">${cmp}</div></section></div>`
     + gente('Lo que hay detrás de tus indicadores', [{ h: 'Quién o qué' }, { h: 'Por qué' }, { h: 'Indicador' }], of);
 }
@@ -287,11 +297,11 @@ function vistaContrato(R, id) {
   const K = R.roles.contratos.find(c => c.id === id);
   const sem = { VERDE: 'ok', AMARILLO: 'warn', NARANJA: 'crit', ROJO: 'crit' }[K.sem] || 'ok';
   const acc = [];
-  if (K.otif != null && K.otif < 0.93) acc.push({ nivel: K.otif < 0.6 ? 2 : 1, txt: `Exige al ${K.prov} las entregas atrasadas: OTIF ${fmtV(K.otif, 'pct')}`, det: `Atraso promedio de ${(K.atraso || 0).toFixed(1)} días; ${fmtV(K.cump, 'pct')} de las piezas llegaron a tiempo.` });
-  if (K.penas - K.cobradas > 1000) acc.push({ nivel: 1, txt: `Cobra ${mxn(K.penas - K.cobradas)} de penas convencionales devengadas que faltan`, det: `Devengadas ${mxn(K.penas)} · cobradas ${mxn(K.cobradas)} en 90 días.` });
-  if (K.rech > 0.05) acc.push({ nivel: 1, txt: `Pide al proveedor un plan de calidad: ${fmtV(K.rech, 'pct')} de entregas rechazadas` });
-  if (K.sem === 'ROJO') acc.push({ nivel: 3, txt: 'Inicia el procedimiento de rescisión del contrato', det: 'Las penas acumuladas alcanzan el tope de la garantía.' });
-  else if (K.sem === 'NARANJA') acc.push({ nivel: 2, txt: 'Notifica al proveedor por escrito: el contrato va camino a la rescisión' });
+  if (K.otif != null && K.otif < 0.93) acc.push({ m: { ref: `k:${id}.otif`, meta: 0.93, dir: 1, fmt: 'pct' }, nivel: K.otif < 0.6 ? 2 : 1, txt: `Exige al ${K.prov} las entregas atrasadas: OTIF ${fmtV(K.otif, 'pct')}`, det: `Atraso promedio de ${(K.atraso || 0).toFixed(1)} días; ${fmtV(K.cump, 'pct')} de las piezas llegaron a tiempo.` });
+  if (K.penas - K.cobradas > 1000) acc.push({ m: { ref: `k:${id}.pendPenas`, meta: 1000, dir: -1, fmt: 'mxn' }, nivel: 1, txt: `Cobra ${mxn(K.penas - K.cobradas)} de penas convencionales devengadas que faltan`, det: `Devengadas ${mxn(K.penas)} · cobradas ${mxn(K.cobradas)} en 90 días.` });
+  if (K.rech > 0.05) acc.push({ m: { ref: `k:${id}.rech`, meta: 0.02, dir: -1, fmt: 'pct' }, nivel: 1, txt: `Pide al proveedor un plan de calidad: ${fmtV(K.rech, 'pct')} de entregas rechazadas` });
+  if (K.sem === 'ROJO') acc.push({ m: { ref: `k:${id}.sem`, meta: 1, dir: -1, fmt: 'num' }, nivel: 3, txt: 'Inicia el procedimiento de rescisión del contrato', det: 'Las penas acumuladas alcanzan el tope de la garantía.' });
+  else if (K.sem === 'NARANJA') acc.push({ m: { ref: `k:${id}.sem`, meta: 1, dir: -1, fmt: 'num' }, nivel: 2, txt: 'Notifica al proveedor por escrito: el contrato va camino a la rescisión' });
   const pago = R.eslabones.find(e => e.id === 'prov').kpis.find(k => k.id === 'pago');
   if (pago.st !== 'ok') acc.push({ arriba: true, nivel: 1, txt: `Solo ${fmtV(pago.v, 'pct')} de las facturas se pagan a tiempo`, det: 'Si se le paga tarde, el proveedor surte primero a otros clientes.', a: 'a la Subdirección de Finanzas' });
   const tiles = [
@@ -308,6 +318,6 @@ function vistaContrato(R, id) {
   const cmp = compara('Entregas a tiempo y completas', pares, id, 'pct', 1) + compara('Penas devengadas', R.roles.contratos.map(c => ({ id: c.id, n: c.id, v: c.penas })), id, 'mxn');
   return encabezado(R, { t: 'k', id }, sem, '<button class="tw-lnk" data-rol="area:prov">Administración de contratos</button>', `el ${esc(K.prov)} (a través del contrato)`, `${K.objeto} · piloto Hidalgo · 90 días`, nivelMax(acc))
     + `<section class="kpis tw-rtiles" style="--kc:5">${tiles}</section>`
-    + `<div class="split tw-split"><section class="card"><div class="card-h"><h2>Lo que te toca hoy <small>con plazo según su nivel · marca lo que ya hiciste</small></h2></div>${acciones(acc, 'k' + id)}</section>
+    + `<div class="split tw-split"><section class="card"><div class="card-h"><h2>Lo que te toca hoy <small>con plazo según su nivel · marca lo que ya hiciste</small></h2></div>${acciones(acc, CTX)}</section>
        <section class="card"><div class="card-h"><h2>Tu lugar en la cadena</h2></div>${relaciones(ups, downs)}<p class="u3d-h">Cómo te comparas con los otros 7 contratos</p><div class="tw-cmps">${cmp}</div></section></div>`;
 }

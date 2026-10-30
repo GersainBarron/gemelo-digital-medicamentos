@@ -6,14 +6,16 @@
 //  detalle por eslabón, personas señaladas y la matriz de 32 delegaciones.
 // =====================================================================
 import { ESCENARIOS, ESLABONES, NIVELES, DEP, fmtV } from './torre-engine.js';
-import { ROLES, vistaRol, rolDe, rolKey, rolNombre, rolFoco, rolDeNombre } from './torre-roles.js';
+import { ROLES, vistaRol, rolDe, rolKey, rolNombre, rolFoco, rolDeNombre, compBtn } from './torre-roles.js';
+import * as SG from './torre-seguimiento.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pc = x => `${Math.round((x || 0) * 100)} %`;
+const pl = (n, a, b) => `${n} ${n === 1 ? a : b}`;
 const ST_N = { ok: 'En meta', warn: 'Fuera de meta', crit: 'Crítico', nd: 'Sin dato' };
 
-const S = { esc: 'normal', sel: null, filtro: 'todas', cache: {}, R: null, id: 0, tab: 'tablero', rol: { t: 'jefe' } };
+const S = { esc: 'normal', sel: null, filtro: 'todas', cache: {}, R: null, id: 0, tab: 'tablero', rol: { t: 'jefe' }, dia: 15, segF: 'abiertos', L: SG.cargar() };
 let V3 = null, V3p = null, ISS = null;
 let worker = null;
 
@@ -21,7 +23,8 @@ function params() {
   const q = new URLSearchParams(location.search);
   if (ESCENARIOS[q.get('esc')]) S.esc = q.get('esc');
   if (q.get('e')) S.sel = q.get('e');
-  if (q.get('tab') === '3d') S.tab = '3d';
+  if (q.get('tab') === '3d' || q.get('tab') === 'seg') S.tab = q.get('tab');
+  if (+q.get('dia') > 15) S.dia = Math.min(120, +q.get('dia'));
   let rv = q.get('rol'); if (!rv) { try { rv = localStorage.getItem('torre.rol'); } catch { /* nada */ } }
   S.rol = rolDe(rv);
 }
@@ -29,13 +32,14 @@ function cfg() {
   let entries = null, integ = null;
   try { const v = localStorage.getItem('planeacion.bitacora.v1'); if (v) entries = JSON.parse(v); } catch { /* sin almacenamiento */ }
   try { const v = localStorage.getItem('planeacion.integridad.v1'); if (v) integ = JSON.parse(v); } catch { /* nada */ }
-  return { esc: S.esc, entries, integ };
+  return { esc: S.esc, entries, integ, dia: S.dia };
 }
 
 // ------------------------------------------------------------------ correr
 function run(force = false) {
   paintEsc();
-  if (!force && S.cache[S.esc]) { S.R = S.cache[S.esc]; paint(); return; }
+  const ck = `${S.esc}|${S.dia}`;
+  if (!force && S.cache[ck]) { S.R = S.cache[ck]; paint(); return; }
   const L = $('#loading');
   if (!document.body.contains(L)) document.body.insertAdjacentHTML('beforeend', '<div id="loading" class="loading tw-over"><div class="tw-load"><b>Corriendo los gemelos de toda la cadena…</b><div class="tw-prog"><i id="prog-bar"></i></div><span id="prog-txt">Preparando</span></div></div>');
   worker ||= new Worker(new URL('./torre-worker.js', import.meta.url), { type: 'module' });
@@ -44,7 +48,7 @@ function run(force = false) {
     const m = e.data; if (m.id !== S.id) return;
     if (m.prog) { const b = $('#prog-bar'), t = $('#prog-txt'); if (b) b.style.width = `${Math.round(m.prog.p * 100)}%`; if (t) t.textContent = m.prog.txt; return; }
     if (m.err) { const t = $('#prog-txt'); if (t) t.textContent = 'No se pudo correr la torre: ' + m.err.split('\n')[0]; console.error(m.err); return; }
-    S.cache[S.esc] = m.res; S.R = m.res; $('#loading')?.remove(); paint();
+    S.cache[ck] = m.res; S.R = m.res; $('#loading')?.remove(); paint();
   };
   worker.postMessage({ id, cfg: cfg() });
 }
@@ -74,6 +78,22 @@ function bind() {
     try { localStorage.setItem('torre.hecho', JSON.stringify(h)); } catch { /* nada */ }
     c.closest('li')?.classList.toggle('hecho', c.checked);
   });
+  document.addEventListener('click', e => {
+    const c = e.target.closest('[data-comp]');
+    if (c && S.R) { SG.comprometer(S.L, S.R, JSON.parse(decodeURIComponent(c.dataset.comp))); refrescarSeg(); return; }
+    const g = e.target.closest('[data-tab-go]'); if (g) { S.tab = g.dataset.tabGo; url(); tabs(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  });
+  for (const b of document.querySelectorAll('[data-dia]')) b.addEventListener('click', () => { const d = +b.dataset.dia; S.dia = d ? Math.min(120, S.dia + d) : 15; url(); run(); });
+  $('#seg-f').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.segF = b.dataset.v; segUI(); });
+  $('#seg-csv').addEventListener('click', () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([SG.csv(S.L)], { type: 'text/csv' })); a.download = `compromisos_torre_dia${S.R?.plan.dia || ''}.csv`; a.click(); });
+  $('#seg-list').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const id = b.dataset.id, dia = S.R.plan.dia;
+    if (b.dataset.act === 'cerrar') { const n = $(`#nota-${id}`)?.value.trim(); SG.cerrar(S.L, id, n, dia); }
+    if (b.dataset.act === 'reabrir') SG.reabrir(S.L, id, dia);
+    if (b.dataset.act === 'borrar') { if (b.dataset.ok !== '1') { b.dataset.ok = '1'; b.textContent = 'Toca otra vez para borrar'; return; } SG.borrar(S.L, id); }
+    refrescarSeg();
+  });
   $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.tab = b.dataset.tab; url(); tabs(); });
   $('#tw3-patrol').addEventListener('click', () => { if (!V3) return; const on = !V3.patrol; V3.setPatrol(on); if (on) { V3.select(null, false); closePanel(); } patrolBtn(); });
   $('#tw3-home').addEventListener('click', () => { if (!V3) return; V3.select(null); closePanel(); });
@@ -81,7 +101,7 @@ function bind() {
   $('#tw3-queue').addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (!b || !V3) return; pick3(V3.queue[+b.dataset.q]); $('#tw3').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   $('#matriz').addEventListener('click', e => { const tr = e.target.closest('tr[data-cve]'); if (!tr) return; tr.classList.toggle('open'); });
 }
-function url() { const q = new URLSearchParams(location.search); q.set('esc', S.esc); if (S.sel) q.set('e', S.sel); if (S.tab === '3d') q.set('tab', '3d'); else q.delete('tab'); if (S.rol.t !== 'jefe') q.set('rol', rolKey(S.rol)); else q.delete('rol'); history.replaceState(null, '', `${location.pathname}?${q}`); }
+function url() { const q = new URLSearchParams(location.search); q.set('esc', S.esc); if (S.sel) q.set('e', S.sel); if (S.tab !== 'tablero') q.set('tab', S.tab); else q.delete('tab'); if (S.dia !== 15) q.set('dia', S.dia); else q.delete('dia'); if (S.rol.t !== 'jefe') q.set('rol', rolKey(S.rol)); else q.delete('rol'); history.replaceState(null, '', `${location.pathname}?${q}`); }
 function paintEsc() {
   for (const b of $('#esc').children) b.classList.toggle('active', b.dataset.v === S.esc);
   $('#esc-desc').textContent = ESCENARIOS[S.esc].desc;
@@ -92,8 +112,60 @@ function paint() {
   const R = S.R;
   if (!S.sel || !R.eslabones.some(e => e.id === S.sel)) S.sel = R.reparto[0].id;
   $('#plan-note').innerHTML = `Plan de Planeación: <a href="planeacion.html#/mitablero">${esc(R.plan.nombre)}</a>, día hábil ${R.plan.dia} de la aprobación${R.plan.proyectado ? ` (tu bitácora estaba en el día ${R.plan.dia - R.plan.proyectado}; la torre lo avanzó para tener qué vigilar)` : ''}. La torre lee tu bitácora y tus controles de integridad de este navegador.`;
-  veredicto(); norte(); reparto(); llamadas(); cadena(); detalle(); nombres(); matriz(); textos(); rolUI(); tabs();
+  SG.verificar(S.L, R);
+  veredicto(); norte(); reparto(); llamadas(); cadena(); detalle(); nombres(); matriz(); textos(); rolUI(); segUI(); tabs();
   if (V3) { V3.setData(R); cola3d(); if (V3.sel) panel3d(V3.sel); }
+}
+
+// ------------------------------------------------------------------ seguimiento
+function segLinea() {
+  const r = SG.resumen(S.L); if (!r.n) return '';
+  return `<p class="tw-v-seg"><button class="tw-lnk" data-tab-go="seg">Seguimiento</button>: ${r.abiertos} compromisos abiertos${r.escalados ? ` · <b class="crit">${r.escalados} escalamientos por no cumplir</b>` : ''} · ${r.cumplidos} cumplidos verificados · día hábil ${S.R.plan.dia}</p>`;
+}
+function refrescarSeg() { SG.verificar(S.L, S.R); veredicto(); llamadas(); rolUI(); segUI(); }
+function segUI() {
+  const R = S.R, L = S.L, r = SG.resumen(L);
+  $('#seg-n').textContent = r.abiertos ? r.abiertos : '';
+  $('#seg-dia').textContent = `Día hábil ${R.plan.dia}`;
+  $('#seg-dia-sub').textContent = R.plan.status === 'validacion' ? `de la aprobación del plan anual (${R.plan.fin || '—'} días hábiles en total). Avanzar simula el plan; los demás gemelos siguen en su escenario.` : 'la aprobación del plan ya concluyó: el reloj ya no avanza.';
+  const t = (n, v, st, sub) => `<div class="kpi ${st || ''}"><span>${esc(n)}</span><b>${v}</b><small><i class="dot"></i>${esc(sub)}</small></div>`;
+  $('#seg-kpis').innerHTML = [
+    t('Compromisos abiertos', r.abiertos, r.abiertos ? 'warn' : 'ok', `${r.n3} en dirección general`),
+    t('Escalamientos por no cumplir', r.escalados, r.escalados ? 'crit' : 'ok', 'subieron de nivel al vencer'),
+    t('Vencidos en dirección general', r.vencidos, r.vencidos ? 'crit' : 'ok', 'ya no hay a quién escalar'),
+    t('Cumplidos verificados', r.cumplidos, r.cumplidos ? 'ok' : '', 'la torre confirmó la meta'),
+    t('Tasa de cumplimiento', r.tasa == null ? '—' : pc(r.tasa), r.tasa == null ? '' : r.tasa >= 0.8 ? 'ok' : r.tasa >= 0.5 ? 'warn' : 'crit', `${r.cerradosSin} cerrados sin verificar`),
+    t('Días hábiles para cumplir', r.diasCierre == null ? '—' : r.diasCierre.toFixed(1), '', 'promedio, de compromiso a meta'),
+  ].join('');
+  const F = { abiertos: c => !['cumplido', 'cerrado'].includes(c.estado), escalados: c => c.escalado > 0 || c.estado === 'vencido', cumplidos: c => c.estado === 'cumplido', cerrados: c => c.estado === 'cerrado', todos: () => true };
+  for (const b of $('#seg-f').children) b.classList.toggle('active', b.dataset.v === S.segF);
+  const xs = L.filter(F[S.segF]).sort((a, b) => b.nivel - a.nivel || a.vence - b.vence);
+  const flecha = c => { if (c.base == null || c.actual == null || c.base === c.actual) return '→'; const mejor = c.dir > 0 ? c.actual > c.base : c.actual < c.base; return mejor ? '↗' : '↘'; };
+  $('#seg-list').innerHTML = !L.length ? `<div class="tw-empty"><p>Aún no hay compromisos. Toca <b>Comprometer</b> en cualquier llamada del tablero o en "Lo que te toca hoy" de cualquier responsable.</p><button class="seg-btn on" id="seg-todo" type="button">Comprometer todas las llamadas de hoy</button></div>`
+    : !xs.length ? '<p class="muted">Nada en este filtro.</p>'
+    : xs.map(c => {
+      const g = c.rol, ab = !['cumplido', 'cerrado'].includes(c.estado), restan = c.vence - R.plan.dia;
+      return `<article class="tw-cm n${c.nivel} ${SG.EST_ST[c.estado]}">
+        <header><span class="tw-niv n${c.nivel}">${esc(NIVELES[c.nivel].n)}</span><span class="chip ${SG.EST_ST[c.estado]}">${esc(SG.EST[c.estado])}</span>${c.escalado ? `<span class="tw-esc">subió ${c.escalado} ${c.escalado === 1 ? 'vez' : 'veces'}</span>` : ''}</header>
+        <b class="tw-who">${g ? `<button class="tw-lnk" data-rol="${esc(g)}">${esc(c.quien)}</button>` : esc(c.quien)}</b>
+        <p class="tw-cm-t">${esc(c.txt)}</p>
+        <div class="tw-cm-m"><span>Al comprometerse <b>${fmtV(c.base, c.fmt)}</b></span><span class="tw-cm-arr">${flecha(c)}</span><span>Hoy <b class="${SG.EST_ST[c.estado]}">${fmtV(c.actual, c.fmt)}</b></span><span>Meta <b>${c.dir > 0 ? '≥' : '≤'} ${fmtV(c.meta, c.fmt)}</b></span></div>
+        <p class="tw-cm-d">Desde el día hábil ${c.creado} · ${ab ? (c.estado === 'vencido' ? 'venció en dirección general' : restan > 0 ? `vence en ${restan} ${restan === 1 ? 'día hábil' : 'días hábiles'} (día ${c.vence})` : `vence hoy (día ${c.vence})`) : `cerrado el día ${c.cerradoDia}`} · escenario al comprometerse: ${esc(ESCENARIOS[c.esc0]?.n || c.esc0)}</p>
+        <details><summary>Historial (${c.hist.length})</summary><ol class="tw-hist">${c.hist.map(h => `<li><span>día ${h.dia}</span>${esc(h.txt)}</li>`).join('')}</ol></details>
+        <div class="tw-cm-b">${ab ? `<input id="nota-${c.id}" type="text" placeholder="Nota o evidencia (opcional)" aria-label="Nota"><button class="seg-btn" data-act="cerrar" data-id="${c.id}" type="button">Cerrar sin verificar</button>` : `<button class="seg-btn" data-act="reabrir" data-id="${c.id}" type="button">Reabrir</button>`}<button class="tw-lnk tw-del" data-act="borrar" data-id="${c.id}" type="button">Borrar</button></div>
+      </article>`;
+    }).join('');
+  $('#seg-todo')?.addEventListener('click', () => {
+    for (const l of R.llamadas) SG.comprometer(S.L, R, { ref: `kpi:${l.eslabon}.${l.kpi}`, quien: l.quien, rol: `area:${l.eslabon}`, txt: `${l.kn}: de ${fmtV(l.v, l.fmt)} a ${l.dir > 0 ? '≥' : '≤'} ${fmtV(l.meta, l.fmt)}`, meta: l.meta, dir: l.dir, fmt: l.fmt, nivel: l.nivel, eslabon: l.eslabon });
+    refrescarSeg();
+  });
+  $('#seg-reinc').innerHTML = r.reinc.length ? `<ul class="tw3-l">${r.reinc.map(o => `<li class="crit">${o.rol ? `<button data-rol="${esc(o.rol)}"><b>${esc(o.quien)}</b></button>` : `<b>${esc(o.quien)}</b>`} · ${pl(o.n, 'compromiso', 'compromisos')}, ${pl(o.escalados, 'escalamiento', 'escalamientos')}, ${pl(o.vencidos, 'vencido', 'vencidos')} en dirección general, ${pl(o.cumplidos, 'cumplido', 'cumplidos')}</li>`).join('')}</ul><p class="note">Lo crónico no se arregla con otro regaño: es candidato a cambio de política en dirección general.</p>` : '<p class="muted">Nadie todavía. Aparecen aquí quienes dejan vencer sus compromisos.</p>';
+  $('#seg-reglas').innerHTML = `
+    <p><b>Compromiso.</b> Responsable, qué se mide, valor de partida, meta y plazo según el nivel: ${SG.PLAZO_DIAS[1]} días hábiles en nivel 1 y ${SG.PLAZO_DIAS[2]} en niveles 2 y 3.</p>
+    <p><b>Verificación.</b> En cada corrida la torre vuelve a medir. Si llegó a la meta, lo marca cumplido; no basta con que el responsable diga que ya quedó. "Cerrar sin verificar" existe, pero se cuenta aparte y baja la tasa de cumplimiento.</p>
+    <p><b>Escalamiento.</b> Si vence sin cumplirse, sube un nivel con plazo nuevo: dueño directo → junta semanal → dirección general. En dirección general ya no hay a quién escalar y queda vencido.</p>
+    <p><b>Reloj.</b> Es el día hábil de la aprobación del plan. "+1 día" simula el plan un día más: cambian las bandejas de unidades, delegaciones y analistas. Los demás gemelos siguen en su escenario; para ver que se recuperan, cambia el escenario arriba.</p>
+    <p><b>Dónde se guarda.</b> En este navegador. En la plataforma real sería una tabla compartida con fecha, usuario y evidencia de cada movimiento.</p>`;
 }
 
 // ------------------------------------------------------------------ ver como (vistas por rol)
@@ -132,7 +204,7 @@ function rolUI() {
   const jefe = r.t === 'jefe';
   $('#jefe-view').hidden = !jefe; $('#veredicto').hidden = !jefe; $('#rol-view').hidden = jefe;
   if (!jefe) {
-    $('#rol-view').innerHTML = vistaRol(R, r);
+    $('#rol-view').innerHTML = vistaRol(R, r, S.L);
     let hh = {}; try { hh = JSON.parse(localStorage.getItem('torre.hecho') || '{}'); } catch { /* nada */ }
     for (const c of $('#rol-view').querySelectorAll('[data-hecho]')) if (hh[c.dataset.hecho]) { c.checked = true; c.closest('li')?.classList.add('hecho'); }
   }
@@ -142,7 +214,7 @@ function rolUI() {
 // ------------------------------------------------------------------ pestaña Torre 3D
 function tabs() {
   for (const b of $('#tabs').children) { const on = b.dataset.tab === S.tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); }
-  $('#tab-3d').hidden = S.tab !== '3d'; $('#tab-tablero').hidden = S.tab === '3d';
+  $('#tab-3d').hidden = S.tab !== '3d'; $('#tab-seg').hidden = S.tab !== 'seg'; $('#tab-tablero').hidden = S.tab !== 'tablero';
   if (S.tab === '3d') open3d(); else V3?.stop();
 }
 async function open3d() {
@@ -278,6 +350,7 @@ function veredicto() {
     <div class="tw-v-main">
       <span class="eyebrow">Veredicto de la torre · ${esc(R.escN)}</span>
       <h1>${top.length ? `El problema hoy es de <em>${esc(top[0].n)}</em> (${pc(top[0].share)})${top[1] ? ` y de <em>${esc(top[1].n)}</em> (${pc(top[1].share)})` : ''}.` : 'Toda la cadena está en meta.'}</h1>
+      ${segLinea()}
       <p>${pac} ${top[0] ? `Llamar primero a <b>${esc((R.llamadas.find(l => l.eslabon === top[0].id) || {}).quien || top[0].dueno)}</b>.` : ''}</p>
     </div>
     <div class="tw-v-niv">
@@ -318,6 +391,7 @@ function llamadas() {
       <div class="tw-call-k"><span>${esc(l.kn)}</span><strong class="${l.st}">${fmtV(l.v, l.fmt)}</strong><small>${l.dir > 0 ? 'meta ≥' : 'meta ≤'} ${fmtV(l.meta, l.fmt)}</small></div>
       ${l.culpa ? `<p class="tw-her">↑ ${Math.round((1 - l.f) * 100)} % de esta brecha se explica por <b>${esc(l.culpaK)}</b> (${esc(l.culpa)})${l.f < 0.5 ? ': primero se llama allá' : ''}.</p>` : ''}
       ${l.of.length ? `<ul class="tw-of">${l.of.map(o => { const g = rolDeNombre(S.R, o.quien); return `<li>${g ? `<button class="tw-lnk" data-rol="${g}"><b>${esc(o.quien)}</b></button>` : `<b>${esc(o.quien)}</b>`} · ${esc(o.txt)}</li>`; }).join('')}</ul>` : ''}
+      <div class="tw-call-f">${compBtn(S.L, { ref: `kpi:${l.eslabon}.${l.kpi}`, quien: l.quien, rol: `area:${l.eslabon}`, txt: `${l.kn}: de ${fmtV(l.v, l.fmt)} a ${l.dir > 0 ? '≥' : '≤'} ${fmtV(l.meta, l.fmt)}`, meta: l.meta, dir: l.dir, fmt: l.fmt, nivel: l.nivel, eslabon: l.eslabon })}</div>
       <p class="tw-plazo"><button class="tw-lnk" data-rol="area:${l.eslabon}">Ver el tablero de ${esc(l.en)}</button> · ${esc(NIVELES[l.nivel].plazo)}</p>
     </div>`).join('') + (S.R.llamadas.length > L.length ? `<p class="note">Y ${S.R.llamadas.length - L.length} indicadores más fuera de meta en el detalle de cada eslabón.</p>` : '')
     : '<p class="muted">Nadie: todos los indicadores están en meta.</p>';

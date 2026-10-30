@@ -255,6 +255,8 @@ con qué nivel de escalamiento. Detalle en `docs/TORRE.md`.
 - **Ver como:** la torre de cada responsable (`web/js/torre-roles.js`): dueño de área, analista de Central, administrador
   delegacional, director de unidad y administrador de contrato, con acciones y plazos, dependencias, comparación con
   sus pares y su gente; se navega de la dirección general a la persona en tres toques.
+- **Seguimiento:** cada llamada se vuelve compromiso con meta y plazo; la torre lo verifica con los datos y lo
+  escala sola si vence (`web/js/torre-seguimiento.js`), con reloj por día hábil del plan y lista de reincidentes.
 - **Otros cambios:** enlace "Torre" en todas las vistas y botón en el CEDIS 3D.
 
 Siguiente en la ruta: pasaporte del lote (trazabilidad del plan al paciente), pago a proveedores, proveedor y

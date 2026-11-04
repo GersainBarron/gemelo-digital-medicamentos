@@ -28,7 +28,9 @@
 //  >>> API: con datos reales, contratos y OS vienen del sistema de compras
 //  (Compras MX / SAI) y los dictámenes de andén del WMS.
 // =====================================================================
-import { lotFor, scriptedShort, scenario, mulberry32, DAY } from './supply.js';
+import { lotFor, scriptedShort, scenario, mulberry32, repMix, DAY } from './supply.js';
+/** Generador con la réplica mezclada (réplica 0 = mundo base) */
+const rng = s => mulberry32(repMix(s >>> 0));
 
 const H = 3600;
 const BASE_DATE = Date.UTC(2026, 9, 26);                 // día 0 = lunes 26 de octubre de 2026
@@ -184,7 +186,7 @@ export class Contratos {
 
   crearOS(g, n) {
     const { k, d } = g;
-    const R = mulberry32(hashStr(k.id) ^ Math.imul(d + 9000, 2654435761) ^ (g.crisis ? 0x77 : 0));
+    const R = rng(hashStr(k.id) ^ Math.imul(d + 9000, 2654435761) ^ (g.crisis ? 0x77 : 0));
     const tEmision = d * DAY + (9 + Math.floor(R() * 4)) * H;
     // acuse: casi siempre el mismo día; 6 % tarda más de 24 h
     const hAcuse = R() < 0.06 ? between(R, 25, 40) : between(R, 0.5, 8);
@@ -207,7 +209,7 @@ export class Contratos {
         tCancel: null, deduccion: 0, rescate: null, estado: 'PENDIENTE',
       };
       os.partidas.push(p);
-      const Rp = mulberry32(hashStr(cl.c) ^ Math.imul(d + 3000, 2246822519));
+      const Rp = rng(hashStr(cl.c) ^ Math.imul(d + 3000, 2246822519));
       const horaArribo = dd => dd * DAY + (7 + Math.floor(Rp() * 10)) * H + Math.floor(Rp() * 4) * 15 * 60;
       if (o.crisis && l.sc.f > 0) {
         // falla parcial del proveedor: entrega muy tarde (cuando termina el faltante) y acumula pena, sin rescisión
@@ -308,7 +310,7 @@ export class Contratos {
       const p = x.p, sc = x.p.os.crisis ? this._sc(p.c) : null;
       const dEm = dRes + 1;
       const llega = Math.max(dEm + REGLAS.rescateDias[0], sc ? sc.to : dEm + REGLAS.rescateDias[1]);
-      const R = mulberry32(hashStr(p.c) ^ 0xabc);
+      const R = rng(hashStr(p.c) ^ 0xabc);
       p.rescate = { q: p.q, dEmision: dEm, tArribo: llega * DAY + (8 + Math.floor(R() * 8)) * H, prov: k.segundo, precio: p.precio * (1 + k.difSegundo) };
       this.hecho(dEm * DAY + 10 * H, 'rescate', p.os, p, `OS de rescate a ${k.segundo}: ${p.q.toLocaleString('es-MX')} pzas de ${p.m.n}, llegada ${fecha(llega)}`, [6]);
       p.os.camiones.push({ os: p.os, t: p.rescate.tArribo, items: [{ p, e: { t: p.rescate.tArribo, q: p.q, aceptada: p.q, dictamen: 'ACEPTADA_TOTAL', lote: lotFor(p.c, llega).lot, motivo: 'Rescate del segundo lugar', rescate: true } }],
@@ -400,7 +402,7 @@ export class Contratos {
   construirPagos() {
     this.facturas = []; this.cobros = [];
     for (const os of this.os) for (const p of os.partidas) {
-      const R = mulberry32(hashStr(p.c) ^ Math.imul(os.d + 7000, 2654435761));
+      const R = rng(hashStr(p.c) ^ Math.imul(os.d + 7000, 2654435761));
       const ents = p.entregas.filter(e => e.aceptada > 0);
       const rescindida = os.k.proc && os.k.proc.partidas.includes(p);
       const cierre = p.tCancel !== null ? Math.max(p.tCancel, ents.length ? ents.at(-1).t : 0) : ents.length ? ents.at(-1).t : null;
@@ -537,7 +539,7 @@ export class Contratos {
   /** Ventanas de una remisión: patio (45 min antes), andén e inspección (2 h), devolución (3 h) y cuarentena */
   _ventanas(cam) {
     if (!cam._v) {
-      const R = mulberry32(hashStr(cam.id) ^ 0x5151);
+      const R = rng(hashStr(cam.id) ^ 0x5151);
       const q = (cam.frio ? 2 + R() * 4 : 8 + R() * 32) * H;
       cam._v = { patio: cam.t - 45 * 60, anden: cam.t, insp: cam.t + 2 * H, devol: cam.rechazos ? cam.t + 5 * H : cam.t + 2 * H, libre: cam.t + 2 * H + q,
         soloRechazo: cam.items.every(x => !x.e.aceptada) };

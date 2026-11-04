@@ -1,0 +1,46 @@
+/* Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT */
+/* Laboratorio de experimentos (laboratorio.html) */
+.lab { max-width: 1500px; }
+.lab-q { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; align-items: center; margin-bottom: 12px; }
+.lab-q label, .lab-run label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--faint); font-weight: 650; }
+.lab-q select { height: 38px; border-radius: 9px; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line); padding: 0 10px; color-scheme: dark; font-size: 14px; max-width: 640px; }
+.lab-q p { grid-column: 2; margin: 0; font-size: 12.5px; }
+.arms { display: grid; gap: 8px; margin-bottom: 10px; }
+.arm { display: grid; grid-template-columns: 26px 1.2fr 1fr 0.9fr 0.8fr 0.8fr auto 32px; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 11px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); }
+.arm .tag { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-weight: 800; font-size: 12px; color: #0b1016; }
+.arm select { height: 34px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line); padding: 0 6px; color-scheme: dark; min-width: 0; }
+.arm label.ck { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.arm .x { width: 30px; height: 30px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); }
+@media (max-width: 900px) { .arm { grid-template-columns: 26px 1fr 1fr; } .arm .x { grid-column: 3; justify-self: end; } }
+.lab-run { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.lab-val { font-size: 15px; font-variant-numeric: tabular-nums; height: 34px; display: flex; align-items: center; }
+.lab-go { margin-left: auto; display: flex; gap: 8px; }
+.btn.primary { background: var(--accent); color: #062e2a; border-color: transparent; height: 40px; padding: 0 18px; font-size: 14px; }
+.btn.primary:disabled { opacity: 0.5; cursor: wait; }
+.lab-color { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.lab-color select, .card-h > select { height: 32px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line); padding: 0 6px; color-scheme: dark; }
+.prog { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.07); overflow: hidden; margin-bottom: 12px; }
+.prog i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.3s; }
+.tiles { display: grid; gap: 8px; }
+.tile-row { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; align-items: start; }
+.tile-row .tag { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-weight: 800; font-size: 12px; color: #0b1016; margin-top: 1px; }
+.tile-grid { display: grid; grid-template-columns: repeat(auto-fill, 14px); gap: 3px; }
+.tile-grid i { width: 14px; height: 14px; border-radius: 3px; background: rgba(255, 255, 255, 0.05); cursor: pointer; transition: background 0.3s, transform 0.15s; }
+.tile-grid i.run { background: rgba(255, 255, 255, 0.18); animation: tile-pulse 0.9s ease-in-out infinite; }
+.tile-grid i:hover { transform: scale(1.35); outline: 1px solid #fff; }
+@keyframes tile-pulse { 50% { background: rgba(255, 255, 255, 0.35); } }
+.concl { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.concl li { padding: 10px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border-left: 3px solid var(--info); font-size: 13.5px; line-height: 1.5; }
+.concl li.good { border-color: var(--ok); } .concl li.bad { border-color: var(--crit); } .concl li.flat { border-color: var(--faint); color: var(--muted); }
+.concl b { color: var(--text); }
+.lab-tbl { min-width: 760px; }
+.lab-tbl td, .lab-tbl th { vertical-align: top; }
+.lab-tbl th.arm-h { text-align: left; }
+.lab-tbl th.arm-h i { display: inline-block; width: 18px; height: 18px; border-radius: 5px; margin-right: 6px; vertical-align: -4px; }
+.lab-tbl td.l { text-align: left; }
+.lab-tbl .v { font-weight: 650; color: var(--text); }
+.lab-tbl .r { display: block; font-size: 11px; color: var(--faint); }
+.lab-tbl .dlt { display: block; font-size: 11.5px; margin-top: 2px; }
+.lab-tbl .dlt.good { color: var(--ok); } .lab-tbl .dlt.bad { color: var(--crit); } .lab-tbl .dlt.flat { color: var(--faint); }
+.lab-tbl tr.grp td { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--faint); font-weight: 650; padding-top: 12px; text-align: left; }
+.lab-tbl td { text-align: left; }

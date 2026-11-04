@@ -58,6 +58,8 @@ flowchart LR
 | `js/contratos-ui.js` | Pestaña "Contratos": bolsa de penas por contrato, órdenes abiertas con sus partidas, camiones del día y bitácora con número de documento |
 | `contratos.html`, `js/contratos-page.js` | Ventana de gestión: periodo (ayer, 7, 30, 90 días, vigencia o fechas) y contrato; 8 indicadores con comparación contra el periodo anterior, alertas al corte, gasto y pagos por día, penas y rechazos, avance contra mínimo y máximo con proyección, desempeño por proveedor, revisión de un día y exportación a CSV y JSON (`ExpedienteMaestro`). Abre con el corte del CEDIS (`?t=`) |
 | `expedientes.html`, `js/expedientes.js` | Simulación del recorrido: cada OS es una ficha que viaja por 12 etapas (emisión, proveedor, patio, andén, almacén, factura, pago, cierre y los desvíos mora, devolución, incumplimiento y rescate del segundo lugar) según `etapaOS(os, t)`. Reproducción a 1 h/s – 3 días/s, línea de tiempo, filtro por contrato o incidencias, seguimiento de una OS con su línea de vida (documentos y plazos por etapa), movimientos en vivo y tiempo promedio por etapa |
+| `js/lab.js`, `js/lab-worker.js` | Laboratorio: `runReplica()` corre un mundo completo (60 unidades + CEDIS + contratos, 30 días) con la réplica y el estrés dados y devuelve 15 indicadores y dos series diarias; `summary()` (media, IC 95 %, P5–P95) y `paired()` (diferencia pareada entre brazos, % de mundos en que gana). Corre en Web Workers. Pruebas: `node tests/lab.test.mjs` |
+| `laboratorio.html`, `js/laboratorio.js` | Diseño de experimentos (preguntas prediseñadas o libre, hasta 4 brazos: método de pedido × escenario × demanda × fallas del proveedor × retraso × pedido automático), réplicas en paralelo con mosaico en vivo, conclusiones, tabla con intervalos, distribución, abanico diario, convergencia y CSV. Cada mundo se abre en la red estatal con `?rep=&dem=&fal=&ret=` |
 
 ## Modelo de simulación
 
@@ -129,6 +131,13 @@ aleatorios salen de `mulberry32` con una semilla formada por el CLUES y el día.
   piezas de las partidas que vencieron, como el Sistema de Monitoreo al Cumplimiento del Abasto (DOF 09-02-2026).
 - **Fundamento:** LAASSP (DOF 16-04-2025) y su Reglamento (DOF 18-12-2025): arts. 54, 68, 73, 75 y 77. La tasa de pena,
   el plazo de entrega y la deducción por saldo son supuestos del modelo de contrato.
+
+**Réplicas y estrés** (`supply.js`: `setReplica`, `setStress`, `repMix`).
+- La réplica 0 es el mundo de siempre (las pruebas comparan la salida antes y después: idéntica).
+- Otra réplica cambia la suerte diaria (recetas, quirófano, urgencias, retrasos y fallas del proveedor, inspecciones,
+  acuses, lotes) sin cambiar la estructura (tamaño de unidades, catálogo, precios, rutas).
+- El estrés escala la demanda real (no la planeada), multiplica la probabilidad de entrega tardía o parcial y suma días
+  a los retrasos. Todos los brazos de un experimento usan las mismas réplicas (números aleatorios comunes).
 
 ## Puntos de integración (`>>> API`)
 

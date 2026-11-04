@@ -1,0 +1,42 @@
+/* Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT */
+/* Referencia y contrarreferencia (referencias.html) · se apoya en expedientes.css */
+.rf-board { grid-column: 1; }
+.rf-board h3 { font-size: 13px; margin: 14px 0 8px; color: var(--text); }
+.rf-board h3 small { color: var(--faint); font-weight: 500; margin-left: 4px; }
+.rf-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.rf-kpis > div { padding: 10px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.rf-kpis b { display: block; color: var(--text); font-size: 12.5px; margin-bottom: 4px; }
+.rf-kpis .big { font-size: 22px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.rf-kpis .bad .big { color: var(--crit); }
+.rf-kpis .warn .big { color: #f59e0b; }
+.rf-kpis .ok .big { color: var(--ok); }
+.rf-kpis .rows { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; margin-top: 4px; }
+.rf-kpis .rows em { font-style: normal; color: var(--text); font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; }
+.rf-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 6px 0 4px; background: rgba(255, 255, 255, 0.05); }
+.rf-bar i { display: block; height: 100%; }
+.rf-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1100px) { .rf-cols { grid-template-columns: minmax(0, 1fr); } }
+.rf-cols .list-os { max-height: 320px; overflow-y: auto; }
+.rf-cols .list-os { overflow-x: hidden; }
+.list-os button { width: 100%; box-sizing: border-box; }
+.list-os button > span:last-child { flex: none; }
+.list-os button .tx { margin-left: 0; flex: 1 1 auto; min-width: 0; white-space: normal; text-align: left; color: var(--text); }
+.list-os button small { color: var(--faint); display: block; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rf-sis { display: grid; gap: 6px; font-size: 12px; color: var(--muted); }
+.rf-sis .r { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 6px 9px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); }
+.rf-sis .r em { font-style: normal; color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }
+.rf-sis .r.bad em { color: var(--crit); }
+.rf-sis p { margin: 4px 0 0; line-height: 1.45; }
+.rf-table { overflow-x: auto; }
+.rf-table table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.rf-table th, .rf-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rf-table th:first-child, .rf-table td:first-child { text-align: left; }
+.rf-table th { color: var(--faint); font-weight: 600; font-size: 11.5px; }
+.rf-table td.bad { color: var(--crit); font-weight: 650; }
+.rf-table i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.tag { display: inline-block; font-size: 10.5px; padding: 1px 6px; border-radius: 6px; margin-left: 4px; background: rgba(255, 255, 255, 0.06); color: var(--muted); }
+.tag.noreg { background: rgba(248, 113, 113, 0.14); color: #f5a3a3; }
+.tag.v { background: rgba(250, 204, 21, 0.14); color: #fde68a; }
+.nd.end rect.box { fill: #160f12; stroke: rgba(248, 113, 113, 0.45); }
+.nd.ok rect.box { stroke: rgba(34, 197, 94, 0.5); }
+.nd .acc { fill: var(--faint); font-size: 10px; }

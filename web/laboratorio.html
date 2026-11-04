@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Gersain Barron">
+  <meta name="copyright" content="© 2026 Gersain Barron · Licencia MIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1117">
+  <title>Laboratorio de experimentos · Abasto</title>
+  <link rel="stylesheet" href="css/unidad.css">
+  <link rel="stylesheet" href="css/contratos.css">
+  <link rel="stylesheet" href="css/laboratorio.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <b>Laboratorio de experimentos</b>
+        <span>Gemelo digital · <em class="author">Gersain Barron</em> · cientos de mundos posibles, una decisión</span>
+      </div>
+    </div>
+    <nav class="views" aria-label="Vistas">
+      <a href="index.html">CEDIS 3D</a>
+      <a href="mapa.html">Red estatal</a>
+      <a href="contratos.html">Contratos</a>
+      <a href="expedientes.html">Recorrido</a>
+      <a href="referencias.html">Referencias</a>
+      <a class="active" href="laboratorio.html" aria-current="page">Laboratorio</a>
+    </nav>
+  </header>
+
+  <main class="lab">
+    <section class="card">
+      <div class="card-h"><h2>Diseño del experimento <small>cada brazo es una forma de operar; todos viven las mismas réplicas</small></h2></div>
+      <div class="lab-q">
+        <label for="q">Pregunta</label>
+        <select id="q"></select>
+        <p id="q-why" class="muted"></p>
+      </div>
+      <div id="arms" class="arms"></div>
+      <button id="add-arm" class="btn">+ Agregar brazo</button>
+      <div class="lab-run">
+        <div class="f-group"><label>Réplicas por brazo</label><div id="n-rep" class="seg"><button data-n="20">20</button><button data-n="50" class="active">50</button><button data-n="100">100</button><button data-n="200">200</button></div></div>
+        <div class="f-group"><label for="win">Ventana evaluada (30 días)</label>
+          <select id="win">
+            <option value="0">Al corte: 26 sep – 25 oct</option>
+            <option value="15">Contingencia completa: 11 oct – 9 nov</option>
+            <option value="66">Invierno: 1 – 30 dic</option>
+          </select></div>
+        <div class="f-group"><label>Hilos</label><b id="threads" class="lab-val">—</b></div>
+        <div class="f-group"><label>Tiempo estimado</label><b id="eta0" class="lab-val">—</b></div>
+        <div class="lab-go"><button id="run" class="btn primary">Correr experimento</button><button id="stop" class="btn" hidden>Detener</button></div>
+      </div>
+    </section>
+
+    <section class="card" id="live-card">
+      <div class="card-h">
+        <h2>Mundos simulados <small id="prog-txt">aún no se corre</small></h2>
+        <div class="lab-color">color: <select id="tile-m"></select></div>
+      </div>
+      <div class="prog"><i id="prog"></i></div>
+      <div id="tiles" class="tiles"></div>
+      <p class="muted sub">Cada cuadro es un mundo completo: 60 unidades, el CEDIS y los 8 contratos durante 30 días, con su propia suerte (recetas, retrasos, inspecciones, lotes). La misma columna es la misma suerte en todos los brazos. Toca un cuadro para abrir ese mundo en el gemelo.</p>
+    </section>
+
+    <section class="card" id="res-card" hidden>
+      <div class="card-h"><h2>Conclusiones <small id="concl-sub"></small></h2></div>
+      <ul id="concl" class="concl"></ul>
+    </section>
+
+    <section class="card" id="tab-card" hidden>
+      <div class="card-h"><h2>Resultados por indicador <small>promedio con intervalo de confianza al 95 % · rango de 90 % de los mundos</small></h2></div>
+      <div class="tbl-wrap"><table id="res" class="tbl lab-tbl"></table></div>
+    </section>
+
+    <div class="split2" id="charts" hidden>
+      <section class="card">
+        <div class="card-h"><h2>Distribución <small>cada punto es un mundo</small></h2><select id="dist-m"></select></div>
+        <div id="dist" class="chart"></div>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Día a día <small>mediana y 90 % de los mundos</small></h2><select id="fan-m"><option value="rx">Recetas completas</option><option value="fill">Surtido del CEDIS</option></select></div>
+        <div id="fan" class="chart"></div>
+      </section>
+    </div>
+
+    <section class="card" id="conv-card" hidden>
+      <div class="card-h"><h2>¿Bastan las réplicas? <small>promedio acumulado del indicador de la distribución; si ya se aplanó, más réplicas no cambian la conclusión</small></h2>
+        <button id="csv" class="btn">Exportar réplicas (CSV)</button></div>
+      <div id="conv" class="chart"></div>
+    </section>
+  </main>
+  <div id="tip" class="tip" hidden></div>
+  <script type="module" src="js/laboratorio.js"></script>
+</body>
+</html>

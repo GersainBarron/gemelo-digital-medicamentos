@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="Gersain Barron">
+  <meta name="copyright" content="© 2026 Gersain Barron · Licencia MIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1117">
+  <title>Referencia y contrarreferencia · ISSSTE Hidalgo</title>
+  <link rel="stylesheet" href="css/unidad.css">
+  <link rel="stylesheet" href="css/contratos.css">
+  <link rel="stylesheet" href="css/expedientes.css">
+  <link rel="stylesheet" href="css/referencias.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6"/>
+        <path d="M13 8h6v5h5v6h-5v5h-6v-5H8v-6h5z" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <b>Referencia y contrarreferencia</b>
+        <span>Gemelo digital · <em class="author">Gersain Barron</em> · cada paciente referido del 1er nivel a su atención y de regreso</span>
+      </div>
+    </div>
+    <nav class="views" aria-label="Vistas">
+      <a href="torre.html">Torre</a>
+      <a href="planeacion.html">Planeación</a>
+      <a href="compras.html">Compras</a>
+      <a id="go-cedis" href="index.html">CEDIS 3D</a>
+      <a href="mapa.html">Red estatal</a>
+      <a id="go-contracts" href="contratos.html">Contratos</a>
+      <a href="expedientes.html">Recorrido</a>
+      <a class="active" href="referencias.html" aria-current="page">Referencias</a>
+      <a href="cenadi.html">CENADI</a>
+      <a href="nacional.html">Nacional</a>
+      <a href="redfria.html">Red fría</a>
+      <a href="laboratorio.html">Laboratorio</a>
+    </nav>
+    <div class="sim">
+      <button id="btn-play" class="icon-btn primary" aria-label="Pausar"></button>
+      <div id="speed" class="speed" role="group" aria-label="Velocidad">
+        <button data-s="21600">6 h/s</button><button data-s="86400" class="active">1 día/s</button><button data-s="259200">3 días/s</button><button data-s="604800">1 sem/s</button>
+      </div>
+      <div class="clock-box">
+        <span id="clock" class="clock">—</span>
+        <span id="sim-status" class="sim-status">Reproduciendo</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="xp">
+    <section class="card xp-flow">
+      <div class="xp-bar">
+        <input id="tl" type="range" min="0" max="1" step="3600" aria-label="Línea de tiempo">
+        <div class="xp-tools">
+          <select id="f-rx"><option value="">Todas las unidades receptoras</option></select>
+          <select id="f-v">
+            <option value="">Todas las referencias</option>
+            <option value="inc">Con desvíos o vueltas</option>
+            <option value="sa15">Sin atender después de 15 días</option>
+            <option value="v2">Dan vueltas (2 o más)</option>
+            <option value="cron">Crónicas (más de 90 días)</option>
+            <option value="rastro">Sin rastro en el sistema</option>
+          </select>
+          <button id="btn-hoy" class="btn">Ir al corte</button>
+        </div>
+      </div>
+      <div id="flow" class="xp-svg"></div>
+      <div id="legend" class="legend xp-legend"></div>
+    </section>
+
+    <aside class="xp-side">
+      <section class="card" id="sel-card">
+        <div class="card-h"><h2 id="sel-title">Referencia</h2><div class="xp-sel-btns"><button id="sel-next" class="btn" hidden>Siguiente paso ›</button><button id="sel-x" class="btn" hidden>✕</button></div></div>
+        <div id="sel-body" class="xp-sel"><p class="muted">Toca una ficha para seguir a ese paciente referido, o una etapa para ver qué referencias hay en ella.</p></div>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Movimientos <small>en vivo</small></h2></div>
+        <ul id="feed" class="xp-feed"></ul>
+      </section>
+    </aside>
+
+    <section class="card rf-board">
+      <div class="card-h"><h2>Tablero de seguimiento <small id="tb-sub">al instante mostrado</small></h2></div>
+      <div id="kpis" class="rf-kpis"></div>
+      <div class="rf-cols">
+        <div><h3>Crónicas <small>abiertas hace más de 90 días</small></h3><div id="l-cron" class="list-os"></div></div>
+        <div><h3>Dan vueltas <small>2 o más rebotes antes del flujo normal</small></h3><div id="l-vue" class="list-os"></div></div>
+        <div><h3>Lo que el sistema ve <small>vs. lo que realmente pasó</small></h3><div id="l-sis" class="rf-sis"></div></div>
+      </div>
+      <h3>Por unidad receptora</h3>
+      <div id="t-rx" class="rf-table"></div>
+    </section>
+  </main>
+  <div id="tip" class="tip" hidden></div>
+  <div id="loading" class="ct-loading">Armando referencias…</div>
+  <script type="module" src="js/referencias-ui.js"></script>
+</body>
+</html>

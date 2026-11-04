@@ -137,6 +137,23 @@ export function reqScore(r, t) {
   return Math.round(r.base + Math.min(20, 4 * daysOpen));
 }
 
+// ---------------------------------------------------------------------
+//  Réplicas y estrés (laboratorio de experimentos, laboratorio.html)
+//  REP = 0 es el mundo base: todo idéntico a antes. Otra réplica cambia la
+//  suerte diaria (recetas, retrasos, inspecciones, lotes) pero no la
+//  estructura (tamaño de las unidades, catálogo, precios, rutas).
+//  STRESS escala la demanda real, la frecuencia de fallas del proveedor y
+//  agrega días a los retrasos.
+// ---------------------------------------------------------------------
+let REP = 0;
+export const STRESS = { demanda: 1, fallas: 1, retraso: 0 };
+export function setReplica(r) { REP = (r >>> 0); LOT_CACHE.clear(); }
+export const replica = () => REP;
+export function setStress(x = {}) { STRESS.demanda = +(x.demanda ?? 1); STRESS.fallas = +(x.fallas ?? 1); STRESS.retraso = +(x.retraso ?? 0); LOT_CACHE.clear(); }
+export const stressed = () => REP !== 0 || STRESS.demanda !== 1 || STRESS.fallas !== 1 || STRESS.retraso !== 0;
+/** Mezcla la réplica en una semilla (identidad en la réplica 0) */
+export const repMix = x => (REP ? ((x ^ Math.imul(REP, 0x9E3779B1) ^ Math.imul(REP + 0x6b, 0x85EBCA6B)) >>> 0) : x);
+
 export function mulberry32(a) {
   return function () {
     a |= 0; a = (a + 0x6D2B79F5) | 0;
@@ -155,9 +172,9 @@ const hashStr = s => { let h = 2166136261; for (const ch of s) h = Math.imul(h ^
 const LOT_SUPPLIERS = ['Laboratorio nacional A', 'Laboratorio nacional B', 'Distribuidor nacional C', 'Distribuidor regional E', 'CENADI-Birmex'];
 const LOT_CACHE = new Map();
 export function lotFor(c, idx) {
-  const off = hashStr(c) % 14, k = Math.floor((idx + off) / 14), key = c + '|' + k;
+  const off = hashStr(c) % 14, k = Math.floor((idx + off) / 14), key = c + '|' + k + '|' + REP;
   if (LOT_CACHE.has(key)) return LOT_CACHE.get(key);
-  const R = mulberry32(hashStr(c) ^ Math.imul(k + 77, 2654435761));
+  const R = mulberry32(repMix(hashStr(c) ^ Math.imul(k + 77, 2654435761)));
   const start = k * 14 - off;
   const short = R() < 0.12;
   const shelf = short ? 25 + Math.floor(R() * 100) : 420 + Math.floor(R() * 480);
@@ -208,6 +225,7 @@ export class UnitSupply {
   constructor(unit, catalog, cal) {
     this.unit = unit; this.cal = cal;
     this.seed = hashStr(unit.clues);
+    this.dseed = repMix(this.seed);            // suerte diaria (cambia con la réplica)
     const R0 = mulberry32(this.seed);
     this.surgical = !!unit.hosp && SURG[unit.tipo] > 0;
     this.items = catalog.items.filter(m => m.u === 'F' || this.surgical);
@@ -247,7 +265,7 @@ export class UnitSupply {
   //  Generación determinista de un día (sin aplicar existencias)
   // ---------------------------------------------------------------
   generateDay(idx) {
-    const R = mulberry32(this.seed ^ Math.imul(idx + 1000, 2654435761));
+    const R = mulberry32(this.dseed ^ Math.imul(idx + 1000, 2654435761));
     const wd = this.cal.weekday(idx), u = this.unit;
     const ev = [];
     // Farmacia · recetas
@@ -255,7 +273,7 @@ export class UnitSupply {
     const wdF = wd === 0 ? (u.hosp ? 0.15 : 0) : wd === 6 ? (u.hosp ? 0.35 : 0.3) : 1;
     const close = wd === 6 && !u.hosp ? 14 : h1;
     const bump = seasonBump(idx);
-    const nRx = poisson(R, this.rxBase * wdF * (1 + 0.12 * (bump - 0.5)));
+    const nRx = poisson(R, this.rxBase * wdF * (1 + 0.12 * (bump - 0.5)) * STRESS.demanda);
     // pesos del día con estacionalidad
     const boost = SCENARIOS[SCEN].seasonBoost || 1;
     const wDay = this.F.map(m => this.trueW.get(m.c) * (1 + (SEASON_AMP[m.c] || 0) * boost * (bump - 0.3)));
@@ -280,7 +298,7 @@ export class UnitSupply {
     }
     // Quirófano
     if (this.surgical) {
-      const ns = poisson(R, this.surgBase * (wd === 0 || wd === 6 ? 0.45 : 1));
+      const ns = poisson(R, this.surgBase * (wd === 0 || wd === 6 ? 0.45 : 1) * STRESS.demanda);
       for (let i = 0; i < ns; i++) {
         let r = R() * PROC_W, p;
         for (p of PROCEDURES) { r -= p.w; if (r <= 0) break; }
@@ -293,7 +311,7 @@ export class UnitSupply {
     }
     // Urgencias (24 h)
     if (this.surgical) {
-      const ne = poisson(R, this.erBase);
+      const ne = poisson(R, this.erBase * STRESS.demanda);
       for (let i = 0; i < ne; i++) {
         let r = R() * ER_W, c;
         for (c of ER_CASES) { r -= c.w; if (r <= 0) break; }
@@ -306,7 +324,7 @@ export class UnitSupply {
     }
     // Entrega ordinaria del CEDIS (cantidades se calculan al iniciar el día)
     const stop = this.cal.stopFor(u, idx);
-    if (stop) ev.push({ t: stop.actual + 20 * MIN, kind: 'in', type: 'Ordinaria', fill: stop.fill, route: stop.trip.id, eta: stop.eta, R: mulberry32(this.seed ^ (idx * 7919)) });
+    if (stop) ev.push({ t: stop.actual + 20 * MIN, kind: 'in', type: 'Ordinaria', fill: stop.fill, route: stop.trip.id, eta: stop.eta, R: mulberry32(this.dseed ^ (idx * 7919)) });
     return ev;
   }
 
@@ -339,7 +357,7 @@ export class UnitSupply {
   run(todayIdx) {
     if (this.todayIdx === todayIdx) return this;
     this.todayIdx = todayIdx;
-    const R0 = mulberry32(this.seed + 17);
+    const R0 = mulberry32(this.dseed + 17);
     const start = todayIdx - HISTORY_DAYS - WARMUP;
     const S = { stock: new Map(this.items.map(m => [m.c, Math.round(this.max.get(m.c) * (0.45 + 0.45 * R0()))])), pend: [], open: new Map(), seq: 0, lots: new Map(), lotUse: new Map(), rxPend: [], pexOpen: new Map(), ewma: new Map(this.items.map(m => [m.c, this.demand.get(m.c)])) };
     for (const m of this.items) {            // existencia inicial en dos lotes anteriores
@@ -411,7 +429,7 @@ export class UnitSupply {
         }
       }
     }
-    const R = mulberry32(this.seed ^ Math.floor(t));
+    const R = mulberry32(this.dseed ^ Math.floor(t));
     const r = R();
     const t0 = t, validated = t0 + 15 * MIN;
     let dispatch;
@@ -441,7 +459,7 @@ export class UnitSupply {
   proposeOrder(day, S) {
     const idx = day.idx, u = this.unit;
     const visitToday = this.cal.visits(u, idx), nd = this.findNext(idx + 1) ?? idx + 7;
-    const R = mulberry32(this.seed ^ Math.imul(idx + 7000, 2654435761));
+    const R = mulberry32(this.dseed ^ Math.imul(idx + 7000, 2654435761));
     const lines = [];
     for (const m of this.items) {
       const c = m.c;

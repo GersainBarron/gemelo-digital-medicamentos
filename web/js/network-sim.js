@@ -22,7 +22,7 @@
 //  >>> API: con datos reales, las existencias y arribos vienen del WMS
 //  del CEDIS y de las órdenes de compra (SAI / compras consolidadas).
 // =====================================================================
-import { UnitSupply, makeCalendar, lotFor, seasonBump, SEASON_AMP, SCENARIOS, scenario, scriptedShort, mulberry32, setCedisModel, DAY } from './supply.js';
+import { UnitSupply, makeCalendar, lotFor, seasonBump, SEASON_AMP, SCENARIOS, scenario, scriptedShort, mulberry32, setCedisModel, repMix, STRESS, DAY } from './supply.js';
 import { forecastSeries, suggestedOrder } from './forecast.js';
 
 export const POLICIES = {
@@ -86,7 +86,7 @@ export class CedisInventory {
     const N = END - START + 1;
     this.series = new Map();
     for (const m of this.items) {
-      const c = m.c, h = hashStr(c), R = mulberry32(h ^ 0x51ed), Rs = mulberry32(h ^ 0x5eed);
+      const c = m.c, h = hashStr(c), R = mulberry32(repMix(h ^ 0x51ed));
       const L = 10 + (h % 12);                         // tiempo de entrega del proveedor (días)
       const lotQ = Math.max(1, m.pack) * 10;
       const P = plan.get(c), base = real.get(c);
@@ -106,7 +106,7 @@ export class CedisInventory {
         }
         const wd = ((d % 7) + 7) % 7;                   // 0 = lunes
         const wk = wd === 6 ? 0.25 : wd === 5 ? 0.55 : 1.16;
-        dem[i] = Math.max(0, base * k * wk * Math.exp(0.14 * gauss(R) - 0.01));
+        dem[i] = Math.max(0, base * k * wk * STRESS.demanda * Math.exp(0.14 * gauss(R) - 0.01));
         // arribos del proveedor
         for (let j = pipe.length - 1; j >= 0; j--) if (pipe[j].eta === d) {
           const o = pipe.splice(j, 1)[0];
@@ -133,10 +133,11 @@ export class CedisInventory {
           if (q > 0) {
             q = Math.ceil(q / lotQ) * lotQ;
             // desempeño del proveedor (mismo sorteo para la misma clave y fecha en ambos métodos)
-            const Rp = mulberry32(h ^ Math.imul(d + 5000, 2654435761)), r = Rp();
+            const Rp = mulberry32(repMix(h ^ Math.imul(d + 5000, 2654435761))), r = Rp();
+            const pPart = Math.min(0.45, 0.10 * STRESS.fallas), pLate = Math.min(0.45, 0.14 * STRESS.fallas);
             let eta = d + L, part = false, late = false, qq = q;
-            if (r > 0.9) { qq = Math.round(q * (0.45 + 0.35 * Rp()) / lotQ) * lotQ; part = true; }
-            else if (r > 0.76) { eta += 5 + Math.floor(Rp() * 9); late = true; }
+            if (r > 1 - pPart) { qq = Math.round(q * (0.45 + 0.35 * Rp()) / lotQ) * lotQ; part = true; }
+            else if (r > 1 - pPart - pLate) { eta += 5 + Math.floor(Rp() * 9) + STRESS.retraso; late = true; }
             pipe.push({ eta, q: qq, late, part });
             orders.push({ d, q, eta, qq, late, part });
           }

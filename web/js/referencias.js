@@ -270,7 +270,7 @@ export class Referencias {
     const e = this._emisora(), esp = pickW(R, ESPECIALIDADES);
     const r = {
       id: 'REF-' + String(this.refs.length + 1).padStart(5, '0'), tCrea, tEmision: tCrea, emisora: e, esp, dx: pick(R, esp.dx),
-      sexo: R() < 0.58 ? 'F' : 'M', edad: 18 + Math.floor(R() * 66), seg: [], tAtencion: Infinity, final: null, rxSet: new Set(),
+      sexo: R() < 0.58 || esp.n === 'Ginecología' ? 'F' : 'M', edad: esp.n === 'Pediatría' ? Math.floor(R() * 17) : 18 + Math.floor(R() * 66), seg: [], tAtencion: Infinity, final: null, rxSet: new Set(),
     };
     let { rx: rec, fuera } = this.red.destino(e, esp), t = tCrea, vueltas = 0, atendido = false, escalado = false, estudio = false, reprog = false, reemite = false, nEsp = 0;
     r.rx0 = rec;
@@ -442,9 +442,13 @@ export class Referencias {
       ocultas: { SIN_CIERRE: 0, ABANDONO: 0, QUEMADA: 0, CERRADA: 0 }, cronicas: [], vueltas: [], acepDias: [], acepTotal: 0, acepPrimera: 0, limbo: 0,
       porRx: Object.fromEntries(this.receptoras.map(u => [u.id, { abiertas: 0, sinAtender15: 0, sinCierre: 0, sinRastro: 0, limbo: 0 }])),
     };
+    // filtro: id de receptora (texto) o {region} / {cve} de la unidad que refiere
+    const pasa = !filtro ? () => true
+      : typeof filtro === 'string' ? r => r.rxSet.has(filtro) || r.rx0 === filtro
+      : filtro.cve ? r => r.emisora.cve === filtro.cve : filtro.region ? r => r.emisora.region === filtro.region : () => true;
     for (const r of this.refs) {
       if (r.tCrea > t) break;
-      if (filtro && !r.rxSet.has(filtro) && r.rx0 !== filtro) continue;
+      if (!pasa(r)) continue;
       const E = this.estado(r, t), P = o.porRx[E.rx];
       const term = E.real !== 'EN_PROCESO', recien = term && E.seg.t0 >= W0;
       // lo que ve el sistema (toda la historia: lo abierto en el sistema nunca se cierra solo)

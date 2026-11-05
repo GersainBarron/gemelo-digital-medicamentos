@@ -42,6 +42,10 @@ export class Cubo {
     const espera = new Int32Array((ND + 1) * NR), limbo = new Int32Array((ND + 1) * NR), atencion = new Int32Array((ND + 1) * NR);
     const evRx = new Int32Array(ND * NR * NEV), evE = new Int32Array(ND * NE * NEVE);
     const fl = { dia: [], ori: [], des: [], tipo: [], fuera: [] };
+    // pasos entre etapas por día y estado (grosor de las flechas) y tiempo en cada etapa (vista de desempeño)
+    const PAR = new Map(), transL = [];
+    const parId = k => { let p = PAR.get(k); if (p === undefined) { p = PAR.size; PAR.set(k, p); transL.push(new Uint16Array(ND * NE)); } return p; };
+    const dwSum = new Float32Array(ND * NE * NET), dwN = new Int32Array(ND * NE * NET);
     const NEM = K.emisoras.length;
     // índice de la foto: primer día cuya foto (d·DAY + h) es ≥ t
     const snap = t => Math.min(ND, Math.max(0, Math.ceil((t - h) / DAY) - d0));
@@ -76,6 +80,11 @@ export class Cubo {
         // eventos del día
         const d = evDay(s.t0), prev = g[i - 1]?.etapa;
         if (d < 0) continue;
+        if (prev) {
+          transL[parId(prev + '>' + s.etapa)][d * NE + e]++;
+          const o = (d * NE + e) * NET + IET[prev];
+          dwSum[o] += (s.t0 - g[i - 1].t0) / DAY; dwN[o]++;
+        }
         if (prev && ESPERA.has(prev) && !ESPERA.has(s.etapa) && g[i - 1].rx) evRx[(d * NR + IR[g[i - 1].rx]) * NEV + EV.SALIDAS]++;
         if (s.rx) {
           const x = IR[s.rx], o = (d * NR + x) * NEV;
@@ -109,14 +118,16 @@ export class Cubo {
     // flujos ordenados por día
     const ord = fl.dia.map((_, i) => i).sort((a, b) => fl.dia[a] - fl.dia[b]);
     const pick = (k, T) => T.from(ord, i => fl[k][i]);
+    const pares = [...PAR.keys()], trans = new Uint16Array(pares.length * ND * NE);
+    transL.forEach((a, p) => trans.set(a, p * ND * NE));
     const meta = {
-      d0, ND, hora, estados, NE, NR, NET, NEM,
+      d0, ND, hora, estados, NE, NR, NET, NEM, pares,
       region: estados.map(c => (K.nacional ? K.red.estados[c].region : 'I')),
       rx: rxs.map(u => ({ id: u.id, corto: u.corto, nombre: u.nombre, tipo: u.tipo, nivel: u.nivel ?? (u.idx > 4 ? 3 : 2), cve: u.cve, region: u.region, xy: u.xy || null, color: u.color })),
       em: K.emisoras.map(e => ({ id: e.id, corto: e.corto, tipo: e.tipo, cve: e.cve, region: e.region, xy: e.xy || null })),
     };
     return new Cubo({
-      meta, occ, espera, limbo, atencion, evRx, evE,
+      meta, occ, espera, limbo, atencion, evRx, evE, trans, dwSum, dwN,
       fDia: pick('dia', Int32Array), fOri: pick('ori', Int32Array), fDes: pick('des', Int32Array), fTipo: pick('tipo', Uint8Array), fFuera: pick('fuera', Uint8Array),
     });
   }
@@ -132,7 +143,7 @@ export class Cubo {
   }
   static from(o) { return new Cubo(o); }
   toTransfer() {
-    const o = { meta: this.meta, occ: this.occ, espera: this.espera, limbo: this.limbo, atencion: this.atencion, evRx: this.evRx, evE: this.evE, fDia: this.fDia, fOri: this.fOri, fDes: this.fDes, fTipo: this.fTipo, fFuera: this.fFuera };
+    const o = { meta: this.meta, occ: this.occ, espera: this.espera, limbo: this.limbo, atencion: this.atencion, evRx: this.evRx, evE: this.evE, trans: this.trans, dwSum: this.dwSum, dwN: this.dwN, fDia: this.fDia, fOri: this.fOri, fDes: this.fDes, fTipo: this.fTipo, fFuera: this.fFuera };
     const buf = Object.values(o).filter(x => ArrayBuffer.isView(x)).map(x => x.buffer);
     return [o, buf];
   }
@@ -156,6 +167,28 @@ export class Cubo {
       for (let b = 0; b < NB; b++) out[et][b] += this.occ[o + b];
     }
     return Object.fromEntries(ET.map((k, i) => [k, out[i]]));
+  }
+
+  /** pasos entre etapas ('A>B' → número) en los `ventana` días que terminan en di */
+  transiciones(di, f = {}, ventana = 1) {
+    const m = this.meta, es = this._estados(f) ?? m.estados.map((_, i) => i), a = Math.max(0, di - ventana + 1), out = {};
+    m.pares.forEach((k, p) => {
+      let n = 0;
+      const base = p * m.ND * m.NE;
+      for (let d = a; d <= di; d++) for (const e of es) n += this.trans[base + d * m.NE + e];
+      if (n) out[k] = n;
+    });
+    return out;
+  }
+  /** días promedio en cada etapa de los tramos que terminaron en la ventana */
+  tiempos(di, f = {}, ventana = 28) {
+    const m = this.meta, es = this._estados(f) ?? m.estados.map((_, i) => i), a = Math.max(0, di - ventana + 1), out = {};
+    ET.forEach((k, et) => {
+      let s = 0, n = 0;
+      for (let d = a; d <= di; d++) for (const e of es) { const o = (d * m.NE + e) * m.NET + et; s += this.dwSum[o]; n += this.dwN[o]; }
+      if (n) out[k] = { dias: s / n, n };
+    });
+    return out;
   }
 
   /** saturación de una receptora: ventana en días para λ y μ */

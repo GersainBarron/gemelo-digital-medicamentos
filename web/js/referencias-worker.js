@@ -23,6 +23,16 @@ self.onmessage = async ({ data: m }) => {
       const t1 = performance.now();
       const [cubo, buf] = Cubo.build(K).toTransfer();
       self.postMessage({ tipo: 'cubo', cubo, n: K.refs.length, ms: { motor: t1 - t0, cubo: performance.now() - t1 } }, buf);
+    } else if (m.tipo === 'tablero') {
+      // tablero de seguimiento (mismas cuentas que la vista de Hidalgo) con listas compactas
+      const B = K.tablero(m.t, m.filtro || '');
+      const ruta = r => [r.emisora.corto, ...new Set(r.seg.filter(s => s.rx && s.t0 <= m.t).map(s => K.rx[s.rx].corto))];
+      const lista = a => a.slice(0, 40).map(([r, E]) => ({ id: r.id, esp: r.esp.n, edad: E.edad, etapa: E.etapa, unidad: E.seg.unidad, atendida: E.atendida, sem: E.sem, rx: E.rx, vueltas: E.vueltas, ruta: ruta(r) }));
+      self.postMessage({ tipo: 'tablero', t: m.t, B: { ...B, cronicas: lista(B.cronicas), vueltas: lista(B.vueltas), nVueltas: B.vueltas.length, nCronicas: B.cronicas.length, diasAt: undefined, acepDias: undefined } });
+    } else if (m.tipo === 'ref') {
+      const r = K.refs.find(x => x.id === m.id);
+      const E = r && K.estado(r, m.t);
+      self.postMessage({ tipo: 'ref', ref: r && { ...r, emisora: { id: r.emisora.id, corto: r.emisora.corto, cve: r.emisora.cve }, esp: { n: r.esp.n }, E, rxNombre: K.rx[E.rx].nombre, ruta: [r.emisora.corto, ...new Set(r.seg.filter(s => s.rx && s.t0 <= m.t).map(s => K.rx[s.rx].corto))] } });
     } else if (m.tipo === 'refs') {
       // referencias vivas en el instante t que pasan por esa unidad (emisora o receptora)
       const out = [];

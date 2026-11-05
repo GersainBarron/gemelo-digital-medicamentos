@@ -55,6 +55,9 @@
       <div class="xp-bar">
         <input id="tl" type="range" min="0" max="1" step="3600" aria-label="Línea de tiempo">
         <div class="xp-tools">
+          <div class="rf-modo" role="group" aria-label="Red"><a id="m-hgo" href="referencias.html">Hidalgo · detalle</a><a id="m-nac" href="referencias.html?red=nacional">Nacional · agregado</a></div>
+          <select id="f-reg" hidden></select>
+          <select id="f-est" hidden></select>
           <select id="f-rx"><option value="">Todas las unidades receptoras</option></select>
           <select id="f-v">
             <option value="">Todas las referencias</option>
@@ -90,7 +93,7 @@
         <div><h3>Dan vueltas <small>2 o más rebotes antes del flujo normal</small></h3><div id="l-vue" class="list-os"></div></div>
         <div><h3>Lo que el sistema ve <small>vs. lo que realmente pasó</small></h3><div id="l-sis" class="rf-sis"></div></div>
       </div>
-      <h3>Por unidad receptora</h3>
+      <h3 id="t-rx-h">Por unidad receptora</h3>
       <div id="t-rx" class="rf-table"></div>
     </section>
   </main>

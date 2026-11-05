@@ -29,7 +29,7 @@ const CAP = CAP_COLS * CAP_ROWS;
 const NS = 'http://www.w3.org/2000/svg';
 
 const S = { t: 0, speed: DAY, playing: true, f: {}, node: null, ref: null, uni: null, dia: -1, N: 1, tb: null, pidiendo: false };
-let C, T, D0, worker, svg, gTok, paths = {}, parts = [], mapa = null, RED = null;
+let C, T, D0, worker, svg, gTok, gParts, paths = {}, parts = [], mapa = null, RED = null;
 
 export async function iniciar() {
   const qs = new URLSearchParams(location.search);
@@ -97,6 +97,7 @@ export async function iniciar() {
   $('flow').innerHTML = diagramaSVG(['Cada punto = N referencias (ver leyenda).', 'Color del punto = antigüedad desde la creación.',
     `Los cierres se ven ${REGLAS.archivarDias} días; «acum.» cuenta 90 días.`, 'Toca una etapa para ver estados y receptoras.']);
   svg = $('flow').querySelector('svg'); gTok = svg.querySelector('#toks');
+  gParts = document.createElementNS(NS, 'g'); svg.appendChild(gParts);
   for (const E of EDGES) paths[E[0] + '>' + E[1]] = svg.querySelector(`#e-${E[0]}-${E[1]}`);
   svg.querySelectorAll('.nd').forEach(g => g.addEventListener('click', () => { S.node = g.dataset.n; S.ref = null; panel(); }));
   $('sel-title').textContent = 'Red nacional';
@@ -165,7 +166,7 @@ function seleccionarUnidad(u) {
   mapa.set(S.dia, S.f, u.key);
   panel();
 }
-function salirUnidad() { S.uni = null; S.dia = -1; update(true); }
+function salirUnidad() { S.uni = null; S.dia = -1; S.tb = null; limpiarParticulas(); update(true); }
 async function pedirUnidad(force = false) {
   const u = S.uni;
   if (!u || u.pidiendo || (!force && Math.abs(u.t - S.t) < DAY / 2)) return;
@@ -173,8 +174,10 @@ async function pedirUnidad(force = false) {
   try {
     const r = await pedir({ tipo: 'refs', id: u.id, t: S.t, max: 3000 }, 'refs');
     if (S.uni !== u) return;
+    const primera = !u.refs;
     u.refs = r.refs; u.t = r.t;
-    dibujarUnidad(); panel();
+    dibujarUnidad(); pintarFlechas(S.dia); panel();
+    if (primera) { S.tb = null; tablero(); }
   } finally { u.pidiendo = false; }
 }
 function dibujarUnidad() {
@@ -288,19 +291,34 @@ function update(force) {
   if (S.uni) { dibujarUnidad(); pedirUnidad(); }
   mapa.set(di, S.f, S.uni?.key);
   $('m-up').hidden = !(S.f.cve || S.f.region);
-  // flechas: grosor por pasos diarios de la última semana
-  const tr7 = C.transiciones(di, S.f, 7), vmax = Math.max(1, ...Object.values(tr7));
+  pintarFlechas(di);
+  // partículas solo al avanzar un día con la reproducción (en una unidad, 1 partícula = 1 referencia)
+  if (S.uni) S.N = 1;
+  if (salto && S.playing) particulas(pasos(di, 1));
+  movimientos(di, d, salto);
+  if (S.node) panel();
+  if (!S.tb || Math.abs(S.tb.t - t) > DAY / 2 || force) tablero();
+}
+
+/** pasos entre etapas en los últimos `dias`: del cubo (filtro) o de las referencias de la unidad elegida */
+function pasos(di, dias) {
+  if (!S.uni?.refs) return C.transiciones(di, S.f, dias);
+  const a = S.t - dias * DAY, b = S.t, out = {};
+  for (const r of S.uni.refs) for (let i = 1; i < r.seg.length; i++) {
+    const x = r.seg[i];
+    if (x.t0 > a && x.t0 <= b) { const k = r.seg[i - 1].etapa + '>' + x.etapa; out[k] = (out[k] || 0) + 1; }
+  }
+  return out;
+}
+/** grosor por pasos diarios de la última semana y su cifra en la etiqueta */
+function pintarFlechas(di) {
+  const tr7 = pasos(di, 7), vmax = Math.max(1, ...Object.values(tr7));
   for (const Ed of EDGES) {
     const key = Ed[0] + '>' + Ed[1], v = (tr7[key] || 0) / 7, p = paths[key];
     p.style.strokeWidth = (1.2 + 7 * Math.sqrt((tr7[key] || 0) / vmax)).toFixed(2);
     const l = svg.querySelector(`#el-${Ed[0]}-${Ed[1]}`);
     if (l) l.textContent = `${Ed[2]} · ${v >= 10 ? Math.round(v) : v.toFixed(1)}/d`;
   }
-  // partículas solo al avanzar un día con la reproducción
-  if (salto && S.playing && !S.uni) particulas(C.transiciones(di, S.f, 1));
-  movimientos(di, d, salto);
-  if (S.node) panel();
-  if (!S.tb || Math.abs(S.tb.t - t) > DAY / 2 || force) tablero();
 }
 
 // ---------------------------------------------------------------------
@@ -316,7 +334,7 @@ function particulas(tr) {
     for (let i = 0; i < m && parts.length < 300; i++) {
       const c = document.createElementNS(NS, 'circle');
       c.setAttribute('r', '3.2'); c.setAttribute('class', 'part' + (bad ? ' bad' : ''));
-      gTok.appendChild(c);
+      gParts.appendChild(c);
       parts.push({ el: c, p, len: p.getTotalLength(), t0: now + i * dur / Math.max(1, m), dur });
     }
   }
@@ -339,7 +357,7 @@ function limpiarParticulas() { for (const o of parts) o.el.remove(); parts = [];
 // ---------------------------------------------------------------------
 function movimientos(di, d, salto) {
   if (!salto) { $('feed').innerHTML = ''; }
-  const r = C.resumen(di, S.f, 1), tr = C.transiciones(di, S.f, 1);
+  const r = S.uni?.refs ? resumenUnidad() : C.resumen(di, S.f, 1), tr = pasos(di, 1);
   const dev = (tr['ACEPTACION>DEVUELTA'] || 0) + (tr['VALIDACION>DEVUELTA'] || 0), lim = tr['ACEPTACION>LIMBO'] || 0, noa = tr['CITA>NO_ACUDIO'] || 0;
   if (!r.CREADAS && !r.ATENDIDAS && !dev) return;
   const li = document.createElement('li');
@@ -347,6 +365,18 @@ function movimientos(di, d, salto) {
   li.innerHTML = `<time>${fecha(d)}</time><span><b>${nf.format(r.CREADAS)}</b> nuevas · <b>${nf.format(r.ATENDIDAS)}</b> atendidas (${nf.format(r.EN_PLAZO)} en plazo) · ${dev} devueltas · ${lim} sin respuesta · ${noa} no acudieron
     <small class="muted">cierres: ${r.CERRADA} natural · ${r.SIN_CIERRE} sin cierre · ${r.ABANDONO} no regresó · ${r.QUEMADA} quemadas</small></span>`;
   const f = $('feed'); f.prepend(li); while (f.children.length > 60) f.lastChild.remove();
+}
+
+/** lo mismo que C.resumen(día) pero con las referencias de la unidad elegida */
+function resumenUnidad() {
+  const a = S.t - DAY, b = S.t, o = { CREADAS: 0, ATENDIDAS: 0, EN_PLAZO: 0, CERRADA: 0, SIN_CIERRE: 0, ABANDONO: 0, QUEMADA: 0 };
+  for (const r of S.uni.refs) {
+    if (r.tCrea > a && r.tCrea <= b) o.CREADAS++;
+    if (r.tAtencion > a && r.tAtencion <= b) { o.ATENDIDAS++; if (r.tAtencion - r.tCrea <= REGLAS.plazoDias * DAY) o.EN_PLAZO++; }
+    const f = r.seg.at(-1);
+    if (TERMINAL.has(f.etapa) && f.t0 > a && f.t0 <= b) o[f.etapa]++;
+  }
+  return o;
 }
 
 // ---------------------------------------------------------------------
@@ -411,14 +441,19 @@ function panelRef() {
 // ---------------------------------------------------------------------
 const pct = (a, b) => (b ? Math.round(100 * a / b) + ' %' : '—');
 async function tablero() {
-  if (S.pidiendo) return;
+  if (S.pidiendo) { S.otraVez = true; return; } // al terminar la que va en camino se pide de nuevo
   S.pidiendo = true;
-  const t = S.t, f = S.f;
+  const t = S.t, f = S.f, u = S.uni;
   try {
-    const { B } = await pedir({ tipo: 'tablero', t, filtro: f.cve || f.region ? f : '' }, 'tablero');
+    const filtro = u ? (u.tipo === 'rx' ? u.id : { em: u.id }) : f.cve || f.region ? f : '';
+    const { B } = await pedir({ tipo: 'tablero', t, filtro }, 'tablero');
+    if (S.uni !== u || S.f !== f) { S.otraVez = true; return; }
     S.tb = { t, B };
     pintarTablero(B, t);
-  } finally { S.pidiendo = false; }
+  } finally {
+    S.pidiendo = false;
+    if (S.otraVez) { S.otraVez = false; tablero(); }
+  }
 }
 function listRef(el, items, sub) {
   el.innerHTML = items.length ? items.map(x => `<button data-ref="${x.id}"><i style="background:${SEM[x.sem]}"></i>
@@ -428,10 +463,12 @@ function listRef(el, items, sub) {
 }
 function pintarTablero(B, t) {
   const A = B.abiertas, tot = A.a15 + A.a30 + A.a90 + A.cron, di = C.dia(t);
-  $('tb-sub').textContent = `al ${fechaD(Math.floor(t / DAY))} · ${filtroTxt()} · tasas de los últimos 90 días`;
+  $('tb-sub').textContent = `al ${fechaD(Math.floor(t / DAY))} · ${S.uni ? S.uni.nombre : filtroTxt()} · tasas de los últimos 90 días`;
   const bar = [[A.a15, SEM.VERDE], [A.a30, SEM.NARANJA], [A.a90, SEM.ROJO], [A.cron, SEM.CRONICA]].map(([n, c]) => `<i style="width:${tot ? 100 * n / tot : 0}%;background:${c}"></i>`).join('');
   const ci = B.cierres, nc = ci.CERRADA + ci.SIN_CIERRE + ci.ABANDONO + ci.QUEMADA;
-  const sat = C.saturacionTodas(di).filter(s => (!S.f.region || s.u.region === S.f.region) && (!S.f.cve || s.u.cve === S.f.cve));
+  // en una unidad: si es receptora, ella misma; si refiere, las receptoras a las que envía
+  const destinos = S.uni?.tipo === 'em' && S.uni.refs ? new Set(S.uni.refs.flatMap(r => [...r.rxSet])) : null;
+  const sat = C.saturacionTodas(di).filter(s => S.uni ? (S.uni.tipo === 'rx' ? s.x === S.uni.x : destinos?.has(s.u.id)) : (!S.f.region || s.u.region === S.f.region) && (!S.f.cve || s.u.cve === S.f.cve));
   const cs = sat.reduce((o, s) => ((o[s.sem] = (o[s.sem] || 0) + 1), o), {});
   $('kpis').innerHTML = `
     <div><b>Referencias abiertas</b><span class="big">${nf.format(tot)}</span><div class="rf-bar">${bar}</div>

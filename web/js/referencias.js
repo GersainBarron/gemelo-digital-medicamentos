@@ -445,6 +445,7 @@ export class Referencias {
     // filtro: id de receptora (texto) o {region} / {cve} de la unidad que refiere
     const pasa = !filtro ? () => true
       : typeof filtro === 'string' ? r => r.rxSet.has(filtro) || r.rx0 === filtro
+      : filtro.em ? r => r.emisora.id === filtro.em
       : filtro.cve ? r => r.emisora.cve === filtro.cve : filtro.region ? r => r.emisora.region === filtro.region : () => true;
     for (const r of this.refs) {
       if (r.tCrea > t) break;

@@ -34,12 +34,13 @@ self.onmessage = async ({ data: m }) => {
       const E = r && K.estado(r, m.t);
       self.postMessage({ tipo: 'ref', ref: r && { ...r, emisora: { id: r.emisora.id, corto: r.emisora.corto, cve: r.emisora.cve }, esp: { n: r.esp.n }, E, rxNombre: K.rx[E.rx].nombre, ruta: [r.emisora.corto, ...new Set(r.seg.filter(s => s.rx && s.t0 <= m.t).map(s => K.rx[s.rx].corto))] } });
     } else if (m.tipo === 'refs') {
-      // referencias vivas en el instante t que pasan por esa unidad (emisora o receptora)
-      const out = [];
+      // referencias que pasan por esa unidad (emisora o receptora) vivas en t,
+      // o que se movieron en los `dias` previos (para contar sus pasos entre etapas)
+      const out = [], desde = m.t - (m.dias ?? 7) * 86400;
       for (const r of K.refs) {
         if (r.tCrea > m.t) break;
-        if (r.emisora.id !== m.id && !r.rxSet.has(m.id)) continue;
-        if (!K.etapa(r, m.t)) continue;
+        if (r.emisora.id !== m.id && !r.rxSet.has(m.id) && r.rx0 !== m.id) continue;
+        if (!K.etapa(r, m.t) && !r.seg.some(s => s.t0 > desde && s.t0 <= m.t)) continue;
         out.push({ ...r, emisora: { id: r.emisora.id, corto: r.emisora.corto, cve: r.emisora.cve }, esp: { n: r.esp.n } });
         if (out.length >= (m.max ?? 2000)) break;
       }

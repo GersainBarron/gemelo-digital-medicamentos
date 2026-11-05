@@ -48,6 +48,7 @@ export class MapaFlujos {
   set(di, f = {}, sel = null) {
     const cambioVista = JSON.stringify(f) !== JSON.stringify(this.f);
     Object.assign(this, { di, f, sel });
+    if (!this.w) this.resize(); // el lienzo aún no tenía tamaño al crearse
     if (cambioVista) { this._vista(); this._dibujarBase(); }
     this._datos();
     this._proyectar();

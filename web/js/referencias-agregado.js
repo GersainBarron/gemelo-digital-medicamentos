@@ -8,9 +8,10 @@
 //   · filtros por región (16) y estado (32); tablero calculado en el worker
 //  El motor y el cubo diario viven en referencias-worker.js.
 // =====================================================================
-import { ETAPAS, TERMINAL, REGLAS, CIERRE_ES, SISTEMA_ES, REGIONES, fecha } from './referencias.js';
-import { Cubo, ET, EDAD_ES } from './referencias-cubo.js';
+import { ETAPAS, TERMINAL, REGLAS, CIERRE_ES, SISTEMA_ES, REGIONES, fecha, semaforo } from './referencias.js';
+import { Cubo, ET, EDAD_ES, EDADES } from './referencias-cubo.js';
 import { esc, BAD, NODES, EDGES, NW, CAP_COLS, CAP_ROWS, R, slotPos, edgeD, diagramaSVG } from './referencias-diagrama.js';
+import { MapaFlujos } from './referencias-mapa.js';
 
 const DAY = 86400, H = 3600;
 const BASE = Date.UTC(2026, 9, 26);
@@ -27,8 +28,8 @@ const ESCALAS = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
 const CAP = CAP_COLS * CAP_ROWS;
 const NS = 'http://www.w3.org/2000/svg';
 
-const S = { t: 0, speed: DAY, playing: true, f: {}, node: null, ref: null, dia: -1, N: 1, tb: null, pidiendo: false };
-let C, T, D0, worker, svg, gTok, paths = {}, parts = [];
+const S = { t: 0, speed: DAY, playing: true, f: {}, node: null, ref: null, uni: null, dia: -1, N: 1, tb: null, pidiendo: false };
+let C, T, D0, worker, svg, gTok, paths = {}, parts = [], mapa = null, RED = null;
 
 export async function iniciar() {
   const qs = new URLSearchParams(location.search);
@@ -42,8 +43,14 @@ export async function iniciar() {
   $('t-rx-h').textContent = 'Receptoras más saturadas';
 
   worker = new Worker('js/referencias-worker.js', { type: 'module' });
-  const r = await pedir({ tipo: 'armar', url: new URL('assets/estados_issste.json', location.href).href, corteDia: Math.floor(T / DAY) }, 'cubo');
+  const [r, geo, red] = await Promise.all([
+    pedir({ tipo: 'armar', url: new URL('assets/estados_issste.json', location.href).href, corteDia: Math.floor(T / DAY) }, 'cubo'),
+    fetch('assets/estados_mx.json').then(x => x.json()),
+    fetch('assets/estados_issste.json').then(x => x.json()),
+  ]);
   C = Cubo.from(r.cubo);
+  RED = red;
+  for (const e of red.estados) ESTADOS[e.cve] = e.nombre;
   window.__refNac = { C, S, worker };
   D0 = C.meta.d0 * DAY;
   S.t = qs.has('desde') ? +qs.get('desde') : T - 45 * DAY;
@@ -69,8 +76,23 @@ export async function iniciar() {
   }));
   $('btn-play').addEventListener('click', () => setPlaying(!S.playing));
   $('btn-hoy').addEventListener('click', () => { S.t = T; setPlaying(false); update(true); });
-  $('sel-x').addEventListener('click', () => { S.node = null; S.ref = null; panel(); });
+  $('sel-x').addEventListener('click', () => { if (S.ref || S.node) { S.ref = null; S.node = null; } else salirUnidad(); panel(); });
   $('sel-next').hidden = true;
+
+  // mapa de flujos
+  $('mapa-card').hidden = false;
+  mapa = new MapaFlujos($('mapa'), C, geo, red, {
+    select: n => {
+      if (n.tipo === 'estado') return ponerFiltro({ cve: n.cve });
+      if (n.tipo === 'rx') return seleccionarUnidad({ tipo: 'rx', key: n.key, x: n.x, id: C.meta.rx[n.x].id, nombre: C.meta.rx[n.x].nombre });
+      if (n.tipo === 'em') return seleccionarUnidad({ tipo: 'em', key: n.key, idx: n.idx, id: C.meta.em[n.idx].id, nombre: C.meta.em[n.idx].corto });
+    },
+    hover: (n, ev) => tipMapa(n, ev),
+  });
+  window.__refNac.mapa = mapa;
+  $('m-ven').addEventListener('change', e => { mapa.ventana = +e.target.value; $('mapa-sub').textContent = `envíos de los últimos ${e.target.value} días`; mapa.set(S.dia, S.f, S.uni?.key); });
+  $('m-top').addEventListener('change', e => { mapa.top = +e.target.value; mapa.set(S.dia, S.f, S.uni?.key); });
+  $('m-up').addEventListener('click', () => ponerFiltro({}));
 
   $('flow').innerHTML = diagramaSVG(['Cada punto = N referencias (ver leyenda).', 'Color del punto = antigüedad desde la creación.',
     `Los cierres se ven ${REGLAS.archivarDias} días; «acum.» cuenta 90 días.`, 'Toca una etapa para ver estados y receptoras.']);
@@ -87,6 +109,7 @@ export async function iniciar() {
     if (S.playing) { S.t = Math.min(T, S.t + dt * S.speed); if (S.t >= T) setPlaying(false); }
     update(false);
     animarParticulas(now);
+    mapa.draw(now);
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
@@ -116,7 +139,113 @@ function setPlaying(p) {
   $('sim-status').classList.toggle('paused', !p);
 }
 
-function refrescar() { limpiarParticulas(); S.dia = -1; S.tb = null; update(true); if (S.node) panel(); }
+function refrescar() { limpiarParticulas(); S.dia = -1; S.tb = null; update(true); panel(); }
+
+/** cambia el filtro de región/estado y sincroniza los selectores */
+function ponerFiltro(f) {
+  const fr = $('f-reg'), fe = $('f-est');
+  fr.value = f.cve ? C.meta.region[C.IE[f.cve]] : f.region || '';
+  fr.dispatchEvent(new Event('change'));
+  if (f.cve) { fe.value = f.cve; fe.dispatchEvent(new Event('change')); }
+}
+
+// ---------------------------------------------------------------------
+//  Detalle de una unidad (nivel 2): una ficha = una referencia de esa unidad
+// ---------------------------------------------------------------------
+function segAt(r, t) { const g = r.seg; let lo = 0, hi = g.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (g[m].t0 <= t) lo = m; else hi = m - 1; } return g[lo]; }
+function etapaLocal(r, t) {
+  if (t < r.tCrea) return null;
+  const s = segAt(r, t);
+  return TERMINAL.has(s.etapa) && t >= s.t0 + REGLAS.archivarDias * DAY ? null : s.etapa;
+}
+function seleccionarUnidad(u) {
+  S.uni = { ...u, refs: null, t: -1 }; S.ref = null; S.node = null;
+  limpiarParticulas();
+  pedirUnidad(true);
+  mapa.set(S.dia, S.f, u.key);
+  panel();
+}
+function salirUnidad() { S.uni = null; S.dia = -1; update(true); }
+async function pedirUnidad(force = false) {
+  const u = S.uni;
+  if (!u || u.pidiendo || (!force && Math.abs(u.t - S.t) < DAY / 2)) return;
+  u.pidiendo = true;
+  try {
+    const r = await pedir({ tipo: 'refs', id: u.id, t: S.t, max: 3000 }, 'refs');
+    if (S.uni !== u) return;
+    u.refs = r.refs; u.t = r.t;
+    dibujarUnidad(); panel();
+  } finally { u.pidiendo = false; }
+}
+function dibujarUnidad() {
+  const u = S.uni;
+  if (!u || !u.refs) return;
+  const t = S.t, grupos = Object.fromEntries(Object.keys(NODES).map(k => [k, []]));
+  for (const r of u.refs) { const e = etapaLocal(r, t); if (e) grupos[e].push(r); }
+  let s = '';
+  for (const [k, list] of Object.entries(grupos)) {
+    $('cnt-' + k).textContent = nf.format(list.length);
+    const bk = new Array(EDADES.length + 1).fill(0);
+    list.forEach((r, i) => {
+      const edad = (t - r.tCrea) / DAY;
+      let b = 0; while (b < EDADES.length && edad >= EDADES[b]) b++;
+      bk[b]++;
+      if (i >= CAP - (list.length > CAP ? 1 : 0)) return;
+      const [x, y] = slotPos(k, i), dias = (Math.min(t, r.tAtencion) - r.tCrea) / DAY;
+      s += `<circle class="utok" data-ref="${r.id}" cx="${x}" cy="${y}" r="${R}" fill="${EDAD_C[b]}" stroke="${SEM[semaforo(dias)]}" stroke-width="2"><title>${r.id} · ${esc(r.esp.n)} · ${Math.floor(edad)} días</title></circle>`;
+    });
+    $('more-' + k).textContent = list.length > CAP ? `+${list.length - CAP + 1}` : '';
+    let x = 0, bar = '';
+    for (let b = 0; b < bk.length; b++) { const w = list.length ? (NW - 20) * bk[b] / list.length : 0; if (w > 0) bar += `<rect x="${x}" y="0" width="${w}" height="5" rx="1.5" fill="${EDAD_C[b]}"/>`; x += w; }
+    $('bar-' + k).innerHTML = bar;
+  }
+  gTok.innerHTML = s;
+  gTok.querySelectorAll('.utok').forEach(c => c.addEventListener('click', ev => { ev.stopPropagation(); abrirRef(c.dataset.ref); }));
+  $('lg-n').innerHTML = `<i class="sw ck" style="background:#cbd5e1"></i>1 ficha = 1 referencia de ${esc(u.nombre)}`;
+}
+function panelUnidad() {
+  const u = S.uni, body = $('sel-body'), di = S.dia;
+  $('sel-title').innerHTML = `${esc(u.nombre)} <small>${u.tipo === 'rx' ? 'unidad receptora' : 'unidad que refiere'}</small>`;
+  const s = u.tipo === 'rx' ? C.saturacion(di, u.x, mapa.ventana) : null;
+  const vivas = u.refs ? u.refs.filter(r => etapaLocal(r, S.t)) : [];
+  const orden = [...vivas].sort((a, b) => a.tCrea - b.tCrea).slice(0, 40);
+  body.innerHTML = `<div class="rf-uni"><span>El diagrama muestra solo las referencias de esta unidad.</span><button id="u-x" class="btn">Salir</button></div>
+    ${s ? `<div class="meta">
+      <span>Saturación</span><b style="color:${SEM[s.sem]}">${SAT_ES[s.sem]}</b>
+      <span>Lista de espera</span><b>${nf.format(s.L)}</b>
+      <span>Entran / salen por semana</span><b>${s.lambdaSem.toFixed(1)} / ${s.salidasSem.toFixed(1)}</b>
+      <span>Atendidas por semana</span><b>${s.muSem.toFixed(1)}</b>
+      <span>Utilización ρ</span><b>${Number.isFinite(s.rho) ? s.rho.toFixed(2) : '—'}</b>
+      <span>Espera estimada (Little)</span><b>${Number.isFinite(s.W) ? Math.round(s.W) + ' días' : 'sin salidas'}</b>
+      <span>Sin respuesta</span><b>${nf.format(s.limbo)}</b>
+      <span>En atención</span><b>${nf.format(s.enAtencion)}</b>
+    </div>` : ''}
+    <h4 class="rf-h4">${u.refs ? `${nf.format(vivas.length)} referencias vivas · las más antiguas` : 'Cargando referencias…'}</h4>
+    <div class="list-os">${orden.map(r => {
+      const e = etapaLocal(r, S.t), edad = (S.t - r.tCrea) / DAY, dias = (Math.min(S.t, r.tAtencion) - r.tCrea) / DAY;
+      return `<button data-ref="${r.id}"><i style="background:${SEM[semaforo(dias)]}"></i><span class="tx"><b>${r.id}</b> ${esc(r.esp.n)}<small>${esc(ETAPAS[e].n)} · ${esc(segAt(r, S.t).unidad || '')}</small></span><span>${Math.floor(edad)} d</span></button>`;
+    }).join('')}</div>`;
+  $('u-x').addEventListener('click', () => { salirUnidad(); panel(); });
+  body.querySelectorAll('[data-ref]').forEach(b => b.addEventListener('click', () => abrirRef(b.dataset.ref)));
+}
+
+// ---------------------------------------------------------------------
+//  Tooltip del mapa
+// ---------------------------------------------------------------------
+function tipMapa(n, ev) {
+  const el = $('mapa-tip');
+  if (!n) { el.hidden = true; return; }
+  const box = $('mapa').getBoundingClientRect();
+  const W = Number.isFinite(n.W) ? Math.round(n.W) + ' d' : '—';
+  el.innerHTML = n.tipo === 'em'
+    ? `<b>${esc(n.nombre)}</b><div class="r">Unidad que refiere<em>${esc(nombreEstado(n.cve))}</em></div><div class="r">Toca para ver sus referencias<em></em></div>`
+    : `<b>${esc(n.tipo === 'estado' ? n.nombre : n.corto)}</b>${n.tipo === 'estado' ? `<div class="r">Receptoras<em>${n.nRx}</em></div>` : `<div class="r">${esc(nombreEstado(n.cve))}${n.fuera ? ' · fuera del filtro' : ''}<em></em></div>`}
+      <div class="r">Lista de espera<em>${nf.format(n.L)}</em></div><div class="r">Entran / salen por semana<em>${n.ent.toFixed(1)} / ${n.sal.toFixed(1)}</em></div>
+      <div class="r">Espera estimada<em>${W}</em></div><div class="r">Saturación<em style="color:${SEM[n.sem]}">${SAT_ES[n.sem]}</em></div>`;
+  el.hidden = false;
+  el.style.left = Math.min(box.width - 260, ev.clientX - box.left + 14) + 'px';
+  el.style.top = Math.min(box.height - 150, ev.clientY - box.top + 14) + 'px';
+}
 
 // ---------------------------------------------------------------------
 //  Cada día: nodos, puntos, barras, flechas y partículas
@@ -155,7 +284,10 @@ function update(force) {
     if (TERMINAL.has(k)) acc.textContent = `acum. ${nf.format(acum[k] ?? 0)}`;
     else acc.textContent = tiempos[k] ? `promedio ${tiempos[k].dias < 2 ? tiempos[k].dias.toFixed(1) : Math.round(tiempos[k].dias)} d en la etapa` : '';
   }
-  gTok.innerHTML = dots;
+  gTok.innerHTML = S.uni ? '' : dots;
+  if (S.uni) { dibujarUnidad(); pedirUnidad(); }
+  mapa.set(di, S.f, S.uni?.key);
+  $('m-up').hidden = !(S.f.cve || S.f.region);
   // flechas: grosor por pasos diarios de la última semana
   const tr7 = C.transiciones(di, S.f, 7), vmax = Math.max(1, ...Object.values(tr7));
   for (const Ed of EDGES) {
@@ -165,7 +297,7 @@ function update(force) {
     if (l) l.textContent = `${Ed[2]} · ${v >= 10 ? Math.round(v) : v.toFixed(1)}/d`;
   }
   // partículas solo al avanzar un día con la reproducción
-  if (salto && S.playing) particulas(C.transiciones(di, S.f, 1));
+  if (salto && S.playing && !S.uni) particulas(C.transiciones(di, S.f, 1));
   movimientos(di, d, salto);
   if (S.node) panel();
   if (!S.tb || Math.abs(S.tb.t - t) > DAY / 2 || force) tablero();
@@ -223,8 +355,9 @@ function movimientos(di, d, salto) {
 const filtroTxt = () => (S.f.cve ? nombreEstado(S.f.cve) : S.f.region ? 'Región ' + S.f.region : 'todo el país');
 function panel() {
   const body = $('sel-body');
-  $('sel-x').hidden = !S.node && !S.ref;
+  $('sel-x').hidden = !S.node && !S.ref && !S.uni;
   if (S.ref) return panelRef();
+  if (S.uni && !S.node) return panelUnidad();
   if (!S.node) { $('sel-title').textContent = 'Red nacional'; body.innerHTML = '<p class="muted">Toca una etapa para ver en qué estados y receptoras están esas referencias.</p>'; return; }
   const k = S.node, Et = ETAPAS[k], di = S.dia, E = C.etapas(di, S.f)[k], n = E.reduce((a, b) => a + b, 0), tm = C.tiempos(di, S.f, 28)[k];
   $('sel-title').innerHTML = `${esc(Et.n)} <small>${esc(Et.area)} · ${nf.format(n)} · ${esc(filtroTxt())}</small>`;
@@ -240,7 +373,8 @@ function panel() {
     </div>
     ${porE.length ? `<h4 class="rf-h4">Por estado de la unidad que refiere</h4><div class="rf-bars">${porE.map(([c, v]) => `<button data-cve="${c}"><span>${esc(nombreEstado(c))}</span><i style="width:${100 * v / porE[0][1]}%"></i><em>${nf.format(v)}</em></button>`).join('')}</div>` : ''}
     ${sat.length ? `<h4 class="rf-h4">Receptoras con más lista de espera</h4><div class="rf-bars">${sat.map(s => `<button data-rx="${s.x}"><span>${esc(s.u.corto)}</span><i style="width:${100 * s.L / (sat[0].L || 1)}%;background:${SEM[s.sem]}"></i><em>${s.L} · ${fmtW(s.W)}</em></button>`).join('')}</div>` : ''}`;
-  body.querySelectorAll('[data-cve]').forEach(b => b.addEventListener('click', () => { const c = b.dataset.cve; $('f-reg').value = C.meta.region[C.IE[c]]; $('f-reg').dispatchEvent(new Event('change')); $('f-est').value = c; $('f-est').dispatchEvent(new Event('change')); }));
+  body.querySelectorAll('[data-cve]').forEach(b => b.addEventListener('click', () => ponerFiltro({ cve: b.dataset.cve })));
+  body.querySelectorAll('[data-rx]').forEach(b => b.addEventListener('click', () => { const x = +b.dataset.rx, u = C.meta.rx[x]; seleccionarUnidad({ tipo: 'rx', key: 'R' + x, x, id: u.id, nombre: u.nombre }); }));
 }
 const fmtW = W => (!Number.isFinite(W) ? 'sin salidas' : `${Math.round(W)} d de espera`);
 

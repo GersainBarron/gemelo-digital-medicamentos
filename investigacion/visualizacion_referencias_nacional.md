@@ -118,3 +118,18 @@ Semáforo de saturación: verde W ≤ 15 d y ρ < 0.9 · amarillo W ≤ 30 · na
 - Fong et al., Understanding Waiting List Pressures (NHS): https://medrxiv.org/content/10.1101/2022.08.23.22279117v1.full.pdf
 - NHS Improvement, Capacity and Demand: https://www.england.nhs.uk/improvement-hub/wp-content/uploads/sites/44/2017/11/Capacity-and-Demand-Expert-on-Call.pdf
 - Izady, Appointment capacity planning in specialty clinics: https://eprints.soton.ac.uk/373484/1/paper-Final.pdf
+
+---
+
+## 6. Implementado (4 nov 2026)
+
+`referencias.html?red=nacional` (selector «Hidalgo · detalle | Nacional · agregado»):
+
+| Fase | Archivos | Qué hace |
+|---|---|---|
+| 1 | `js/referencias.js` (red), `js/referencias-cubo.js`, `js/referencias-worker.js` | Motor para cualquier red (902 emisoras → 131 receptoras), cubo diario (etapas × antigüedad, saturación por Ley de Little, flujos OD) en un worker |
+| 2 | `js/referencias-agregado.js`, `js/referencias-diagrama.js` | Diagrama agregado: 1 punto = N, barras de antigüedad, flechas por pasos/día, partículas, filtros región/estado, receptoras más saturadas |
+| 3 | `js/referencias-mapa.js` | Mapa de flujos en canvas: país → estados; región/estado → unidades; círculo = lista de espera, color = saturación; fuera de región punteado, escalamientos en morado |
+| 4 | (mismos) | Tocar un estado filtra todo; tocar una unidad cambia el diagrama a una ficha por referencia de esa unidad y abre cada ficha |
+
+Pruebas: `node tests/referencias.test.mjs` y `node tests/referencias-nacional.test.mjs` (el cubo se compara contra el motor en 5 días × 3 filtros).

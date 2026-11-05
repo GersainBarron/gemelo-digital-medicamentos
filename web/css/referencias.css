@@ -47,6 +47,8 @@
 .xp-tools select[hidden] { display: none; }
 .part { fill: #e2e8f0; pointer-events: none; }
 .part.bad { fill: #fca5a5; }
+.utok { cursor: pointer; }
+.utok:hover { stroke: #fff; }
 .rf-h4 { font-size: 12px; margin: 12px 0 6px; color: var(--muted); font-weight: 600; }
 .rf-bars { display: grid; gap: 4px; }
 .rf-bars button { display: grid; grid-template-columns: minmax(0, 1.3fr) 1fr auto; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 7px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); font-size: 12px; text-align: left; }
@@ -54,3 +56,11 @@
 .rf-bars button i { display: block; height: 6px; border-radius: 3px; background: var(--accent); }
 .rf-bars button em { font-style: normal; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rf-nota { font-size: 11.5px; margin-top: 8px; }
+.rf-mapa { grid-column: 1; }
+.rf-mapa[hidden] { display: none; }
+.rf-mapa .card-h { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.rf-mapa-box { position: relative; height: 560px; border-radius: 10px; overflow: hidden; background: #0b1117; }
+.rf-mapa-box canvas { width: 100%; height: 100%; display: block; }
+.rf-mapa-box .tip { position: absolute; pointer-events: none; }
+@media (max-width: 700px) { .rf-mapa-box { height: 420px; } }
+.rf-uni { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 8px 10px; margin-bottom: 10px; border-radius: 9px; background: rgba(45, 212, 191, 0.1); border: 1px solid rgba(45, 212, 191, 0.35); font-size: 12.5px; }

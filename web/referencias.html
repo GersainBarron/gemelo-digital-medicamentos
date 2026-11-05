@@ -74,6 +74,23 @@
       <div id="legend" class="legend xp-legend"></div>
     </section>
 
+    <section class="card rf-mapa" id="mapa-card" hidden>
+      <div class="card-h"><h2>Mapa de flujos <small id="mapa-sub">envíos de los últimos 28 días</small></h2>
+        <div class="xp-tools">
+          <select id="m-ven"><option value="7">7 días</option><option value="28" selected>28 días</option><option value="90">90 días</option></select>
+          <select id="m-top"><option value="40">40 flujos más grandes</option><option value="120" selected>120 flujos más grandes</option><option value="400">400 flujos</option></select>
+          <button id="m-up" class="btn" hidden>← Volver al país</button>
+        </div>
+      </div>
+      <div class="rf-mapa-box"><canvas id="mapa"></canvas><div id="mapa-tip" class="tip" hidden></div></div>
+      <div class="legend xp-legend">
+        <span><i class="sw ck" style="background:#22c55e"></i>fluye (espera ≤ 15 d)</span><span><i class="sw ck" style="background:#facc15"></i>presión</span>
+        <span><i class="sw ck" style="background:#f97316"></i>saturada (&gt; 30 d o ρ ≥ 1)</span><span><i class="sw ck" style="background:#ef4444"></i>colapsada (&gt; 90 d)</span>
+        <span>círculo = lista de espera</span><span><i class="sw" style="background:#2dd4bf"></i>envío</span><span><i class="sw" style="background:#fb923c"></i>fuera de región</span><span><i class="sw" style="background:#a78bfa"></i>escalamiento</span>
+        <span>toca un estado para acercarte; una unidad para ver sus referencias</span>
+      </div>
+    </section>
+
     <aside class="xp-side">
       <section class="card" id="sel-card">
         <div class="card-h"><h2 id="sel-title">Referencia</h2><div class="xp-sel-btns"><button id="sel-next" class="btn" hidden>Siguiente paso ›</button><button id="sel-x" class="btn" hidden>✕</button></div></div>

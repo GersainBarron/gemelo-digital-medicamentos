@@ -28,12 +28,15 @@ export const REGLAS = {
   maxVueltas: 6,
   inicio: -300,         // primer día con referencias (≈ 1 ene 2026)
   porDia: 5.5,          // [SUPUESTO] referencias por día hábil en la red ISSSTE Hidalgo
+  porPeso: 0.104,       // misma tasa por unidad emisora (CMF 3, UMF 2, CAF 1) para la red nacional
+  microrregion: 0.6,    // se refiere fuera de la región si la otra unidad queda a < 60 % de la distancia
 };
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 export const fecha = d => { const x = new Date(BASE_DATE + d * 864e5); return `${x.getUTCDate()} ${MESES[x.getUTCMonth()]}`; };
-const dow = d => new Date(BASE_DATE + d * 864e5).getUTCDay();
-const mes = d => new Date(BASE_DATE + d * 864e5).getUTCMonth();
+const dow = d => (((d % 7) + 7) % 7 + 1) % 7; // día 0 = lunes (getUTCDay = 1)
+const MES = new Map();
+const mes = d => { let m = MES.get(d); if (m === undefined) { m = new Date(BASE_DATE + d * 864e5).getUTCMonth(); MES.set(d, m); } return m; };
 export const habil = d => { const w = dow(d); return w !== 0 && w !== 6; };
 export const sigHabil = d => { while (!habil(d)) d++; return d; };
 export function sumarHabiles(d, n) { let x = d, k = 0; while (k < n) { x++; if (habil(x)) k++; } return x; }
@@ -120,40 +123,156 @@ function destino(e, esp) {
   if (esp.nivel === 'HG') return e.ruta === 'R8' ? 'HGT' : 'HGP';
   return e.ruta === 'R8' ? 'CHH' : ['R4', 'R5', 'R9'].includes(e.ruta) ? 'CHI' : 'HGP';
 }
-const cap = w => w.length <= 3 && w === w.toUpperCase() ? w : w.charAt(0) + w.slice(1).toLowerCase();
+const MENORES = new Set(['DE', 'LA', 'DEL', 'LOS', 'LAS', 'EL', 'Y', 'AL']);
+const cap = w => MENORES.has(w) ? w.toLowerCase()
+  : /^[A-Z0-9.]{1,3}$/.test(w) ? w
+  : w.replace(/^([^A-Za-zÀ-ÿ]*)(.)(.*)$/, (m, a, b, c) => a + b + c.toLowerCase());
 function corto(nombre) { const [p, ...r] = nombre.split(' '); const s = p + ' ' + r.map(cap).join(' '); return s.length > 30 ? s.slice(0, 29) + '…' : s; }
+
+// =====================================================================
+//  Redes de unidades: quién refiere, quién recibe, a dónde se escala.
+//  Una red expone: emisoras[], rx{id → receptora}, destino(e, esp) → {rx, fuera},
+//  alterna(rx, R) → rx, dist(e, rx) → km. Cada receptora lleva su escala.
+// =====================================================================
+/** Hidalgo con sus 7 receptoras (assets/unidades_hidalgo.json) */
+export function redHidalgo(data) {
+  const rx = Object.fromEntries(Object.entries(RECEPTORAS).map(([id, x], idx) => [id, { id, idx, region: 'I', cve: '13', carga: 1, ...x }]));
+  const emisoras = data.units
+    .filter(u => u.inst === 'ISSSTE' && u.nivel === 'Primer Nivel' && u.tipo !== 'CMFE')
+    .map((u, idx) => ({ id: u.clues, idx, clues: u.clues, nombre: u.nombre, corto: corto(u.nombre), tipo: u.tipo, ruta: u.ruta, km: u.km, cve: '13', region: 'I', w: PESO[u.tipo] || 1 }));
+  return {
+    nombre: 'Hidalgo', emisoras, rx, porDia: REGLAS.porDia,
+    destino: (e, esp) => { const id = destino(e, esp); return { rx: id, fuera: !!rx[id].fuera }; },
+    alterna: id => ALTERNA[id],
+    dist: e => e.km,
+  };
+}
+
+/** parámetros de atención por tipo de unidad receptora [SUPUESTO, igual que Hidalgo] */
+const TIPO_RX = {
+  CE: { acep: 1.5, cita: [20, 60], limbo: 0.05, devuelve: 0.08, contra: 0.72 },
+  CH: { acep: 2, cita: [26, 90], limbo: 0.10, devuelve: 0.15, contra: 0.62 },
+  HG: { acep: 2, cita: [32, 110], limbo: 0.08, devuelve: 0.12, contra: 0.66 },
+  HR: { acep: 5, cita: [55, 170], limbo: 0.14, devuelve: 0.20, contra: 0.60 },
+  CMN: { acep: 7, cita: [65, 190], limbo: 0.10, devuelve: 0.25, contra: 0.70 },
+};
+export const REGIONES = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
+const COLOR_REGION = ['#2dd4bf', '#60a5fa', '#f472b6', '#facc15', '#a78bfa', '#38bdf8', '#fb923c', '#4ade80', '#f87171', '#e879f9', '#a3e635', '#fbbf24', '#22d3ee', '#c084fc', '#fda4af', '#94a3b8'];
+const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+const PALABRAS_VACIAS = new Set(['HR', 'HAE', 'DR', 'M', 'DE', 'LA', 'DEL', 'EL', 'LIC', 'GRAL', 'LOS']);
+const tokens = s => new Set(norm(s).split(/[^A-Z0-9]+/).filter(w => w.length > 1 && !PALABRAS_VACIAS.has(w)));
+
+/** Red nacional: 1,033 unidades de assets/estados_issste.json con regionalización 2025 y microrregión por distancia */
+export function redNacional(data, seed = 7) {
+  const R = rng(seed);
+  const est = Object.fromEntries(data.estados.map(e => [e.cve, e]));
+  const d2 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  const rx = {}, emisoras = [];
+  for (const u of data.unidades) {
+    const E = est[u.cve], region = E.region;
+    if (u.nivel === 1) {
+      emisoras.push({ id: u.clues, idx: emisoras.length, clues: u.clues, nombre: u.nombre, corto: corto(u.nombre), tipo: u.tipo, cve: u.cve, estado: E.abbr, region, xy: u.xy, w: PESO[u.tipo] || 1 });
+      continue;
+    }
+    const tipo = /20 DE NOVIEMBRE/.test(u.nombre) ? 'CMN' : u.tipo;
+    rx[u.clues] = {
+      id: u.clues, idx: Object.keys(rx).length, nombre: u.nombre, corto: corto(u.nombre), tipo, nivel: u.nivel, cve: u.cve, estado: E.abbr, region, xy: u.xy,
+      color: COLOR_REGION[REGIONES.indexOf(region)] || '#94a3b8', carga: Math.exp(0.35 * (R() + R() + R() - 1.5)), ...TIPO_RX[tipo],
+    };
+  }
+  const lista = Object.values(rx);
+  const cmn = lista.find(u => u.tipo === 'CMN');
+  const hrs = lista.filter(u => u.tipo === 'HR');
+  // HR que encabeza la región de cada estado (por el nombre en la regionalización)
+  const hrDe = {};
+  for (const E of data.estados) {
+    const want = tokens(E.hr);
+    let best = null, bs = -1;
+    for (const h of hrs) {
+      const s = [...tokens(h.nombre)].filter(w => want.has(w)).length - d2(h.xy, E.hub) / 1e5;
+      if (s > bs) { bs = s; best = h; }
+    }
+    hrDe[E.cve] = best.id;
+  }
+  for (const u of lista) u.escala = u.tipo === 'CMN' ? null : u.tipo === 'HR' ? cmn.id : hrDe[u.cve];
+  const cerca = (xy, cands) => { let b = null, bd = Infinity; for (const c of cands) { const d = d2(xy, c.xy); if (d < bd) { bd = d; b = c; } } return [b, bd]; };
+  const porClase = {
+    CH: lista.filter(u => u.nivel === 2),
+    HG: lista.filter(u => u.tipo === 'HG'),
+    CMFE: lista.filter(u => u.tipo === 'CE'),
+  };
+  // destino de cada emisora por clase de especialidad, calculado una vez
+  for (const e of emisoras) {
+    e.dest = {};
+    for (const clase of ['CH', 'HG', 'CMFE', 'HR']) {
+      if (clase === 'HR') { e.dest.HR = { rx: hrDe[e.cve], fuera: false }; continue; }
+      const cands = porClase[clase];
+      const [enReg, dReg] = cerca(e.xy, cands.filter(c => c.region === e.region));
+      const [todo, dTodo] = cerca(e.xy, cands);
+      if (!enReg) { e.dest[clase] = clase === 'CMFE' ? null : clase === 'HG' ? { rx: hrDe[e.cve], fuera: false } : { rx: todo.id, fuera: true }; continue; }
+      e.dest[clase] = todo.region !== e.region && dTodo < REGLAS.microrregion * dReg ? { rx: todo.id, fuera: true } : { rx: enReg.id, fuera: false };
+    }
+    if (!e.dest.CMFE) e.dest.CMFE = e.dest.HG;
+  }
+  // a dónde se reenvía cuando la receptora rechaza
+  for (const u of lista) {
+    if (u.nivel === 2) { const [o] = cerca(u.xy, porClase.CH.filter(c => c.region === u.region && c !== u)); u.alterna = o && R() < 0.5 ? o.id : hrDe[u.cve]; }
+    else if (u.tipo === 'HR') { const [o] = cerca(u.xy, porClase.HG.filter(c => c.cve === u.cve)); u.alterna = o ? o.id : cmn.id; }
+    else u.alterna = hrDe[u.cve];
+  }
+  const sumW = emisoras.reduce((s, e) => s + e.w, 0);
+  return {
+    nombre: 'Nacional', nacional: true, emisoras, rx, estados: est, hrDe, porDia: sumW * REGLAS.porPeso,
+    destino: (e, esp) => e.dest[esp.nivel] || e.dest.CH,
+    alterna: id => rx[id].alterna,
+    dist: (e, id) => d2(e.xy, rx[id].xy),
+  };
+}
 
 export function semaforo(d) { return d <= 10 ? 'VERDE' : d <= REGLAS.plazoDias ? 'AMARILLO' : d <= 30 ? 'NARANJA' : d <= 90 ? 'ROJO' : 'CRONICA'; }
 const mediana = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
 
 // =====================================================================
 export class Referencias {
-  /** @param data assets/unidades_hidalgo.json · corteDia: último día con referencias nuevas */
-  constructor(data, { seed = 20261104, corteDia = 0 } = {}) {
+  /**
+   * @param data assets/unidades_hidalgo.json (red de Hidalgo) o assets/estados_issste.json (red nacional), o una red ya armada
+   * @param corteDia último día con referencias nuevas
+   */
+  constructor(data, { seed = 20261104, corteDia = 0, inicio = REGLAS.inicio } = {}) {
     const R = rng(seed);
     this.R = R;
     this.corteDia = corteDia;
-    this.rx = Object.fromEntries(Object.entries(RECEPTORAS).map(([id, x], idx) => [id, { id, idx, ...x }]));
+    this.inicio = inicio;
+    this.red = data.destino ? data : data.unidades ? redNacional(data) : redHidalgo(data);
+    this.nacional = !!this.red.nacional;
+    this.rx = this.red.rx;
     this.receptoras = Object.values(this.rx);
-    this.emisoras = data.units
-      .filter(u => u.inst === 'ISSSTE' && u.nivel === 'Primer Nivel' && u.tipo !== 'CMFE')
-      .map(u => ({ clues: u.clues, nombre: u.nombre, corto: corto(u.nombre), tipo: u.tipo, ruta: u.ruta, km: u.km, w: PESO[u.tipo] || 1 }));
+    this.emisoras = this.red.emisoras;
+    let acc = 0;
+    this._wCum = Float64Array.from(this.emisoras, e => (acc += e.w));
     this.refs = [];
-    for (let d = REGLAS.inicio; d <= corteDia; d++) {
+    for (let d = inicio; d <= corteDia; d++) {
       if (!habil(d)) continue;
-      const ts = Array.from({ length: poisson(R, REGLAS.porDia) }, () => d * DAY + (8 + R() * 6) * H).sort((a, b) => a - b);
+      const ts = Array.from({ length: poisson(R, this.red.porDia) }, () => d * DAY + (8 + R() * 6) * H).sort((a, b) => a - b);
       for (const t of ts) this.refs.push(this._crear(t));
     }
   }
 
+  _emisora() {
+    const c = this._wCum, u = this.R() * c[c.length - 1];
+    let lo = 0, hi = c.length - 1;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (c[m] < u) lo = m + 1; else hi = m; }
+    return this.emisoras[lo];
+  }
+
   _crear(tCrea) {
     const R = this.R, U = id => this.rx[id];
-    const e = pickW(R, this.emisoras), esp = pickW(R, ESPECIALIDADES);
+    const e = this._emisora(), esp = pickW(R, ESPECIALIDADES);
     const r = {
       id: 'REF-' + String(this.refs.length + 1).padStart(5, '0'), tCrea, tEmision: tCrea, emisora: e, esp, dx: pick(R, esp.dx),
       sexo: R() < 0.58 ? 'F' : 'M', edad: 18 + Math.floor(R() * 66), seg: [], tAtencion: Infinity, final: null, rxSet: new Set(),
     };
-    let rec = destino(e, esp), t = tCrea, vueltas = 0, atendido = false, escalado = false, estudio = false, reprog = false, reemite = false, nEsp = 0;
+    let { rx: rec, fuera } = this.red.destino(e, esp), t = tCrea, vueltas = 0, atendido = false, escalado = false, estudio = false, reprog = false, reemite = false, nEsp = 0;
     r.rx0 = rec;
     const push = (etapa, t0, o = {}) => {
       const last = r.seg.at(-1);
@@ -182,13 +301,13 @@ export class Referencias {
           }
           st = 'ACEPTACION'; break;
         case 'ACEPTACION': {
-          push('ACEPTACION', t, { rx: rec, unidad: u.corto, nota: escalado ? 'Envío desde ' + r.seg.filter(s => s.rx).at(-2)?.unidad : u.fuera ? 'Fuera de región (microrregionalización)' : '' });
+          push('ACEPTACION', t, { rx: rec, unidad: u.corto, nota: escalado ? 'Envío desde ' + r.seg.filter(s => s.rx).at(-2)?.unidad : fuera ? 'Fuera de región (microrregionalización)' : '' });
           const x = R();
           if (x < u.devuelve && vueltas < REGLAS.maxVueltas) {
             t = habilesDesde(R, t, logn(R, u.acep, u.acep * 3));
             vueltas++;
             push('DEVUELTA', t, { rx: rec, unidad: u.corto, vuelta: true, nota: pick(R, MOTIVOS_RX) });
-            if (R() < 0.4) rec = ALTERNA[rec];
+            if (R() < 0.4) { rec = this.red.alterna(rec); fuera = false; }
             t = habilesDesde(R, t, 1 + R() * 4); st = 'VALIDACION'; break;
           }
           if (x < u.devuelve + u.limbo) {
@@ -203,8 +322,8 @@ export class Referencias {
           t = habilesDesde(R, t, logn(R, u.acep, u.acep * 3)); st = 'CITA'; break;
         }
         case 'CITA': {
-          push('CITA', t, { rx: rec, unidad: u.corto, vuelta: reprog, reg: R() < 0.92, nota: reprog ? 'Cita reprogramada' : u.fuera ? 'Traslado foráneo' : '' });
-          const fac = reprog ? 0.7 : 1; reprog = false;
+          push('CITA', t, { rx: rec, unidad: u.corto, vuelta: reprog, reg: R() < 0.92, nota: reprog ? 'Cita reprogramada' : fuera ? 'Traslado foráneo' : '' });
+          const fac = (reprog ? 0.7 : 1) * (u.carga || 1); reprog = false;
           let espera = logn(R, u.cita[0] * fac, u.cita[1] * fac);
           if (mes(Math.floor(t / DAY)) >= 9) espera += 20 + R() * 40; // octubre a diciembre: cierre de agenda
           const tCita = enHorario(R, Math.floor(t / DAY + Math.max(2, espera)), 8, 13);
@@ -217,7 +336,7 @@ export class Referencias {
           // la cita cae después de la vigencia: al llegar, la referencia ya se quemó
           if (!atendido && tCita - r.tEmision > REGLAS.vigenciaDias * DAY && R() < 0.4) { t = r.tEmision + REGLAS.vigenciaDias * DAY; st = 'QUEMADA'; break; }
           t = tCita;
-          if (R() < 0.12 + (e.km > 100 ? 0.06 : 0)) { st = 'NO_ACUDIO'; break; }
+          if (R() < 0.12 + (this.red.dist(e, rec) > 100 ? 0.06 : 0)) { st = 'NO_ACUDIO'; break; }
           if (!atendido) { r.tAtencion = t; atendido = true; }
           st = 'ESPECIALIDAD'; break;
         }
@@ -245,7 +364,7 @@ export class Referencias {
         case 'TERCER':
           escalado = true;
           push('TERCER', t, { rx: rec, unidad: u.corto, nota: 'Rebasa la capacidad resolutiva → ' + U(u.escala).corto });
-          rec = u.escala; t = habilesDesde(R, t, 1 + R() * 3); st = 'ACEPTACION'; break;
+          rec = u.escala; fuera = false; t = habilesDesde(R, t, 1 + R() * 3); st = 'ACEPTACION'; break;
         case 'CONTRARREF':
           push('CONTRARREF', t, { rx: rec, unidad: u.corto, reg: R() < 0.95, nota: 'SM-1-17 reverso · plan de manejo' });
           t = habilesDesde(R, t, R() < 0.6 ? 0 : 1 + R() * 3); st = 'SEGUIMIENTO'; break;
@@ -264,7 +383,7 @@ export class Referencias {
         case 'QUEMADA':
           push('QUEMADA', t, { rx: rec, unidad: u.corto, reg: R() < 0.35, nota: `Venció la vigencia de ${REGLAS.vigenciaDias} días sin atención` });
           if (R() < 0.45 && vueltas < REGLAS.maxVueltas) {
-            vueltas++; reemite = true; rec = destino(e, esp);
+            vueltas++; reemite = true; ({ rx: rec, fuera } = this.red.destino(e, esp));
             t = enHorario(R, Math.floor(t / DAY) + 3 + Math.floor(R() * 20)); st = 'SOLICITUD'; break;
           }
           r.final = 'QUEMADA'; st = null; break;

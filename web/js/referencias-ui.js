@@ -11,7 +11,7 @@
 //  de lo que realmente pasó.
 // =====================================================================
 import { initScenario } from './scenario-ui.js';
-import { Referencias, ETAPAS, TERMINAL, DESVIO, REGLAS, CIERRE_ES, SISTEMA_ES, fecha } from './referencias.js';
+import { Referencias, ETAPAS, TERMINAL, DESVIO, REGLAS, CIERRE_ES, SISTEMA_ES, PRIO_ES, fecha } from './referencias.js';
 import { esc, BAD, NODES, CAP_COLS, CAP_ROWS, R, GAP, center, slotPos, diagramaSVG } from './referencias-diagrama.js';
 
 const DAY = 86400, H = 3600;
@@ -216,6 +216,7 @@ function renderPanel(groups) {
     const cur = rec.findIndex(x => t >= x.t0 && t < x.t1);
     body.innerHTML = `<div class="meta">
         <span>Paciente</span><b>${r.sexo} · ${r.edad} años · ${esc(r.dx)}</b>
+        <span>Prioridad</span><b>${PRIO_ES[r.prio] || '—'}</b>
         <span>Creada</span><b>${fechaT(r.tCrea)}</b>
         <span>Unidad que refiere</span><b>${esc(r.emisora.corto)}</b>
         <span>Receptora</span><b>${esc(K.rx[E.rx].nombre)}</b>

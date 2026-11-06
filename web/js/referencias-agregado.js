@@ -8,7 +8,7 @@
 //   · filtros por región (16) y estado (32); tablero calculado en el worker
 //  El motor y el cubo diario viven en referencias-worker.js.
 // =====================================================================
-import { ETAPAS, TERMINAL, REGLAS, CIERRE_ES, SISTEMA_ES, REGIONES, ESPECIALIDADES, fecha, semaforo } from './referencias.js';
+import { ETAPAS, TERMINAL, REGLAS, CIERRE_ES, SISTEMA_ES, REGIONES, ESPECIALIDADES, PRIO_ES, fecha, semaforo } from './referencias.js';
 import { agregarFlujos } from './referencias-vista.js';
 import { Cubo, ET, EDAD_ES, EDADES } from './referencias-cubo.js';
 import { esc, BAD, NODES, EDGES, NW, CAP_COLS, CAP_ROWS, R, slotPos, edgeD, diagramaSVG } from './referencias-diagrama.js';
@@ -495,6 +495,7 @@ function panelRef() {
   const cur = r.seg.findIndex(x => t >= x.t0 && t < x.t1);
   body.innerHTML = `<div class="meta">
       <span>Paciente</span><b>${r.sexo} · ${r.edad} años · ${esc(r.dx)}</b>
+      <span>Prioridad</span><b>${PRIO_ES[r.prio] || '—'}</b>
       <span>Unidad que refiere</span><b>${esc(r.emisora.corto)} · ${esc(nombreEstado(r.emisora.cve))}</b>
       <span>Receptora</span><b>${esc(r.rxNombre)}</b>
       <span>${E.atendida ? 'Atendida a los' : 'Días sin atender'}</span><b style="color:${SEM[E.sem]}">${Math.floor(E.dias)} días · ${plazo}</b>
@@ -540,7 +541,7 @@ function pintarTablero(B, t) {
   const A = B.abiertas, tot = A.a15 + A.a30 + A.a90 + A.cron, di = C.dia(t);
   $('tb-sub').textContent = `al ${fechaD(Math.floor(t / DAY))} · ${S.uni ? S.uni.nombre : filtroTxt()} · tasas de los últimos 90 días`;
   const bar = [[A.a15, SEM.VERDE], [A.a30, SEM.NARANJA], [A.a90, SEM.ROJO], [A.cron, SEM.CRONICA]].map(([n, c]) => `<i style="width:${tot ? 100 * n / tot : 0}%;background:${c}"></i>`).join('');
-  const ci = B.cierres, nc = ci.CERRADA + ci.SIN_CIERRE + ci.ABANDONO + ci.QUEMADA;
+  const ci = B.cierres, nc = ci.CERRADA + ci.SIN_CIERRE + ci.ABANDONO + ci.QUEMADA + (ci.RESUELTA_UMF || 0) + (ci.YA_NO || 0);
   // en una unidad: si es receptora, ella misma; si refiere, las receptoras a las que envía
   const destinos = S.uni?.tipo === 'em' && S.uni.refs ? new Set(S.uni.refs.flatMap(r => [...r.rxSet])) : null;
   const sat = S.D.fuente.saturacionTodas(di).filter(s => S.uni ? (S.uni.tipo === 'rx' ? s.x === S.uni.x : destinos?.has(s.u.id)) : (!S.f.region || s.u.region === S.f.region) && (!S.f.cve || s.u.cve === S.f.cve));
@@ -555,7 +556,7 @@ function pintarTablero(B, t) {
     <div><b>Aceptación de la receptora</b><span class="big">${B.medAcep == null ? '—' : B.medAcep.toFixed(1) + ' d'}</span>
       <div class="rows"><span>Aceptadas a la primera</span><em>${pct(B.acepPrimera, B.acepTotal)}</em><span>Sin respuesta (ahora)</span><em>${nf.format(B.limbo)}</em></div></div>
     <div class="${ci.SIN_CIERRE + ci.ABANDONO + ci.QUEMADA > ci.CERRADA ? 'bad' : 'warn'}"><b>Cómo terminan (90 d)</b><span class="big">${pct(ci.CERRADA, nc)} <small style="font-size:12px;font-weight:500">natural</small></span>
-      <div class="rows"><span>Cierre natural</span><em>${nf.format(ci.CERRADA)}</em><span>Atendida sin cierre</span><em>${nf.format(ci.SIN_CIERRE)}</em><span>No regresó</span><em>${nf.format(ci.ABANDONO)}</em><span>Quemada</span><em>${nf.format(ci.QUEMADA)}</em></div></div>
+      <div class="rows"><span>Cierre natural</span><em>${nf.format(ci.CERRADA)}</em><span>Atendida sin cierre</span><em>${nf.format(ci.SIN_CIERRE)}</em><span>No regresó</span><em>${nf.format(ci.ABANDONO)}</em><span>Quemada</span><em>${nf.format(ci.QUEMADA)}</em>${ci.RESUELTA_UMF ? `<span>Resuelta en la UMF</span><em>${nf.format(ci.RESUELTA_UMF)}</em>` : ''}${ci.YA_NO ? `<span>Ya no la necesita</span><em>${nf.format(ci.YA_NO)}</em>` : ''}</div></div>
     <div class="bad"><b>Sin rastro en el sistema</b><span class="big">${nf.format(B.sistema.SIN_RASTRO)}</span>
       <div class="rows"><span>Dan vueltas (2 o más)</span><em>${nf.format(B.nVueltas)}</em><span>Crónicas</span><em>${nf.format(B.nCronicas)}</em></div></div>`;
   listRef($('l-cron'), B.cronicas, x => `${x.atendida ? 'En tratamiento' : 'Sin atender'} · ${ETAPAS[x.etapa].n} · ${x.unidad || ''}`);

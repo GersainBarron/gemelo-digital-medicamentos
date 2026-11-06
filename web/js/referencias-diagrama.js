@@ -10,13 +10,13 @@ export const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;',
 export const BAD = new Set(['DEVUELTA', 'LIMBO', 'NO_ACUDIO', 'QUEMADA', 'ABANDONO', 'SIN_CIERRE']);
 
 // columnas de 149 px; fila 0 (otra unidad, estudios), 1 (flujo normal), 2 (desvíos), 3 (cierres sin flujo normal)
-export const W = 1200, HT = 745, NW = 136, NH = 140, C = i => 8 + i * 149, ROW = [30, 215, 400, 585];
+export const W = 1200, HT = 830, NW = 136, NH = 140, C = i => 8 + i * 149, ROW = [30, 215, 400, 585];
 export const NODES = {
   SOLICITUD: [C(0), ROW[1], 'main'], VALIDACION: [C(1), ROW[1], 'main'], ACEPTACION: [C(2), ROW[1], 'main'], CITA: [C(3), ROW[1], 'main'],
   ESPECIALIDAD: [C(4), ROW[1], 'main'], CONTRARREF: [C(5), ROW[1], 'main'], SEGUIMIENTO: [C(6), ROW[1], 'main'], CERRADA: [C(7), ROW[1], 'main ok'],
-  TERCER: [C(3), ROW[0], 'alt'], ESTUDIOS: [C(5), ROW[0], 'alt'],
+  RESUELTA_UMF: [C(0), ROW[0], 'alt end ok'], INTERCONSULTA: [C(1), ROW[0], 'alt'], TERCER: [C(3), ROW[0], 'alt'], ESTUDIOS: [C(5), ROW[0], 'alt'],
   DEVUELTA: [C(1), ROW[2], 'alt'], LIMBO: [C(2), ROW[2], 'alt'], NO_ACUDIO: [C(3), ROW[2], 'alt'], URGENCIAS: [C(4), ROW[2], 'alt'],
-  QUEMADA: [C(2), ROW[3], 'alt end'], ABANDONO: [C(3), ROW[3], 'alt end'], SIN_CIERRE: [C(6), ROW[3], 'alt end'],
+  QUEMADA: [C(2), ROW[3], 'alt end'], ABANDONO: [C(3), ROW[3], 'alt end'], YA_NO: [C(4), ROW[3], 'alt end ok'], SIN_CIERRE: [C(6), ROW[3], 'alt end'],
 };
 // [de, a, etiqueta, tipo, puerto de salida, puerto de llegada, trazo fijo] · puerto = lado (r, l, t, b) + desplazamiento
 export const EDGES = [
@@ -33,6 +33,9 @@ export const EDGES = [
   ['ESPECIALIDAD', 'ESTUDIOS', 'estudio', 'alt', 't30', 'l-15'], ['ESTUDIOS', 'ESPECIALIDAD', 'resultado', 'alt', 'b-40', 't58'],
   ['ESPECIALIDAD', 'TERCER', 'rebasa capacidad', 'alt', 't-30', 'r'], ['TERCER', 'ACEPTACION', 'otra unidad', 'alt', 'l', 't'],
   ['QUEMADA', 'SOLICITUD', 're-emite', 'alt', 'l', 'b'],
+  ['SOLICITUD', 'INTERCONSULTA', 'pregunta', 'alt', 't40', 'l30'], ['INTERCONSULTA', 'RESUELTA_UMF', 'resuelta', 'alt', 'l-30', 'r-30'],
+  ['INTERCONSULTA', 'VALIDACION', 'sí necesita', 'alt', 'b30', 't30'],
+  ['CITA', 'YA_NO', '', 'alt', null, null, `M${C(3) + NW},${ROW[1] + NH - 10} C${C(3) + NW + 9},${ROW[1] + NH + 60} ${C(3) + NW + 9},${ROW[3] - 70} ${C(4) + 22},${ROW[3] - 4}`],
   ['ESPECIALIDAD', 'SIN_CIERRE', 'alta sin contrarreferencia', 'alt bad', null, null, `M${C(4) + NW - 4},${ROW[1] + NH} C${C(4) + NW + 20},${ROW[1] + NH + 40} ${C(6) + 30},${ROW[3] - 60} ${C(6) + NW / 2},${ROW[3] - 4}`],
 ];
 export const CAP_COLS = 7, CAP_ROWS = 4, R = 7.5, GAP = 18;
@@ -62,6 +65,7 @@ export const edgeD = ([a, b, , , pa, pb, d0]) => (d0 ? [d0, C(5) + 40, ROW[2] + 
 export function diagramaSVG(notas = []) {
   let s = `<svg viewBox="0 0 ${W} ${HT}" role="img" aria-label="Flujo de referencia y contrarreferencia">
     <defs><marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="rgba(148,163,184,.55)"/></marker></defs>
+    <text x="${C(0)}" y="${ROW[0] - 10}" class="edge-l" style="font-size:11px">ANTES DE REFERIR</text>
     <text x="${C(3)}" y="${ROW[0] - 10}" class="edge-l" style="font-size:11px">OTRA UNIDAD Y ESTUDIOS</text>
     <text x="8" y="${ROW[1] - 10}" class="edge-l" style="font-size:11px">FLUJO NORMAL · el reloj de ${REGLAS.plazoDias} días corre de la solicitud a la atención</text>
     <text x="8" y="${ROW[2] + 16}" class="edge-l" style="font-size:11px">DESVÍOS</text>
@@ -83,6 +87,6 @@ export function diagramaSVG(notas = []) {
       <text class="more" id="more-${id}" x="${x + NW - 34}" y="${y + NH - 8}" text-anchor="end"></text></g>`;
   }
   s += `</g><g id="trail"></g><g id="toks"></g>
-    <g transform="translate(${C(4) - 10},${ROW[3] + 36})">${notas.map((n, i) => `<text class="edge-l" style="font-size:12px;fill:#8b98a5" x="0" y="${i * 20}">${esc(n)}</text>`).join('')}</g></svg>`;
+    <g transform="translate(${C(0)},${ROW[3] + NH + 24})">${notas.map((n, i) => `<text class="edge-l" style="font-size:12px;fill:#8b98a5" x="${(i % 2) * 560}" y="${Math.floor(i / 2) * 20}">${esc(n)}</text>`).join('')}</g></svg>`;
   return s;
 }

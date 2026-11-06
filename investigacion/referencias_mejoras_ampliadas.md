@@ -171,3 +171,19 @@ Orden sugerido:
 Resultados de prueba (`node tests/referencias-lab.test.mjs`, al corte): con todas las palancas, atendidas en ≤ 15 días 7.7 % → 28.6 %, espera estimada mediana 62 → 20 días, receptoras saturadas 94.7 % → 58 %, sin rastro 10,275 → 1,905. La lista regional baja la espera mediana pero reduce los casos muy rápidos (reparte la carga), un efecto que coincide con lo que reporta la literatura de entrada única (menos variabilidad).
 
 Pendiente para el laboratorio v2: prioridad clínica, interconsulta electrónica, validación de lista («ya no la necesita») y telemedicina, que requieren etapas nuevas en el diagrama.
+
+## I. Implementado: laboratorio v2 (6 nov 2026)
+
+| Palanca | Cómo actúa en el motor | Etapa nueva |
+|---|---|---|
+| Prioridad clínica | Cada referencia nace urgente, preferente u ordinaria (≈ 4/14/82 %; oncología 15/50/35 %). Se reserva del cupo diario la parte de urgentes y preferentes; no hacen fila y, si no hay lugar en su plazo (3 y 12 días), entran como sobrecupo | — |
+| Interconsulta electrónica | Antes de validar, el especialista responde en 1 a 4 días; se resuelve sin traslado según especialidad (35 a 64 %); las que sí se refieren llegan con estudios y se devuelven la mitad | Interconsulta electrónica · Resuelta en la UMF |
+| Validación de la lista | A las 12 semanas de espera se manda mensaje: responde 81 %, de ellos 11 % ya no la necesita y su lugar se libera para otro | Ya no la necesita |
+| Teleconsulta para foráneos | Más de 100 km y especialidad clínica: primera consulta a distancia (espera ≈ 8 días, menos inasistencia); 35 % necesita después cita presencial | — |
+
+Resultados de prueba al corte (`node tests/referencias-lab.test.mjs`):
+- Prioridad: urgentes y preferentes atendidas en ≤ 15 días 8 % → 21 %, sin perder pacientes atendidos.
+- Interconsulta: 3,464 resueltas en la UMF en 90 días; lista de espera 7,515 → 3,200.
+- Teleconsulta: 1,715 teleconsultas; traslados de más de 100 km 2,304 → 1,094.
+- Validación: 134 salen de la lista en 90 días (efecto chico porque pocas esperan más de 12 semanas en la simulación).
+- Todas las palancas: atendidas en ≤ 15 días 8.5 % → 29 %, receptoras saturadas 91.6 % → 44 %, sin rastro 10,236 → 1,337.

@@ -49,7 +49,21 @@ export const PALANCAS = {
   digital: { n: 'Registro digital de cada paso', def: false, efecto: 'Cada paso que hoy se pierde queda registrado en 85 % de los casos (expediente y agenda electrónicos).' },
   sinCierre: { n: 'Agenda abierta todo el año', def: false, efecto: 'De octubre a diciembre no baja el cupo (programación digital de especialidad).' },
   regional: { n: 'Lista regional única por especialidad', def: false, efecto: 'La referencia va a la receptora de su región con el primer lugar libre (hasta 250 km).' },
+  prioridad: { n: 'Prioridad clínica en la agenda', def: false, efecto: 'Se reserva del cupo diario la parte que corresponde a urgentes y preferentes (≈ 18 %, 65 % en oncología); no hacen fila y la ordinaria usa el resto (como Navarra: preferente 14 días, ordinaria 30).' },
+  econsulta: { n: 'Interconsulta electrónica antes de referir', def: false, efecto: 'El especialista responde en 1 a 4 días; se resuelve sin traslado 35 a 64 % según especialidad (Champlain BASE).' },
+  validacion: { n: 'Validación de la lista a las 12 semanas', def: false, efecto: 'Mensaje a quien espera más de 12 semanas: responde 81 % y 11 % ya no la necesita; su lugar se libera (NHS Highland).' },
+  telemedicina: { n: 'Teleconsulta para foráneos', def: false, efecto: 'Primera consulta a distancia si vive a más de 100 km (especialidades clínicas); 35 % necesita después una cita presencial.' },
 };
+/** prioridad clínica: probabilidad de urgente y preferente por especialidad [SUPUESTO] */
+const PRIO = { Oncología: [0.15, 0.5], Ginecología: [0.08, 0.2], Cardiología: [0.08, 0.2], Neurología: [0.06, 0.18] };
+export const PRIO_ES = { U: 'Urgente', P: 'Preferente', O: 'Ordinaria' };
+/** parte del cupo diario reservada para urgente y preferente (la fila ordinaria no la puede usar):
+ *  igual a la proporción esperada de urgentes y preferentes de cada especialidad, para no desperdiciar cupo */
+let PRIO_RESERVA = null;
+const PRIO_LEAD = { U: [1, 1], P: [2, 3], O: [2, 5] };
+/** se resuelve con la interconsulta, sin traslado (Champlain BASE: urología 35 %, oftalmología 44 %, ortopedia 64 %) [SUPUESTO para el resto] */
+const IC_RES = { Oftalmología: 0.44, Traumatología: 0.64, Urología: 0.35, Endocrinología: 0.45, 'Medicina interna': 0.35, Cardiología: 0.35, Neurología: 0.35, Psiquiatría: 0.3, Pediatría: 0.35, 'Cirugía general': 0.3, Ginecología: 0.15, Oncología: 0 };
+const TELE = new Set(['Medicina interna', 'Endocrinología', 'Psiquiatría', 'Cardiología', 'Neurología', 'Pediatría', 'Urología']);
 export const ESC_BASE = Object.fromEntries(Object.entries(PALANCAS).map(([k, p]) => [k, p.def]));
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -97,13 +111,16 @@ export const ETAPAS = {
   QUEMADA: { n: 'Quemada', area: 'Venció sin atención', docs: [], sla: null },
   ABANDONO: { n: 'No regresó', area: 'Abandono del paciente', docs: [], sla: null },
   SIN_CIERRE: { n: 'Atendida sin cierre', area: 'Sin contrarreferencia', docs: [], sla: null },
+  INTERCONSULTA: { n: 'Interconsulta electrónica', area: 'El especialista responde a distancia', docs: ['Pregunta y respuesta escrita'], sla: '≤ 3 días hábiles' },
+  RESUELTA_UMF: { n: 'Resuelta en la UMF', area: 'Sin traslado, con la respuesta', docs: [], sla: null },
+  YA_NO: { n: 'Ya no la necesita', area: 'Respondió a la validación', docs: [], sla: null },
 };
-export const TERMINAL = new Set(['CERRADA', 'QUEMADA', 'ABANDONO', 'SIN_CIERRE']);
-export const DESVIO = new Set(['DEVUELTA', 'LIMBO', 'NO_ACUDIO', 'URGENCIAS', 'ESTUDIOS', 'TERCER', 'QUEMADA', 'ABANDONO', 'SIN_CIERRE']);
-export const CIERRE_ES = { CERRADA: 'Cierre natural', SIN_CIERRE: 'Atendida sin cierre', ABANDONO: 'No regresó', QUEMADA: 'Quemada', EN_PROCESO: 'En proceso' };
-export const SISTEMA_ES = { EN_PROCESO: 'En proceso', SIN_RASTRO: 'Sin rastro', CERRADA: 'Cerrada', QUEMADA: 'Quemada', ABANDONO: 'Abandono', SIN_CIERRE: 'Atendida sin cierre' };
+export const TERMINAL = new Set(['CERRADA', 'QUEMADA', 'ABANDONO', 'SIN_CIERRE', 'RESUELTA_UMF', 'YA_NO']);
+export const DESVIO = new Set(['DEVUELTA', 'LIMBO', 'NO_ACUDIO', 'URGENCIAS', 'ESTUDIOS', 'TERCER', 'QUEMADA', 'ABANDONO', 'SIN_CIERRE', 'INTERCONSULTA', 'YA_NO']);
+export const CIERRE_ES = { CERRADA: 'Cierre natural', SIN_CIERRE: 'Atendida sin cierre', ABANDONO: 'No regresó', QUEMADA: 'Quemada', RESUELTA_UMF: 'Resuelta en la UMF', YA_NO: 'Ya no la necesita', EN_PROCESO: 'En proceso' };
+export const SISTEMA_ES = { EN_PROCESO: 'En proceso', SIN_RASTRO: 'Sin rastro', CERRADA: 'Cerrada', QUEMADA: 'Quemada', ABANDONO: 'Abandono', SIN_CIERRE: 'Atendida sin cierre', RESUELTA_UMF: 'Resuelta en la UMF', YA_NO: 'Ya no la necesita' };
 /** cuánto espera el sistema que dure cada etapa registrada antes de considerarla sin rastro (días) */
-const ESPERA = { SOLICITUD: 2, VALIDACION: 5, ACEPTACION: 10, URGENCIAS: 3, ESPECIALIDAD: 60, ESTUDIOS: 120, TERCER: 10, DEVUELTA: 10, CONTRARREF: 5, SEGUIMIENTO: 45, NO_ACUDIO: 15, LIMBO: 15 };
+const ESPERA = { INTERCONSULTA: 5, SOLICITUD: 2, VALIDACION: 5, ACEPTACION: 10, URGENCIAS: 3, ESPECIALIDAD: 60, ESTUDIOS: 120, TERCER: 10, DEVUELTA: 10, CONTRARREF: 5, SEGUIMIENTO: 45, NO_ACUDIO: 15, LIMBO: 15 };
 
 export const RECEPTORAS = {
   HGP: { corto: 'HG Pachuca', nombre: 'HG Dra. Columba Rivera Osorio, Pachuca', nivel: 2, acep: 2, cita: [32, 110], limbo: 0.08, devuelve: 0.12, contra: 0.66, escala: 'HR1', color: '#2dd4bf' },
@@ -132,6 +149,7 @@ export const ESPECIALIDADES = [
   { n: 'Oncología', w: 4, nivel: 'HR', dx: ['Cáncer de mama', 'Cáncer de próstata'] },
 ];
 const ESP_I = new Map(ESPECIALIDADES.map((x, i) => [x, i]));
+PRIO_RESERVA = ESPECIALIDADES.map(e => (PRIO[e.n] || [0.04, 0.14]).reduce((a, b) => a + b, 0));
 /** holgura de agenda de las receptoras de Hidalgo [SUPUESTO]: < 1 se saturan */
 const HOLGURA_HGO = { HGP: 0.97, CHI: 1.1, CHH: 0.93, CMFE: 1.2, HGT: 0.88, HR1: 0.92, CMN: 1.0 };
 const MOTIVOS_EMISORA = ['Formato SM-1-17 incompleto', 'Sin vigencia de derechos', 'Falta resumen clínico'];
@@ -321,19 +339,43 @@ export class Referencias {
     }
   }
   /** primer lugar libre en la agenda (receptora u, especialidad j) desde el instante tMin → día */
-  _reservar(u, j, tMin, mirar = false) {
-    const a = u.agenda[j], base = u.cupo[j];
-    const cupoDia = d => { const c = base * (mes(d) >= 9 && !this.esc.sinCierre ? REGLAS.temporada : 1), k = d + 1000; return Math.floor((k + 1) * c) - Math.floor(k * c); };
+  _reservar(u, j, tMin, mirar = false, prio = 'O') {
+    const a = u.agenda[j], base = u.cupo[j], pri = !!this.esc.prioridad;
+    const cap = (d, f) => { const c = base * f * (mes(d) >= 9 && !this.esc.sinCierre ? REGLAS.temporada : 1), k = d + 1000; return Math.floor((k + 1) * c) - Math.floor(k * c); };
+    if (pri && prio !== 'O') {
+      // urgente o preferente: primer lugar libre desde su fecha mínima (la reserva que la fila ordinaria no puede tocar);
+      // si no lo hay dentro de su plazo (urgente 3 días, preferente 12), entra como sobrecupo
+      const d0 = sigHabil(Math.ceil(tMin / DAY)), lim = prio === 'U' ? 3 : 12;
+      let d = d0;
+      for (let n = 0; n < 900; n++, d = sigHabil(d + 1)) {
+        const used = a.usado.get(d) || 0;
+        if (used < cap(d, 1)) break;
+        if (d - d0 >= lim) break; // sobrecupo
+      }
+      if (!mirar) a.usado.set(d, (a.usado.get(d) || 0) + 1);
+      return d;
+    }
+    // ordinaria: la fila; con prioridad clínica sólo puede usar el cupo que deja la reserva
+    // la reserva del día sale del cupo total de ese mismo día (así ordinaria + reserva = cupo, sin redondeos perdidos)
+    const res = pri ? PRIO_RESERVA[j] : 0;
+    a.usadoO ??= new Map();
     let d = sigHabil(Math.max(Math.ceil(tMin / DAY), a.prim));
     for (let n = 0; n < 900; n++, d = sigHabil(d + 1)) {
-      const used = a.usado.get(d) || 0;
-      if (used < cupoDia(d)) { if (!mirar) a.usado.set(d, used + 1); return d; }
-      if (d === a.prim && !mirar) a.prim = sigHabil(d + 1); // el día del frente ya se llenó
+      const used = a.usado.get(d) || 0, usedO = a.usadoO.get(d) || 0, T = cap(d, 1), Rv = Math.min(T, res ? cap(d, res) : 0);
+      if (used < T && usedO < T - Rv) { if (!mirar) { a.usado.set(d, used + 1); a.usadoO.set(d, usedO + 1); } return d; }
+      if (d === a.prim && !mirar) a.prim = sigHabil(d + 1); // el día del frente ya se llenó para la fila
     }
     return d;
   }
 
   /** ¿queda registrado este paso? con registro digital se pierde sólo 15 % de lo que hoy se pierde */
+  /** devuelve un lugar ya reservado (la validación de la lista lo libera para otro paciente) */
+  _liberar(u, j, d, prio = 'O') {
+    const a = u.agenda[j], n = a.usado.get(d) || 0;
+    if (n > 0) a.usado.set(d, n - 1);
+    if (prio === 'O' && a.usadoO?.get(d)) a.usadoO.set(d, a.usadoO.get(d) - 1);
+    if (prio === 'O' && d < a.prim) a.prim = d;
+  }
   _reg(p) { return this.R() < (this.esc.digital ? 1 - (1 - p) * 0.15 : p); }
   _acep(u) { return this.esc.respuesta ? Math.min(u.acep, 1.5) : u.acep; }
   _noAcude() { return this.esc.recordatorio === 'sms' ? 0.75 : this.esc.recordatorio === 'llamada' ? 0.59 : 1; }
@@ -365,6 +407,8 @@ export class Referencias {
       id: 'REF-' + String(this.refs.length + 1).padStart(5, '0'), tCrea, tEmision: tCrea, emisora: e, esp, dx: pick(R, esp.dx),
       sexo: R() < 0.58 || esp.n === 'Ginecología' ? 'F' : 'M', edad: esp.n === 'Pediatría' ? Math.floor(R() * 17) : 18 + Math.floor(R() * 66), seg: [], tAtencion: Infinity, final: null, rxSet: new Set(),
     };
+    { const [pu, pp] = PRIO[esp.n] || [0.04, 0.14], x = R(); r.prio = x < pu ? 'U' : x < pu + pp ? 'P' : 'O'; }
+    let ic = false, tele = false, presencial = false;
     let { rx: rec, fuera } = this._destino(e, esp, tCrea), t = tCrea, vueltas = 0, atendido = false, escalado = false, estudio = false, reprog = false, reemite = false, nEsp = 0;
     r.rx0 = rec;
     const push = (etapa, t0, o = {}) => {
@@ -384,7 +428,15 @@ export class Referencias {
           if (reemite) r.tEmision = t;
           reemite = false;
           t = R() < 0.7 ? t + (1 + R() * 4) * H : enHorario(R, Math.floor(t / DAY) + 1);
-          st = 'VALIDACION'; break;
+          st = this.esc.econsulta && !ic && r.prio !== 'U' ? 'INTERCONSULTA' : 'VALIDACION'; break;
+        case 'INTERCONSULTA':
+          ic = true;
+          push('INTERCONSULTA', t, { unidad: e.corto, nota: 'Pregunta al especialista de ' + u.corto });
+          t = habilesDesde(R, t, logn(R, 1.5, 4));
+          st = R() < (IC_RES[esp.n] ?? 0.35) ? 'RESUELTA_UMF' : 'VALIDACION'; break;
+        case 'RESUELTA_UMF':
+          push('RESUELTA_UMF', t, { unidad: e.corto, nota: 'Resuelta con la respuesta del especialista, sin traslado' });
+          r.final = 'RESUELTA_UMF'; st = null; break;
         case 'VALIDACION':
           push('VALIDACION', t, { unidad: e.corto });
           t = habilesDesde(R, t, logn(R, 1.5, 5));
@@ -395,15 +447,15 @@ export class Referencias {
           st = 'ACEPTACION'; break;
         case 'ACEPTACION': {
           push('ACEPTACION', t, { rx: rec, unidad: u.corto, nota: escalado ? 'Envío desde ' + r.seg.filter(s => s.rx).at(-2)?.unidad : fuera ? 'Fuera de región (microrregionalización)' : '' });
-          const x = R();
-          if (x < u.devuelve && vueltas < REGLAS.maxVueltas) {
+          const x = R(), dev = u.devuelve * (ic ? 0.5 : 1);
+          if (x < dev && vueltas < REGLAS.maxVueltas) {
             t = habilesDesde(R, t, logn(R, this._acep(u), this._acep(u) * 3));
             vueltas++;
             push('DEVUELTA', t, { rx: rec, unidad: u.corto, vuelta: true, nota: pick(R, MOTIVOS_RX) });
             if (R() < 0.4) { rec = this.red.alterna(rec); fuera = false; }
             t = habilesDesde(R, t, 1 + R() * 4); st = 'VALIDACION'; break;
           }
-          if (x < u.devuelve + (this.esc.respuesta ? u.limbo * 0.15 : u.limbo)) {
+          if (x < dev + (this.esc.respuesta ? u.limbo * 0.15 : u.limbo)) {
             t = habilesDesde(R, t, 3 + R() * 3);
             push('LIMBO', t, { rx: rec, unidad: u.corto, reg: false, nota: 'Se venció el plazo de respuesta' });
             t += logn(R, 28, 85) * DAY;
@@ -415,22 +467,37 @@ export class Referencias {
           t = habilesDesde(R, t, logn(R, this._acep(u), this._acep(u) * 3)); st = 'CITA'; break;
         }
         case 'CITA': {
-          push('CITA', t, { rx: rec, unidad: u.corto, vuelta: reprog, reg: this._reg(0.92), nota: reprog ? 'Cita reprogramada' : fuera ? 'Traslado foráneo' : '' });
+          const j = ESP_I.get(esp), esTele = this.esc.telemedicina && !tele && !presencial && TELE.has(esp.n) && this.red.dist(e, rec) > 100;
+          const nota = reprog ? 'Cita reprogramada' : presencial ? 'Valoración presencial tras la teleconsulta' : esTele ? 'Teleconsulta (sin traslado)' : fuera ? 'Traslado foráneo' : '';
+          push('CITA', t, { rx: rec, unidad: u.corto, vuelta: reprog, reg: this._reg(0.92), nota });
           reprog = false;
-          // la cita es el primer lugar libre en la agenda de esa especialidad (más traslado si es foránea)
-          const dCita = this._reservar(u, ESP_I.get(esp), t + (2 + R() * 5 + (fuera ? 2 : 0)) * DAY);
-          const tCita = dCita * DAY + (8 + R() * 5) * H;
+          let dCita, tCita;
+          if (esTele) {
+            tele = r.tele = true;
+            tCita = enHorario(R, Math.floor(t / DAY + Math.max(2, logn(R, 8, 25) * (u.carga || 1))), 8, 14);
+          } else {
+            // la cita es el primer lugar libre en la agenda de esa especialidad (y prioridad); más traslado si es foránea
+            const [l0, l1] = this.esc.prioridad ? PRIO_LEAD[r.prio] : PRIO_LEAD.O;
+            dCita = this._reservar(u, j, t + (l0 + R() * l1 + (fuera ? 2 : 0)) * DAY, false, r.prio);
+            tCita = dCita * DAY + (8 + R() * 5) * H;
+            // validación de la lista: a las 12 semanas se le pregunta si aún la necesita
+            if (this.esc.validacion && tCita - t > 84 * DAY && R() < 0.81) {
+              const tVal = enHorario(R, Math.floor(t / DAY) + 84 + Math.floor(R() * 14));
+              if (R() < 0.11) { this._liberar(u, j, dCita, r.prio); t = tVal; st = 'YA_NO'; break; }
+              push('CITA', tVal, { rx: rec, unidad: u.corto, nota: 'Lista validada: sigue esperando' });
+            }
+          }
           if (R() < 0.035) {
             const tu = t + (0.15 + R() * 0.8) * (tCita - t);
             push('URGENCIAS', tu, { rx: rec, unidad: u.corto, nota: pick(R, TRIAGE) });
-            if (!atendido) { r.tAtencion = r.seg.at(-1).t0; atendido = true; }
+            if (!atendido) { r.tAtencion = r.seg.at(-1).t0; r.kmAt = this.red.dist(e, rec); atendido = true; }
             t = r.seg.at(-1).t0 + (6 + R() * 30) * H; st = 'ESPECIALIDAD'; break;
           }
           // la cita cae después de la vigencia: al llegar, la referencia ya se quemó
           if (!atendido && tCita - r.tEmision > REGLAS.vigenciaDias * DAY && R() < 0.4) { t = r.tEmision + REGLAS.vigenciaDias * DAY; st = 'QUEMADA'; break; }
           t = tCita;
-          if (R() < (0.12 + (this.red.dist(e, rec) > 100 ? 0.06 : 0)) * this._noAcude()) { st = 'NO_ACUDIO'; break; }
-          if (!atendido) { r.tAtencion = t; atendido = true; }
+          if (R() < (0.12 + (!esTele && this.red.dist(e, rec) > 100 ? 0.06 : 0)) * this._noAcude() * (esTele ? 0.5 : 1)) { st = 'NO_ACUDIO'; break; }
+          if (!atendido) { r.tAtencion = t; r.kmAt = esTele ? 0 : this.red.dist(e, rec); atendido = true; }
           st = 'ESPECIALIDAD'; break;
         }
         case 'NO_ACUDIO':
@@ -451,6 +518,7 @@ export class Referencias {
             push('ESPECIALIDAD', t, { rx: rec, unidad: u.corto, reg: this._reg(0.8), nota: 'Revisión de resultados' });
           }
           t = enHorario(R, Math.floor((t + Math.max(DAY / 2, dur)) / DAY), 8, 14);
+          if (tele && !presencial && R() < 0.35) { presencial = true; st = 'CITA'; break; }
           if (u.escala && !escalado && R() < 0.07) { st = 'TERCER'; break; }
           st = R() < (this.esc.contra ? 0.95 : u.contra) ? 'CONTRARREF' : 'SIN_CIERRE'; break;
         }
@@ -470,6 +538,9 @@ export class Referencias {
         case 'SIN_CIERRE':
           push('SIN_CIERRE', t, { rx: rec, unidad: u.corto, reg: this.esc.digital && this.R() < 0.85, nota: 'Alta sin contrarreferencia' });
           r.final = 'SIN_CIERRE'; st = null; break;
+        case 'YA_NO':
+          push('YA_NO', t, { rx: rec, unidad: u.corto, nota: 'Ya no la necesita (respondió a la validación de la lista)' });
+          r.final = 'YA_NO'; st = null; break;
         case 'ABANDONO':
           push('ABANDONO', t, { rx: rec, unidad: u.corto, reg: this.esc.digital && this.R() < 0.85, nota: 'El paciente no regresó' });
           r.final = 'ABANDONO'; st = null; break;
@@ -510,7 +581,7 @@ export class Referencias {
     let last = null;
     for (const s of r.seg) { if (s.t0 > t) break; if (s.reg) last = s; }
     if (!last) return { st: 'SIN_RASTRO', seg: null };
-    if (last.etapa === 'CERRADA' || last.etapa === 'QUEMADA' || last.etapa === 'ABANDONO' || last.etapa === 'SIN_CIERRE') return { st: last.etapa, seg: last };
+    if (TERMINAL.has(last.etapa)) return { st: last.etapa, seg: last };
     const fin = last.etapa === 'CITA' ? last.t1 : last.t0 + (ESPERA[last.etapa] ?? 15) * DAY;
     return { st: t > fin + REGLAS.sinRastroDias * DAY ? 'SIN_RASTRO' : 'EN_PROCESO', seg: last };
   }
@@ -531,8 +602,8 @@ export class Referencias {
     const W0 = t - 90 * DAY;
     const o = {
       abiertas: { a15: 0, a30: 0, a90: 0, cron: 0 }, sinAtender15: 0, atendidas: 0, enPlazo: 0, diasAt: [],
-      cierres: { CERRADA: 0, SIN_CIERRE: 0, ABANDONO: 0, QUEMADA: 0 }, sistema: { EN_PROCESO: 0, SIN_RASTRO: 0, CERRADA: 0, QUEMADA: 0, ABANDONO: 0, SIN_CIERRE: 0 },
-      ocultas: { SIN_CIERRE: 0, ABANDONO: 0, QUEMADA: 0, CERRADA: 0 }, cronicas: [], vueltas: [], acepDias: [], acepTotal: 0, acepPrimera: 0, limbo: 0,
+      cierres: { CERRADA: 0, SIN_CIERRE: 0, ABANDONO: 0, QUEMADA: 0, RESUELTA_UMF: 0, YA_NO: 0 }, sistema: { EN_PROCESO: 0, SIN_RASTRO: 0, CERRADA: 0, QUEMADA: 0, ABANDONO: 0, SIN_CIERRE: 0, RESUELTA_UMF: 0, YA_NO: 0 },
+      ocultas: { SIN_CIERRE: 0, ABANDONO: 0, QUEMADA: 0, CERRADA: 0, RESUELTA_UMF: 0, YA_NO: 0 }, cronicas: [], vueltas: [], acepDias: [], acepTotal: 0, acepPrimera: 0, limbo: 0,
       porRx: Object.fromEntries(this.receptoras.map(u => [u.id, { abiertas: 0, sinAtender15: 0, sinCierre: 0, sinRastro: 0, limbo: 0 }])),
     };
     // filtro: id de receptora (texto) o {region} / {cve} de la unidad que refiere

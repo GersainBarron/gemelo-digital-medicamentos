@@ -12,7 +12,7 @@ import { EDADES, semSat } from './referencias-cubo.js';
 
 const ESPERA = new Set(['ACEPTACION', 'LIMBO', 'CITA', 'NO_ACUDIO']);
 const ATENCION = new Set(['URGENCIAS', 'ESPECIALIDAD', 'ESTUDIOS', 'CONTRARREF']);
-const resumen0 = () => ({ CREADAS: 0, ATENDIDAS: 0, EN_PLAZO: 0, CERRADA: 0, SIN_CIERRE: 0, ABANDONO: 0, QUEMADA: 0 });
+const resumen0 = () => ({ CREADAS: 0, ATENDIDAS: 0, EN_PLAZO: 0, CERRADA: 0, SIN_CIERRE: 0, ABANDONO: 0, QUEMADA: 0, RESUELTA_UMF: 0, YA_NO: 0 });
 
 /** ¿la referencia entra en el filtro? {region, cve, em, rx, esp} (todos opcionales) */
 export function pasaFiltro(r, f = {}) {

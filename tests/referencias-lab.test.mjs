@@ -14,7 +14,8 @@ const fmt = (v, f) => (v == null ? '—' : f === 'pct' ? (100 * v).toFixed(1) + 
 const casos = {
   recordatorio: { recordatorio: 'llamada' }, capacidad: { capacidad: 0.2 }, respuesta: { respuesta: true }, contra: { contra: true },
   digital: { digital: true }, sinCierre: { sinCierre: true }, regional: { regional: true },
-  todo: { recordatorio: 'sms', capacidad: 0.2, respuesta: true, contra: true, digital: true, sinCierre: true, regional: true },
+  prioridad: { prioridad: true }, econsulta: { econsulta: true }, validacion: { validacion: true }, telemedicina: { telemedicina: true },
+  todo: { recordatorio: 'sms', capacidad: 0.2, respuesta: true, contra: true, digital: true, sinCierre: true, regional: true, prioridad: true, econsulta: true, validacion: true, telemedicina: true },
 };
 const R = {};
 for (const [k, esc] of Object.entries(casos)) R[k] = correr(esc);
@@ -29,6 +30,20 @@ assert.ok(R.respuesta.limbo < base.limbo * 0.4, 'la respuesta en 3 días no baj�
 assert.ok(R.contra.natural > base.natural + 0.15, 'la contrarreferencia obligatoria no subió los cierres naturales');
 assert.ok(R.digital.sinRastro < base.sinRastro * 0.7, 'el registro digital no bajó las referencias sin rastro');
 assert.ok(R.regional.W <= base.W * 1.05, 'la lista regional empeoró la espera');
+assert.ok(R.prioridad.prioPlazo > base.prioPlazo + 0.1, 'la prioridad no adelantó a urgentes y preferentes');
+assert.ok(R.prioridad.atendidas >= base.atendidas * 0.95, 'la reserva de prioridad desperdició cupo');
+assert.ok(R.econsulta.resueltas > 0 && R.econsulta.lista < base.lista, 'la interconsulta no evitó referencias');
+assert.ok(R.validacion.yaNo > 0 && R.validacion.lista < base.lista, 'la validación no limpió la lista');
+assert.ok(R.telemedicina.tele > 0 && R.telemedicina.traslados < base.traslados, 'la telemedicina no evitó traslados');
+assert.equal(base.resueltas + base.yaNo + base.tele, 0, 'sin palancas no debe haber interconsultas, validaciones ni teleconsultas');
 assert.ok(R.todo.enPlazo > base.enPlazo && R.todo.sinRastro < base.sinRastro, 'el paquete completo no mejora');
+// las reglas del motor se siguen cumpliendo con todas las palancas
+const { TERMINAL } = await import(new URL('js/referencias.js', W));
+const Kt = new Referencias(data, { corteDia: 0, esc: casos.todo });
+for (const r of Kt.refs) {
+  for (let i = 1; i < r.seg.length; i++) assert.equal(r.seg[i].t0, r.seg[i - 1].t1, 'hueco o encime en ' + r.id);
+  assert.ok(TERMINAL.has(r.seg.at(-1).etapa), 'sin final ' + r.id);
+  if (r.seg.some(s => s.etapa === 'ESPECIALIDAD')) assert.ok(r.tAtencion < Infinity, 'especialidad sin atención ' + r.id);
+}
 assert.ok(Object.keys(PALANCAS).every(k => k in casos), 'falta probar alguna palanca');
 console.log('OK');

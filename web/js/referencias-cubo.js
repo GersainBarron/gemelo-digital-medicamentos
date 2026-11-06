@@ -21,14 +21,14 @@ export const EDAD_ES = ['< 10 días', '10–15 días', '15–30 días', '30–90
 const NB = EDADES.length + 1;
 const ESPERA = new Set(['ACEPTACION', 'LIMBO', 'CITA', 'NO_ACUDIO']);           // en la lista de espera de la receptora
 const ATENCION = new Set(['URGENCIAS', 'ESPECIALIDAD', 'ESTUDIOS', 'CONTRARREF']); // en atención en la receptora
-const CIERRES = ['CERRADA', 'SIN_CIERRE', 'ABANDONO', 'QUEMADA'];
+const CIERRES = ['CERRADA', 'SIN_CIERRE', 'ABANDONO', 'QUEMADA', 'RESUELTA_UMF', 'YA_NO'];
 // eventos diarios por receptora
 // LLEGADAS = entran a la lista de espera (envío recibido); SALIDAS = dejan la lista (atendidas, devueltas, quemadas, abandono)
 const EV = { LLEGADAS: 0, ACEPTADAS: 1, ATENDIDAS: 2, DEVUELTAS: 3, NO_ACUDIO: 4, SALIDAS: 5 };
 const NEV = 6;
 // eventos diarios por estado (de la unidad que refiere)
-const EVE = { CREADAS: 0, ATENDIDAS: 1, EN_PLAZO: 2, CERRADA: 3, SIN_CIERRE: 4, ABANDONO: 5, QUEMADA: 6 };
-const NEVE = 7;
+const EVE = { CREADAS: 0, ATENDIDAS: 1, EN_PLAZO: 2, CERRADA: 3, SIN_CIERRE: 4, ABANDONO: 5, QUEMADA: 6, RESUELTA_UMF: 7, YA_NO: 8 };
+const NEVE = 9;
 
 export class Cubo {
   /** @param K instancia de Referencias */

@@ -17,7 +17,9 @@ const PRESETS = {
   'Más capacidad (20 %)': { capacidad: 0.2 },
   'Reglas de cierre': { contra: true, digital: true },
   'Lista regional': { regional: true },
-  'Todo': { recordatorio: 'llamada', capacidad: 0.2, respuesta: true, contra: true, digital: true, sinCierre: true, regional: true },
+  'Gestión de la demanda': { econsulta: true, telemedicina: true, validacion: true },
+  'Prioridad clínica': { prioridad: true },
+  'Todo': { recordatorio: 'llamada', capacidad: 0.2, respuesta: true, contra: true, digital: true, sinCierre: true, regional: true, prioridad: true, econsulta: true, validacion: true, telemedicina: true },
 };
 
 /**

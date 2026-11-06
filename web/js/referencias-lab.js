@@ -10,12 +10,16 @@ import { vistaDia } from './referencias-vista.js';
 /** indicadores que compara el laboratorio: [clave, nombre, formato, mejor si sube] */
 export const INDICADORES = [
   ['enPlazo', 'Atendidas en ≤ 15 días', 'pct', true],
+  ['prioPlazo', 'Urgentes y preferentes en ≤ 15 días', 'pct', true],
+  ['ordMed', 'Días hasta la atención · ordinarias', 'dias', false],
   ['medAt', 'Días hasta la atención (mediana)', 'dias', false],
   ['atendidas', 'Pacientes atendidos (90 días)', 'num', true],
   ['lista', 'Lista de espera en receptoras', 'num', false],
   ['saturadas', 'Receptoras saturadas', 'pct', false],
   ['W', 'Espera estimada (mediana)', 'dias', false],
   ['natural', 'Cierres con contrarreferencia', 'pct', true],
+  ['resueltas', 'Resueltas en la UMF por interconsulta (90 días)', 'num', null],
+  ['yaNo', 'Ya no la necesitaban (90 días)', 'num', null],
   ['sinCierre', 'Atendidas sin cierre (90 días)', 'num', false],
   ['quemadas', 'Quemadas (90 días)', 'num', false],
   ['noAcudio', 'No acudieron (90 días)', 'num', false],
@@ -23,6 +27,8 @@ export const INDICADORES = [
   ['ocultas', 'Terminadas que el sistema ve abiertas', 'num', false],
   ['limbo', 'Sin respuesta de la receptora (hoy)', 'num', false],
   ['fuera', 'Envíos fuera de su región (28 días)', 'num', null],
+  ['traslados', 'Primeras consultas con traslado > 100 km (90 días)', 'num', false],
+  ['tele', 'Teleconsultas (90 días)', 'num', null],
 ];
 
 const med = a => { const s = a.filter(Number.isFinite).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
@@ -30,12 +36,22 @@ const med = a => { const s = a.filter(Number.isFinite).sort((x, y) => x - y); re
 /** indicadores al instante t (normalmente el corte) */
 export function medir(K, t) {
   const V = vistaDia(K, t, {}, 28), B = K.tablero(t), r = V.res90;
-  const nC = r.CERRADA + r.SIN_CIERRE + r.ABANDONO + r.QUEMADA;
-  let noAcudio = 0;
-  const a90 = t - 90 * DAY;
-  for (const x of K.refs) for (const s of x.seg) if (s.etapa === 'NO_ACUDIO' && s.t0 > a90 && s.t0 <= t) noAcudio++;
+  const nC = r.CERRADA + r.SIN_CIERRE + r.ABANDONO + r.QUEMADA + r.RESUELTA_UMF + r.YA_NO;
+  let noAcudio = 0, traslados = 0, tele = 0;
+  const a90 = t - 90 * DAY, dPrio = [], dOrd = [];
+  for (const x of K.refs) {
+    for (const s of x.seg) if (s.etapa === 'NO_ACUDIO' && s.t0 > a90 && s.t0 <= t) noAcudio++;
+    if (x.tAtencion > a90 && x.tAtencion <= t) {
+      const d = (x.tAtencion - x.tCrea) / DAY;
+      (x.prio === 'O' ? dOrd : dPrio).push(d);
+      if (x.kmAt > 100) traslados++;
+      if (x.tele) tele++;
+    }
+  }
   return {
     enPlazo: r.ATENDIDAS ? r.EN_PLAZO / r.ATENDIDAS : null, medAt: B.medAt, atendidas: r.ATENDIDAS,
+    prioPlazo: dPrio.length ? dPrio.filter(d => d <= REGLAS.plazoDias).length / dPrio.length : null, ordMed: med(dOrd),
+    resueltas: r.RESUELTA_UMF, yaNo: r.YA_NO, traslados, tele,
     lista: V.sat.reduce((a, s) => a + s.L, 0), saturadas: V.sat.filter(s => s.sem === 'NARANJA' || s.sem === 'ROJO').length / V.sat.length,
     W: med(V.sat.map(s => s.W)), natural: nC ? r.CERRADA / nC : null, sinCierre: r.SIN_CIERRE, quemadas: r.QUEMADA, noAcudio,
     sinRastro: B.sistema.SIN_RASTRO, ocultas: B.ocultas.SIN_CIERRE + B.ocultas.ABANDONO + B.ocultas.QUEMADA + B.ocultas.CERRADA,

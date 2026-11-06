@@ -58,6 +58,28 @@
 .rf-nota { font-size: 11.5px; margin-top: 8px; }
 .rf-mapa { grid-column: 1; }
 .rf-mapa[hidden] { display: none; }
+/* laboratorio de escenarios */
+.rf-lab { grid-column: 1; }
+.rf-lab[hidden], .rf-uni[hidden] { display: none; }
+.rf-lab .card-h { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.rf-lab-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 16px; }
+@media (max-width: 1000px) { .rf-lab-grid { grid-template-columns: minmax(0, 1fr); } }
+.rf-lab-pre { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.rf-lab-pre button { font-size: 12px; padding: 5px 9px; }
+.rf-lab-pal { display: grid; gap: 6px; }
+.rf-lab-pal label { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; padding: 8px 10px; border-radius: 9px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); font-size: 12.5px; cursor: pointer; }
+.rf-lab-pal label.on { border-color: rgba(45, 212, 191, 0.55); background: rgba(45, 212, 191, 0.07); }
+.rf-lab-pal label b { color: var(--text); font-weight: 600; }
+.rf-lab-pal label small { grid-column: 2; color: var(--faint); font-size: 11px; line-height: 1.35; }
+.rf-lab-pal select, .rf-lab-pal input[type=range] { grid-column: 2; max-width: 260px; }
+.rf-lab-res table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.rf-lab-res th, .rf-lab-res td { padding: 5px 7px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rf-lab-res th:first-child, .rf-lab-res td:first-child { text-align: left; white-space: normal; }
+.rf-lab-res th { color: var(--faint); font-weight: 600; font-size: 11.5px; }
+.rf-lab-res td.mejor { color: var(--ok); font-weight: 650; }
+.rf-lab-res td.peor { color: var(--crit); font-weight: 650; }
+.rf-lab-res .rf-lab-chart { margin-top: 12px; }
+.rf-lab-res .rf-lab-chart text { fill: var(--faint); font-size: 10px; }
 .rf-mapa .card-h { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
 .rf-mapa-box { position: relative; height: 560px; border-radius: 10px; overflow: hidden; background: #0b1117; }
 .rf-mapa-box canvas { width: 100%; height: 100%; display: block; }

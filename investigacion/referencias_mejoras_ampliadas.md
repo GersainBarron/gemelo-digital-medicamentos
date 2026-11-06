@@ -151,3 +151,23 @@ Orden sugerido:
 - Digitalización ISSSTE/IMSS (oct 2026): https://www.tiempo.com.mx/local/expediente-medico-digital-listo-en-febrero-2027-eduardo-clark/
 - IMSS programación digital de especialidad: https://www.imss.gob.mx/sites/all/statics/i2f_news/IMSS.%20Boletin.%20442.docx
 - Telemedicina ISSSTE 2026: https://consultorsalud.com.mx/?p=315454
+
+---
+
+## H. Implementado: laboratorio v1 (6 nov 2026)
+
+`referencias.html?red=nacional` → tarjeta «Laboratorio · ¿qué pasaría si…?». Palancas en `PALANCAS` (`js/referencias.js`); medición en `js/referencias-lab.js`; panel en `js/referencias-lab-ui.js`; el worker corre el escenario con la misma semilla y puede cambiar todo el tablero a esa corrida.
+
+| Palanca | Cómo actúa en el motor |
+|---|---|
+| Recordatorio (mensaje / llamada) | no acudió × 0.75 / × 0.59 |
+| Más consultorios (0–50 %) | cupo de primeras consultas × (1 + x) |
+| Respuesta en ≤ 3 días | sin respuesta × 0.15; aceptación ≤ 1.5 días |
+| Contrarreferencia obligatoria | contrarreferencia en 95 % de las altas |
+| Registro digital | se registra 85 % de lo que hoy se pierde, incluidas altas sin cierre y abandonos |
+| Agenda abierta todo el año | sin baja de cupo de octubre a diciembre |
+| Lista regional única | va a la receptora de la región con el primer lugar libre (hasta 250 km; 1 día por cada 150 km) |
+
+Resultados de prueba (`node tests/referencias-lab.test.mjs`, al corte): con todas las palancas, atendidas en ≤ 15 días 7.7 % → 28.6 %, espera estimada mediana 62 → 20 días, receptoras saturadas 94.7 % → 58 %, sin rastro 10,275 → 1,905. La lista regional baja la espera mediana pero reduce los casos muy rápidos (reparte la carga), un efecto que coincide con lo que reporta la literatura de entrada única (menos variabilidad).
+
+Pendiente para el laboratorio v2: prioridad clínica, interconsulta electrónica, validación de lista («ya no la necesita») y telemedicina, que requieren etapas nuevas en el diagrama.

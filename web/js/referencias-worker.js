@@ -12,18 +12,32 @@
 import { Referencias } from './referencias.js';
 import { Cubo } from './referencias-cubo.js';
 import { vistaDia } from './referencias-vista.js';
+import { medir } from './referencias-lab.js';
 
-let K = null;
+//  K = la corrida que ve la página; Kbase = operación actual; Kesc = último escenario del laboratorio
+let K = null, Kbase = null, Kesc = null, DATA = null, CORTE = 0, mBase = null;
 
 self.onmessage = async ({ data: m }) => {
   try {
     if (m.tipo === 'armar') {
       const t0 = performance.now();
-      const data = await fetch(m.url).then(r => r.json());
-      K = new Referencias(data, { corteDia: m.corteDia ?? 0 });
+      DATA = await fetch(m.url).then(r => r.json());
+      CORTE = m.corteDia ?? 0;
+      K = Kbase = new Referencias(DATA, { corteDia: CORTE });
       const t1 = performance.now();
       const [cubo, buf] = Cubo.build(K).toTransfer();
       self.postMessage({ tipo: 'cubo', cubo, n: K.refs.length, ms: { motor: t1 - t0, cubo: performance.now() - t1 } }, buf);
+    } else if (m.tipo === 'escenario') {
+      // laboratorio: misma semilla y mismas unidades, con las palancas del escenario
+      const t = CORTE * 86400 + 8 * 3600;
+      mBase ??= medir(Kbase, t);
+      Kesc = new Referencias(DATA, { corteDia: CORTE, esc: m.esc });
+      self.postMessage({ tipo: 'escenario', base: mBase, esc: medir(Kesc, t), escN: m.esc });
+    } else if (m.tipo === 'usar') {
+      // la página pasa a ver el escenario (o regresa a la operación actual)
+      K = m.cual === 'esc' && Kesc ? Kesc : Kbase;
+      const [cubo, buf] = Cubo.build(K).toTransfer();
+      self.postMessage({ tipo: 'cubo', cubo, n: K.refs.length, cual: K === Kbase ? 'base' : 'esc' }, buf);
     } else if (m.tipo === 'vista') {
       // foto del día con filtros que el cubo no guarda (especialidad)
       self.postMessage({ tipo: 'vista', v: vistaDia(K, m.t, m.f || {}, m.ventana ?? 28) });

@@ -13,6 +13,7 @@ import { agregarFlujos } from './referencias-vista.js';
 import { Cubo, ET, EDAD_ES, EDADES } from './referencias-cubo.js';
 import { esc, BAD, NODES, EDGES, NW, CAP_COLS, CAP_ROWS, R, slotPos, edgeD, diagramaSVG } from './referencias-diagrama.js';
 import { MapaFlujos } from './referencias-mapa.js';
+import { iniciarLab } from './referencias-lab-ui.js';
 
 const DAY = 86400, H = 3600;
 const BASE = Date.UTC(2026, 9, 26);
@@ -105,6 +106,19 @@ export async function iniciar() {
   });
   $('m-top').addEventListener('change', e => { mapa.top = +e.target.value; mapa.set(S.dia, S.f, S.uni?.key); });
   $('m-up').addEventListener('click', () => ponerFiltro({}));
+
+  // laboratorio: el worker corre el escenario; «ver» cambia todo el tablero a esa corrida
+  const subtitulo = document.querySelector('.brand-text span').innerHTML;
+  iniciarLab({
+    pedir,
+    usar: (cubo, cual) => {
+      C = Cubo.from(cubo);
+      window.__refNac.C = C; mapa.C = C; mapa.fuente = null;
+      S.uni = null; S.ref = null; S.node = null;
+      document.querySelector('.brand-text span').innerHTML = subtitulo + (cual === 'esc' ? ' · <b style="color:#2dd4bf">escenario del laboratorio</b>' : '');
+      refrescar();
+    },
+  });
 
   $('flow').innerHTML = diagramaSVG(['Cada punto = N referencias (ver leyenda).', 'Color del punto = antigüedad desde la creación.',
     `Los cierres se ven ${REGLAS.archivarDias} días; «acum.» cuenta 90 días.`, 'Toca una etapa para ver estados y receptoras.']);

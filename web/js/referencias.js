@@ -36,6 +36,22 @@ export const REGLAS = {
   temporada: 0.75,      // octubre a diciembre (vacaciones, cierre de año): cupo al 75 %
 };
 
+/**
+ * Palancas del laboratorio «¿Qué pasaría si…?» (todas apagadas = operación actual).
+ * Cada una se apoya en evidencia de investigacion/referencias_mejoras_ampliadas.md
+ */
+export const PALANCAS = {
+  recordatorio: { n: 'Recordatorio de la cita', op: { no: 'Ninguno', sms: 'Mensaje (SMS / WhatsApp)', llamada: 'Llamada de una persona' }, def: 'no',
+    efecto: 'No acudió × 0.75 con mensaje y × 0.59 con llamada (23.1 % → 17.3 % y 13.6 % en una clínica universitaria).' },
+  capacidad: { n: 'Más consultorios', rango: [0, 0.5], paso: 0.05, def: 0, efecto: 'Sube el cupo de primeras consultas de todas las receptoras.' },
+  respuesta: { n: 'La receptora responde en ≤ 3 días hábiles', def: false, efecto: 'Sin respuesta × 0.15 y aceptación en 1.5 días o menos.' },
+  contra: { n: 'Contrarreferencia obligatoria para cerrar', def: false, efecto: 'Se emite la contrarreferencia en 95 % de las altas.' },
+  digital: { n: 'Registro digital de cada paso', def: false, efecto: 'Cada paso que hoy se pierde queda registrado en 85 % de los casos (expediente y agenda electrónicos).' },
+  sinCierre: { n: 'Agenda abierta todo el año', def: false, efecto: 'De octubre a diciembre no baja el cupo (programación digital de especialidad).' },
+  regional: { n: 'Lista regional única por especialidad', def: false, efecto: 'La referencia va a la receptora de su región con el primer lugar libre (hasta 250 km).' },
+};
+export const ESC_BASE = Object.fromEntries(Object.entries(PALANCAS).map(([k, p]) => [k, p.def]));
+
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 export const fecha = d => { const x = new Date(BASE_DATE + d * 864e5); return `${x.getUTCDate()} ${MESES[x.getUTCMonth()]}`; };
 const dow = d => (((d % 7) + 7) % 7 + 1) % 7; // día 0 = lunes (getUTCDay = 1)
@@ -85,7 +101,7 @@ export const ETAPAS = {
 export const TERMINAL = new Set(['CERRADA', 'QUEMADA', 'ABANDONO', 'SIN_CIERRE']);
 export const DESVIO = new Set(['DEVUELTA', 'LIMBO', 'NO_ACUDIO', 'URGENCIAS', 'ESTUDIOS', 'TERCER', 'QUEMADA', 'ABANDONO', 'SIN_CIERRE']);
 export const CIERRE_ES = { CERRADA: 'Cierre natural', SIN_CIERRE: 'Atendida sin cierre', ABANDONO: 'No regresó', QUEMADA: 'Quemada', EN_PROCESO: 'En proceso' };
-export const SISTEMA_ES = { EN_PROCESO: 'En proceso', SIN_RASTRO: 'Sin rastro', CERRADA: 'Cerrada', QUEMADA: 'Quemada', ABANDONO: 'Abandono' };
+export const SISTEMA_ES = { EN_PROCESO: 'En proceso', SIN_RASTRO: 'Sin rastro', CERRADA: 'Cerrada', QUEMADA: 'Quemada', ABANDONO: 'Abandono', SIN_CIERRE: 'Atendida sin cierre' };
 /** cuánto espera el sistema que dure cada etapa registrada antes de considerarla sin rastro (días) */
 const ESPERA = { SOLICITUD: 2, VALIDACION: 5, ACEPTACION: 10, URGENCIAS: 3, ESPECIALIDAD: 60, ESTUDIOS: 120, TERCER: 10, DEVUELTA: 10, CONTRARREF: 5, SEGUIMIENTO: 45, NO_ACUDIO: 15, LIMBO: 15 };
 
@@ -231,6 +247,19 @@ export function redNacional(data, seed = 7) {
   return {
     nombre: 'Nacional', nacional: true, emisoras, rx, estados: est, hrDe, porDia: sumW * REGLAS.porPeso,
     destino: (e, esp) => e.dest[esp.nivel] || e.dest.CH,
+    // receptoras posibles para la lista regional única: misma clase, en su región o a menos de 250 km
+    candidatos: (e, esp) => {
+      const clase = esp.nivel === 'CMFE' && !porClase.CMFE.length ? 'HG' : esp.nivel;
+      if (clase === 'HR') return [hrDe[e.cve]];
+      const k = clase;
+      if (!e.cand) e.cand = {};
+      if (!e.cand[k]) {
+        const cs = (porClase[k] || porClase.CH).filter(c => c.region === e.region || d2(e.xy, c.xy) < 250);
+        const fijo = (e.dest[k] || e.dest.CH).rx;
+        e.cand[k] = [...new Set([fijo, ...cs.sort((a, b) => d2(e.xy, a.xy) - d2(e.xy, b.xy)).slice(0, 5).map(c => c.id)])];
+      }
+      return e.cand[k];
+    },
     alterna: id => rx[id].alterna,
     dist: (e, id) => d2(e.xy, rx[id].xy),
   };
@@ -245,9 +274,10 @@ export class Referencias {
    * @param data assets/unidades_hidalgo.json (red de Hidalgo) o assets/estados_issste.json (red nacional), o una red ya armada
    * @param corteDia último día con referencias nuevas
    */
-  constructor(data, { seed = 20261104, corteDia = 0, inicio = REGLAS.inicio } = {}) {
+  constructor(data, { seed = 20261104, corteDia = 0, inicio = REGLAS.inicio, esc = {} } = {}) {
     const R = rng(seed);
     this.R = R;
+    this.esc = { ...ESC_BASE, ...esc };
     this.corteDia = corteDia;
     this.inicio = inicio;
     this.red = data.destino ? data : data.unidades ? redNacional(data) : redHidalgo(data);
@@ -282,7 +312,7 @@ export class Referencias {
       if (up) dem[up][j] += v * REGLAS.escalaDemanda;
     });
     for (const u of this.receptoras) {
-      const h = u.holgura ?? REGLAS.holgura / (u.carga || 1);
+      const h = (u.holgura ?? REGLAS.holgura / (u.carga || 1)) * (1 + (this.esc.capacidad || 0));
       u.holgura = h;
       u.cupo = Array.from(dem[u.id], x => Math.max(0.04, x * h));
       u.capSem = 5 * u.cupo.reduce((a, b) => a + b, 0);
@@ -291,16 +321,34 @@ export class Referencias {
     }
   }
   /** primer lugar libre en la agenda (receptora u, especialidad j) desde el instante tMin → día */
-  _reservar(u, j, tMin) {
+  _reservar(u, j, tMin, mirar = false) {
     const a = u.agenda[j], base = u.cupo[j];
-    const cupoDia = d => { const c = base * (mes(d) >= 9 ? REGLAS.temporada : 1), k = d + 1000; return Math.floor((k + 1) * c) - Math.floor(k * c); };
+    const cupoDia = d => { const c = base * (mes(d) >= 9 && !this.esc.sinCierre ? REGLAS.temporada : 1), k = d + 1000; return Math.floor((k + 1) * c) - Math.floor(k * c); };
     let d = sigHabil(Math.max(Math.ceil(tMin / DAY), a.prim));
     for (let n = 0; n < 900; n++, d = sigHabil(d + 1)) {
       const used = a.usado.get(d) || 0;
-      if (used < cupoDia(d)) { a.usado.set(d, used + 1); return d; }
-      if (d === a.prim) a.prim = sigHabil(d + 1); // el día del frente ya se llenó
+      if (used < cupoDia(d)) { if (!mirar) a.usado.set(d, used + 1); return d; }
+      if (d === a.prim && !mirar) a.prim = sigHabil(d + 1); // el día del frente ya se llenó
     }
     return d;
+  }
+
+  /** ¿queda registrado este paso? con registro digital se pierde sólo 15 % de lo que hoy se pierde */
+  _reg(p) { return this.R() < (this.esc.digital ? 1 - (1 - p) * 0.15 : p); }
+  _acep(u) { return this.esc.respuesta ? Math.min(u.acep, 1.5) : u.acep; }
+  _noAcude() { return this.esc.recordatorio === 'sms' ? 0.75 : this.esc.recordatorio === 'llamada' ? 0.59 : 1; }
+  /** destino: el fijo de la regionalización o, con lista regional, la receptora de la región con el primer lugar libre */
+  _destino(e, esp, t) {
+    const base = this.red.destino(e, esp);
+    if (!this.esc.regional || !this.red.candidatos) return base;
+    const j = ESP_I.get(esp), hoy = Math.floor(t / DAY);
+    let best = base, bd = Infinity;
+    for (const id of this.red.candidatos(e, esp)) {
+      const u = this.rx[id];
+      const d = this._reservar(u, j, (hoy + 5) * DAY, true) + this.red.dist(e, id) / 150; // primer lugar libre + un día por cada 150 km
+      if (d < bd) { bd = d; best = { rx: id, fuera: u.region !== e.region }; }
+    }
+    return best;
   }
 
   _emisora() {
@@ -317,7 +365,7 @@ export class Referencias {
       id: 'REF-' + String(this.refs.length + 1).padStart(5, '0'), tCrea, tEmision: tCrea, emisora: e, esp, dx: pick(R, esp.dx),
       sexo: R() < 0.58 || esp.n === 'Ginecología' ? 'F' : 'M', edad: esp.n === 'Pediatría' ? Math.floor(R() * 17) : 18 + Math.floor(R() * 66), seg: [], tAtencion: Infinity, final: null, rxSet: new Set(),
     };
-    let { rx: rec, fuera } = this.red.destino(e, esp), t = tCrea, vueltas = 0, atendido = false, escalado = false, estudio = false, reprog = false, reemite = false, nEsp = 0;
+    let { rx: rec, fuera } = this._destino(e, esp, tCrea), t = tCrea, vueltas = 0, atendido = false, escalado = false, estudio = false, reprog = false, reemite = false, nEsp = 0;
     r.rx0 = rec;
     const push = (etapa, t0, o = {}) => {
       const last = r.seg.at(-1);
@@ -349,13 +397,13 @@ export class Referencias {
           push('ACEPTACION', t, { rx: rec, unidad: u.corto, nota: escalado ? 'Envío desde ' + r.seg.filter(s => s.rx).at(-2)?.unidad : fuera ? 'Fuera de región (microrregionalización)' : '' });
           const x = R();
           if (x < u.devuelve && vueltas < REGLAS.maxVueltas) {
-            t = habilesDesde(R, t, logn(R, u.acep, u.acep * 3));
+            t = habilesDesde(R, t, logn(R, this._acep(u), this._acep(u) * 3));
             vueltas++;
             push('DEVUELTA', t, { rx: rec, unidad: u.corto, vuelta: true, nota: pick(R, MOTIVOS_RX) });
             if (R() < 0.4) { rec = this.red.alterna(rec); fuera = false; }
             t = habilesDesde(R, t, 1 + R() * 4); st = 'VALIDACION'; break;
           }
-          if (x < u.devuelve + u.limbo) {
+          if (x < u.devuelve + (this.esc.respuesta ? u.limbo * 0.15 : u.limbo)) {
             t = habilesDesde(R, t, 3 + R() * 3);
             push('LIMBO', t, { rx: rec, unidad: u.corto, reg: false, nota: 'Se venció el plazo de respuesta' });
             t += logn(R, 28, 85) * DAY;
@@ -364,10 +412,10 @@ export class Referencias {
             push('ACEPTACION', t, { rx: rec, unidad: u.corto, nota: 'Respuesta tardía' });
             t += (2 + R() * 5) * H; st = 'CITA'; break;
           }
-          t = habilesDesde(R, t, logn(R, u.acep, u.acep * 3)); st = 'CITA'; break;
+          t = habilesDesde(R, t, logn(R, this._acep(u), this._acep(u) * 3)); st = 'CITA'; break;
         }
         case 'CITA': {
-          push('CITA', t, { rx: rec, unidad: u.corto, vuelta: reprog, reg: R() < 0.92, nota: reprog ? 'Cita reprogramada' : fuera ? 'Traslado foráneo' : '' });
+          push('CITA', t, { rx: rec, unidad: u.corto, vuelta: reprog, reg: this._reg(0.92), nota: reprog ? 'Cita reprogramada' : fuera ? 'Traslado foráneo' : '' });
           reprog = false;
           // la cita es el primer lugar libre en la agenda de esa especialidad (más traslado si es foránea)
           const dCita = this._reservar(u, ESP_I.get(esp), t + (2 + R() * 5 + (fuera ? 2 : 0)) * DAY);
@@ -381,54 +429,54 @@ export class Referencias {
           // la cita cae después de la vigencia: al llegar, la referencia ya se quemó
           if (!atendido && tCita - r.tEmision > REGLAS.vigenciaDias * DAY && R() < 0.4) { t = r.tEmision + REGLAS.vigenciaDias * DAY; st = 'QUEMADA'; break; }
           t = tCita;
-          if (R() < 0.12 + (this.red.dist(e, rec) > 100 ? 0.06 : 0)) { st = 'NO_ACUDIO'; break; }
+          if (R() < (0.12 + (this.red.dist(e, rec) > 100 ? 0.06 : 0)) * this._noAcude()) { st = 'NO_ACUDIO'; break; }
           if (!atendido) { r.tAtencion = t; atendido = true; }
           st = 'ESPECIALIDAD'; break;
         }
         case 'NO_ACUDIO':
-          push('NO_ACUDIO', t, { rx: rec, unidad: u.corto, reg: R() < 0.25, nota: 'La cita pasó sin registro de asistencia' });
+          push('NO_ACUDIO', t, { rx: rec, unidad: u.corto, reg: this._reg(0.25), nota: 'La cita pasó sin registro de asistencia' });
           t = enHorario(R, Math.floor(t / DAY + 2 + R() * 10));
           if (!atendido && t - r.tEmision > REGLAS.vigenciaDias * DAY && R() < 0.5) { st = 'QUEMADA'; break; }
           if (R() < 0.55 && vueltas < REGLAS.maxVueltas) { vueltas++; reprog = true; st = 'CITA'; break; }
           st = 'ABANDONO'; break;
         case 'ESPECIALIDAD': {
-          push('ESPECIALIDAD', t, { rx: rec, unidad: u.corto, reg: R() < 0.8, nota: nEsp ? 'Continúa tratamiento' : 'Primera consulta de especialidad' });
+          push('ESPECIALIDAD', t, { rx: rec, unidad: u.corto, reg: this._reg(0.8), nota: nEsp ? 'Continúa tratamiento' : 'Primera consulta de especialidad' });
           nEsp++;
           let dur = (R() < 0.12 ? logn(R, 110, 280) : logn(R, 16, 60)) * DAY;
           if (!estudio && R() < 0.22) {
             estudio = true;
             const a = dur * (0.2 + R() * 0.3); t += a; dur -= a;
-            push('ESTUDIOS', t, { rx: rec, unidad: u.corto, reg: R() < 0.7, nota: pick(R, ESTUDIOS) });
+            push('ESTUDIOS', t, { rx: rec, unidad: u.corto, reg: this._reg(0.7), nota: pick(R, ESTUDIOS) });
             t += logn(R, 28, 150) * DAY;
-            push('ESPECIALIDAD', t, { rx: rec, unidad: u.corto, reg: R() < 0.8, nota: 'Revisión de resultados' });
+            push('ESPECIALIDAD', t, { rx: rec, unidad: u.corto, reg: this._reg(0.8), nota: 'Revisión de resultados' });
           }
           t = enHorario(R, Math.floor((t + Math.max(DAY / 2, dur)) / DAY), 8, 14);
           if (u.escala && !escalado && R() < 0.07) { st = 'TERCER'; break; }
-          st = R() < u.contra ? 'CONTRARREF' : 'SIN_CIERRE'; break;
+          st = R() < (this.esc.contra ? 0.95 : u.contra) ? 'CONTRARREF' : 'SIN_CIERRE'; break;
         }
         case 'TERCER':
           escalado = true;
           push('TERCER', t, { rx: rec, unidad: u.corto, nota: 'Rebasa la capacidad resolutiva → ' + U(u.escala).corto });
           rec = u.escala; fuera = false; t = habilesDesde(R, t, 1 + R() * 3); st = 'ACEPTACION'; break;
         case 'CONTRARREF':
-          push('CONTRARREF', t, { rx: rec, unidad: u.corto, reg: R() < 0.95, nota: 'SM-1-17 reverso · plan de manejo' });
+          push('CONTRARREF', t, { rx: rec, unidad: u.corto, reg: this._reg(0.95), nota: 'SM-1-17 reverso · plan de manejo' });
           t = habilesDesde(R, t, R() < 0.6 ? 0 : 1 + R() * 3); st = 'SEGUIMIENTO'; break;
         case 'SEGUIMIENTO':
-          push('SEGUIMIENTO', t, { unidad: e.corto, reg: R() < 0.85, nota: 'Control en la unidad de origen' });
+          push('SEGUIMIENTO', t, { unidad: e.corto, reg: this._reg(0.85), nota: 'Control en la unidad de origen' });
           t = enHorario(R, Math.floor(t / DAY + 7 + R() * 25)); st = 'CERRADA'; break;
         case 'CERRADA':
           push('CERRADA', t, { unidad: e.corto, reg: r.seg.some(s => s.etapa === 'CONTRARREF' && s.reg), nota: 'Cierre natural' });
           r.final = 'CERRADA'; st = null; break;
         case 'SIN_CIERRE':
-          push('SIN_CIERRE', t, { rx: rec, unidad: u.corto, reg: false, nota: 'Alta sin contrarreferencia' });
+          push('SIN_CIERRE', t, { rx: rec, unidad: u.corto, reg: this.esc.digital && this.R() < 0.85, nota: 'Alta sin contrarreferencia' });
           r.final = 'SIN_CIERRE'; st = null; break;
         case 'ABANDONO':
-          push('ABANDONO', t, { rx: rec, unidad: u.corto, reg: false, nota: 'El paciente no regresó' });
+          push('ABANDONO', t, { rx: rec, unidad: u.corto, reg: this.esc.digital && this.R() < 0.85, nota: 'El paciente no regresó' });
           r.final = 'ABANDONO'; st = null; break;
         case 'QUEMADA':
-          push('QUEMADA', t, { rx: rec, unidad: u.corto, reg: R() < 0.35, nota: `Venció la vigencia de ${REGLAS.vigenciaDias} días sin atención` });
+          push('QUEMADA', t, { rx: rec, unidad: u.corto, reg: this._reg(0.35), nota: `Venció la vigencia de ${REGLAS.vigenciaDias} días sin atención` });
           if (R() < 0.45 && vueltas < REGLAS.maxVueltas) {
-            vueltas++; reemite = true; ({ rx: rec, fuera } = this.red.destino(e, esp));
+            vueltas++; reemite = true; ({ rx: rec, fuera } = this._destino(e, esp, t));
             t = enHorario(R, Math.floor(t / DAY) + 3 + Math.floor(R() * 20)); st = 'SOLICITUD'; break;
           }
           r.final = 'QUEMADA'; st = null; break;
@@ -462,7 +510,7 @@ export class Referencias {
     let last = null;
     for (const s of r.seg) { if (s.t0 > t) break; if (s.reg) last = s; }
     if (!last) return { st: 'SIN_RASTRO', seg: null };
-    if (last.etapa === 'CERRADA' || last.etapa === 'QUEMADA' || last.etapa === 'ABANDONO') return { st: last.etapa, seg: last };
+    if (last.etapa === 'CERRADA' || last.etapa === 'QUEMADA' || last.etapa === 'ABANDONO' || last.etapa === 'SIN_CIERRE') return { st: last.etapa, seg: last };
     const fin = last.etapa === 'CITA' ? last.t1 : last.t0 + (ESPERA[last.etapa] ?? 15) * DAY;
     return { st: t > fin + REGLAS.sinRastroDias * DAY ? 'SIN_RASTRO' : 'EN_PROCESO', seg: last };
   }
@@ -483,7 +531,7 @@ export class Referencias {
     const W0 = t - 90 * DAY;
     const o = {
       abiertas: { a15: 0, a30: 0, a90: 0, cron: 0 }, sinAtender15: 0, atendidas: 0, enPlazo: 0, diasAt: [],
-      cierres: { CERRADA: 0, SIN_CIERRE: 0, ABANDONO: 0, QUEMADA: 0 }, sistema: { EN_PROCESO: 0, SIN_RASTRO: 0, CERRADA: 0, QUEMADA: 0, ABANDONO: 0 },
+      cierres: { CERRADA: 0, SIN_CIERRE: 0, ABANDONO: 0, QUEMADA: 0 }, sistema: { EN_PROCESO: 0, SIN_RASTRO: 0, CERRADA: 0, QUEMADA: 0, ABANDONO: 0, SIN_CIERRE: 0 },
       ocultas: { SIN_CIERRE: 0, ABANDONO: 0, QUEMADA: 0, CERRADA: 0 }, cronicas: [], vueltas: [], acepDias: [], acepTotal: 0, acepPrimera: 0, limbo: 0,
       porRx: Object.fromEntries(this.receptoras.map(u => [u.id, { abiertas: 0, sinAtender15: 0, sinCierre: 0, sinRastro: 0, limbo: 0 }])),
     };

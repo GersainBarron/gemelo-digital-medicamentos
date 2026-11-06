@@ -93,6 +93,17 @@
       </div>
     </section>
 
+    <section class="card rf-lab" id="lab-card" hidden>
+      <div class="card-h"><h2>Laboratorio <small>¿qué pasaría si…?</small></h2>
+        <div class="xp-tools"><span id="lab-estado" class="muted"></span><button id="lab-run" class="btn primary">Simular</button><button id="lab-ver" class="btn" hidden>Ver el escenario en todo el tablero</button></div>
+      </div>
+      <div id="lab-aviso" class="rf-uni" hidden><span>Estás viendo el <b>escenario</b> en el diagrama, el mapa y el tablero.</span><button id="lab-hoy" class="btn">Volver a la operación actual</button></div>
+      <div class="rf-lab-grid">
+        <div><div id="lab-pre" class="rf-lab-pre"></div><div id="lab-pal" class="rf-lab-pal"></div></div>
+        <div id="lab-res" class="rf-lab-res"><p class="muted">Elige una o más palancas y pulsa «Simular». Se corre la misma red, con la misma semilla, y se compara contra la operación actual al corte.</p></div>
+      </div>
+    </section>
+
     <aside class="xp-side">
       <section class="card" id="sel-card">
         <div class="card-h"><h2 id="sel-title">Referencia</h2><div class="xp-sel-btns"><button id="sel-next" class="btn" hidden>Siguiente paso ›</button><button id="sel-x" class="btn" hidden>✕</button></div></div>

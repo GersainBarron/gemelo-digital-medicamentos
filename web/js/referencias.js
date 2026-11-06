@@ -30,6 +30,10 @@ export const REGLAS = {
   porDia: 5.5,          // [SUPUESTO] referencias por día hábil en la red ISSSTE Hidalgo
   porPeso: 0.104,       // misma tasa por unidad emisora (CMF 3, UMF 2, CAF 1) para la red nacional
   microrregion: 0.6,    // se refiere fuera de la región si la otra unidad queda a < 60 % de la distancia
+  // capacidad (agenda de primeras consultas)
+  holgura: 1.03,        // [SUPUESTO] cupo = demanda esperada × holgura ÷ carga de la unidad; < 1 la lista crece
+  escalaDemanda: 0.08,  // parte de la demanda de cada receptora que sube a la unidad de escalamiento
+  temporada: 0.75,      // octubre a diciembre (vacaciones, cierre de año): cupo al 75 %
 };
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -111,6 +115,9 @@ export const ESPECIALIDADES = [
   { n: 'Psiquiatría', w: 4, nivel: 'CMFE', dx: ['Depresión mayor', 'Trastorno bipolar'] },
   { n: 'Oncología', w: 4, nivel: 'HR', dx: ['Cáncer de mama', 'Cáncer de próstata'] },
 ];
+const ESP_I = new Map(ESPECIALIDADES.map((x, i) => [x, i]));
+/** holgura de agenda de las receptoras de Hidalgo [SUPUESTO]: < 1 se saturan */
+const HOLGURA_HGO = { HGP: 0.97, CHI: 1.1, CHH: 0.93, CMFE: 1.2, HGT: 0.88, HR1: 0.92, CMN: 1.0 };
 const MOTIVOS_EMISORA = ['Formato SM-1-17 incompleto', 'Sin vigencia de derechos', 'Falta resumen clínico'];
 const MOTIVOS_RX = ['No corresponde a la región', 'Falta estudio previo', 'Especialidad sin agenda', 'Diagnóstico no pertinente para el nivel', 'Formato incompleto'];
 const ESTUDIOS = ['Ultrasonido', 'Tomografía', 'Resonancia magnética', 'Endoscopia', 'Ecocardiograma', 'Laboratorio especial'];
@@ -136,7 +143,7 @@ function corto(nombre) { const [p, ...r] = nombre.split(' '); const s = p + ' ' 
 // =====================================================================
 /** Hidalgo con sus 7 receptoras (assets/unidades_hidalgo.json) */
 export function redHidalgo(data) {
-  const rx = Object.fromEntries(Object.entries(RECEPTORAS).map(([id, x], idx) => [id, { id, idx, region: 'I', cve: '13', carga: 1, ...x }]));
+  const rx = Object.fromEntries(Object.entries(RECEPTORAS).map(([id, x], idx) => [id, { id, idx, region: 'I', cve: '13', carga: 1, holgura: HOLGURA_HGO[id], ...x }]));
   const emisoras = data.units
     .filter(u => u.inst === 'ISSSTE' && u.nivel === 'Primer Nivel' && u.tipo !== 'CMFE')
     .map((u, idx) => ({ id: u.clues, idx, clues: u.clues, nombre: u.nombre, corto: corto(u.nombre), tipo: u.tipo, ruta: u.ruta, km: u.km, cve: '13', region: 'I', w: PESO[u.tipo] || 1 }));
@@ -251,11 +258,49 @@ export class Referencias {
     let acc = 0;
     this._wCum = Float64Array.from(this.emisoras, e => (acc += e.w));
     this.refs = [];
+    this._capacidad(R);
     for (let d = inicio; d <= corteDia; d++) {
       if (!habil(d)) continue;
       const ts = Array.from({ length: poisson(R, this.red.porDia) }, () => d * DAY + (8 + R() * 6) * H).sort((a, b) => a - b);
       for (const t of ts) this.refs.push(this._crear(t));
     }
+  }
+
+  /**
+   * Cupo de primeras consultas por día hábil en cada receptora × especialidad:
+   * demanda esperada (emisoras que la tienen de destino + lo que se le escala) × holgura.
+   * Cada agenda arranca con una lista heredada, más larga cuanto menos holgura tiene.
+   */
+  _capacidad(R) {
+    const nE = ESPECIALIDADES.length, wEsp = ESPECIALIDADES.reduce((a, x) => a + x.w, 0);
+    const tasa = this.red.porDia / this._wCum[this._wCum.length - 1];
+    const dem = Object.fromEntries(this.receptoras.map(u => [u.id, new Float64Array(nE)]));
+    for (const e of this.emisoras) ESPECIALIDADES.forEach((esp, j) => {
+      const v = tasa * e.w * esp.w / wEsp, { rx } = this.red.destino(e, esp);
+      dem[rx][j] += v;
+      const up = this.rx[rx].escala;
+      if (up) dem[up][j] += v * REGLAS.escalaDemanda;
+    });
+    for (const u of this.receptoras) {
+      const h = u.holgura ?? REGLAS.holgura / (u.carga || 1);
+      u.holgura = h;
+      u.cupo = Array.from(dem[u.id], x => Math.max(0.04, x * h));
+      u.capSem = 5 * u.cupo.reduce((a, b) => a + b, 0);
+      const f = Math.min(2, Math.max(0.2, (1.15 - h) * 4));
+      u.agenda = u.cupo.map(() => ({ prim: this.inicio + Math.round(logn(R, 25, 70) * f), usado: new Map() }));
+    }
+  }
+  /** primer lugar libre en la agenda (receptora u, especialidad j) desde el instante tMin → día */
+  _reservar(u, j, tMin) {
+    const a = u.agenda[j], base = u.cupo[j];
+    const cupoDia = d => { const c = base * (mes(d) >= 9 ? REGLAS.temporada : 1), k = d + 1000; return Math.floor((k + 1) * c) - Math.floor(k * c); };
+    let d = sigHabil(Math.max(Math.ceil(tMin / DAY), a.prim));
+    for (let n = 0; n < 900; n++, d = sigHabil(d + 1)) {
+      const used = a.usado.get(d) || 0;
+      if (used < cupoDia(d)) { a.usado.set(d, used + 1); return d; }
+      if (d === a.prim) a.prim = sigHabil(d + 1); // el día del frente ya se llenó
+    }
+    return d;
   }
 
   _emisora() {
@@ -323,10 +368,10 @@ export class Referencias {
         }
         case 'CITA': {
           push('CITA', t, { rx: rec, unidad: u.corto, vuelta: reprog, reg: R() < 0.92, nota: reprog ? 'Cita reprogramada' : fuera ? 'Traslado foráneo' : '' });
-          const fac = (reprog ? 0.7 : 1) * (u.carga || 1); reprog = false;
-          let espera = logn(R, u.cita[0] * fac, u.cita[1] * fac);
-          if (mes(Math.floor(t / DAY)) >= 9) espera += 20 + R() * 40; // octubre a diciembre: cierre de agenda
-          const tCita = enHorario(R, Math.floor(t / DAY + Math.max(2, espera)), 8, 13);
+          reprog = false;
+          // la cita es el primer lugar libre en la agenda de esa especialidad (más traslado si es foránea)
+          const dCita = this._reservar(u, ESP_I.get(esp), t + (2 + R() * 5 + (fuera ? 2 : 0)) * DAY);
+          const tCita = dCita * DAY + (8 + R() * 5) * H;
           if (R() < 0.035) {
             const tu = t + (0.15 + R() * 0.8) * (tCita - t);
             push('URGENCIAS', tu, { rx: rec, unidad: u.corto, nota: pick(R, TRIAGE) });
@@ -445,8 +490,9 @@ export class Referencias {
     // filtro: id de receptora (texto) o {region} / {cve} de la unidad que refiere
     const pasa = !filtro ? () => true
       : typeof filtro === 'string' ? r => r.rxSet.has(filtro) || r.rx0 === filtro
-      : filtro.em ? r => r.emisora.id === filtro.em
-      : filtro.cve ? r => r.emisora.cve === filtro.cve : filtro.region ? r => r.emisora.region === filtro.region : () => true;
+      : r => (!filtro.esp || r.esp.n === filtro.esp) && (!filtro.em || r.emisora.id === filtro.em)
+        && (!filtro.rx || r.rxSet.has(filtro.rx) || r.rx0 === filtro.rx)
+        && (!filtro.cve || r.emisora.cve === filtro.cve) && (!filtro.region || r.emisora.region === filtro.region);
     for (const r of this.refs) {
       if (r.tCrea > t) break;
       if (!pasa(r)) continue;

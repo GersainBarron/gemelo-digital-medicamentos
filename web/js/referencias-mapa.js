@@ -26,7 +26,7 @@ export class MapaFlujos {
     Object.assign(this, { canvas, C, on, ctx: canvas.getContext('2d') });
     this.estados = Object.fromEntries(red.estados.map(e => [e.cve, e]));
     this.geo = geo.estados.map(g => ({ ...g, bbox: bbox(g.polys.flatMap(p => p.ext)) }));
-    this.ventana = 28; this.top = 120; this.sel = null; this.nodos = []; this.flechas = [];
+    this.ventana = 28; this.top = 120; this.sel = null; this.color = 'norma'; this.nodos = []; this.flechas = [];
     this.base = document.createElement('canvas');
     this._ro = new ResizeObserver(() => this.resize());
     this._ro.observe(canvas);
@@ -90,7 +90,7 @@ export class MapaFlujos {
 
   // ---------------------------------------------------------------- datos
   _datos() {
-    const C = this.C, m = C.meta, f = this.f || {}, di = this.di;
+    const C = this.fuente || this.C, m = this.C.meta, f = this.f || {}, di = this.di;
     const sat = C.saturacionTodas(di, this.ventana);
     this.sat = sat;
     const nivel = f.cve || f.region ? 'unidad' : 'estado';
@@ -119,6 +119,10 @@ export class MapaFlujos {
     }
     this.flechas = out;
     this.nodos = [...nodos.values()];
+    // color relativo: cuartiles de espera entre los nodos visibles (para ver dónde está peor aunque todo pase de 15 días)
+    const ord = this.nodos.filter(n => n.tipo !== 'em' && !n.fuera).sort((a, b) => (a.W || 0) - (b.W || 0));
+    ord.forEach((n, i) => { n.semRel = ['VERDE', 'AMARILLO', 'NARANJA', 'ROJO'][Math.min(3, Math.floor(4 * i / Math.max(1, ord.length)))]; });
+    for (const n of this.nodos) if (n.semRel === undefined) n.semRel = n.sem;
     this.maxN = Math.max(1, ...out.map(g => g.n));
     this.maxL = Math.max(1, ...this.nodos.filter(n => n.tipo !== 'em').map(n => n.L || 0));
   }
@@ -189,7 +193,7 @@ export class MapaFlujos {
       c.beginPath(); c.arc(n.px, n.py, n.r, 0, 7);
       if (n.tipo === 'em') { c.fillStyle = '#94a3b8'; c.fill(); }
       else {
-        c.fillStyle = SEM[n.sem] + 'cc'; c.fill();
+        c.fillStyle = SEM[this.color === 'relativo' ? n.semRel : n.sem] + 'cc'; c.fill();
         c.lineWidth = n.key === sel || n === this.hoverN ? 2.5 : 1; c.strokeStyle = n.key === sel ? '#fff' : n.fuera ? '#fb923c' : 'rgba(15,21,28,.9)'; c.stroke();
       }
       if (this.nivel === 'estado' && n.r > 9) {

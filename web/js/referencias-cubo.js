@@ -123,7 +123,7 @@ export class Cubo {
     const meta = {
       d0, ND, hora, estados, NE, NR, NET, NEM, pares,
       region: estados.map(c => (K.nacional ? K.red.estados[c].region : 'I')),
-      rx: rxs.map(u => ({ id: u.id, corto: u.corto, nombre: u.nombre, tipo: u.tipo, nivel: u.nivel ?? (u.idx > 4 ? 3 : 2), cve: u.cve, region: u.region, xy: u.xy || null, color: u.color })),
+      rx: rxs.map(u => ({ id: u.id, corto: u.corto, nombre: u.nombre, tipo: u.tipo, nivel: u.nivel ?? (u.idx > 4 ? 3 : 2), cve: u.cve, region: u.region, xy: u.xy || null, color: u.color, capSem: u.capSem ?? null, holgura: u.holgura ?? null })),
       em: K.emisoras.map(e => ({ id: e.id, corto: e.corto, tipo: e.tipo, cve: e.cve, region: e.region, xy: e.xy || null })),
     };
     return new Cubo({

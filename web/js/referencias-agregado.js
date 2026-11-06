@@ -8,7 +8,8 @@
 //   · filtros por región (16) y estado (32); tablero calculado en el worker
 //  El motor y el cubo diario viven en referencias-worker.js.
 // =====================================================================
-import { ETAPAS, TERMINAL, REGLAS, CIERRE_ES, SISTEMA_ES, REGIONES, fecha, semaforo } from './referencias.js';
+import { ETAPAS, TERMINAL, REGLAS, CIERRE_ES, SISTEMA_ES, REGIONES, ESPECIALIDADES, fecha, semaforo } from './referencias.js';
+import { agregarFlujos } from './referencias-vista.js';
 import { Cubo, ET, EDAD_ES, EDADES } from './referencias-cubo.js';
 import { esc, BAD, NODES, EDGES, NW, CAP_COLS, CAP_ROWS, R, slotPos, edgeD, diagramaSVG } from './referencias-diagrama.js';
 import { MapaFlujos } from './referencias-mapa.js';
@@ -28,7 +29,7 @@ const ESCALAS = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
 const CAP = CAP_COLS * CAP_ROWS;
 const NS = 'http://www.w3.org/2000/svg';
 
-const S = { t: 0, speed: DAY, playing: true, f: {}, node: null, ref: null, uni: null, dia: -1, N: 1, tb: null, pidiendo: false };
+const S = { t: 0, speed: DAY, playing: true, f: {}, esp: null, D: null, node: null, ref: null, uni: null, dia: -1, N: 1, tb: null, pidiendo: false };
 let C, T, D0, worker, svg, gTok, gParts, paths = {}, parts = [], mapa = null, RED = null;
 
 export async function iniciar() {
@@ -66,6 +67,10 @@ export async function iniciar() {
   llenarEstados();
   fr.addEventListener('change', () => { llenarEstados(); S.f = fr.value ? { region: fr.value } : {}; refrescar(); });
   fe.addEventListener('change', () => { S.f = fe.value ? { cve: fe.value } : fr.value ? { region: fr.value } : {}; refrescar(); });
+  const fs = $('f-esp');
+  fs.hidden = false;
+  fs.innerHTML = '<option value="">Todas las especialidades</option>' + ESPECIALIDADES.map(e => `<option>${esc(e.n)}</option>`).join('');
+  fs.addEventListener('change', () => { S.esp = fs.value || null; refrescar(); });
 
   $('legend').innerHTML = EDAD_ES.map((e, i) => `<span><i class="sw ck" style="background:${EDAD_C[i]}"></i>${e} desde su creación</span>`).join('') +
     '<span id="lg-n"></span><span>grosor de flecha = pasos por día (7 días)</span>';
@@ -90,7 +95,14 @@ export async function iniciar() {
     hover: (n, ev) => tipMapa(n, ev),
   });
   window.__refNac.mapa = mapa;
-  $('m-ven').addEventListener('change', e => { mapa.ventana = +e.target.value; $('mapa-sub').textContent = `envíos de los últimos ${e.target.value} días`; mapa.set(S.dia, S.f, S.uni?.key); });
+  $('m-ven').addEventListener('change', e => { mapa.ventana = +e.target.value; $('mapa-sub').textContent = `envíos de los últimos ${e.target.value} días`; if (S.esp) refrescar(); else mapa.set(S.dia, S.f, S.uni?.key); });
+  const LEG_NORMA = $('m-leg').innerHTML;
+  $('m-color').addEventListener('change', e => {
+    mapa.color = e.target.value;
+    $('m-leg').innerHTML = mapa.color === 'relativo'
+      ? ['VERDE', 'AMARILLO', 'NARANJA', 'ROJO'].map((k, i) => `<span><i class="sw ck" style="background:${SEM[k]}"></i>${['25 % que menos espera', 'segundo cuarto', 'tercer cuarto', '25 % que más espera'][i]}</span>`).join('')
+      : LEG_NORMA;
+  });
   $('m-top').addEventListener('change', e => { mapa.top = +e.target.value; mapa.set(S.dia, S.f, S.uni?.key); });
   $('m-up').addEventListener('click', () => ponerFiltro({}));
 
@@ -184,7 +196,7 @@ function dibujarUnidad() {
   const u = S.uni;
   if (!u || !u.refs) return;
   const t = S.t, grupos = Object.fromEntries(Object.keys(NODES).map(k => [k, []]));
-  for (const r of u.refs) { const e = etapaLocal(r, t); if (e) grupos[e].push(r); }
+  for (const r of refsU()) { const e = etapaLocal(r, t); if (e) grupos[e].push(r); }
   let s = '';
   for (const [k, list] of Object.entries(grupos)) {
     $('cnt-' + k).textContent = nf.format(list.length);
@@ -209,13 +221,14 @@ function dibujarUnidad() {
 function panelUnidad() {
   const u = S.uni, body = $('sel-body'), di = S.dia;
   $('sel-title').innerHTML = `${esc(u.nombre)} <small>${u.tipo === 'rx' ? 'unidad receptora' : 'unidad que refiere'}</small>`;
-  const s = u.tipo === 'rx' ? C.saturacion(di, u.x, mapa.ventana) : null;
-  const vivas = u.refs ? u.refs.filter(r => etapaLocal(r, S.t)) : [];
+  const s = u.tipo === 'rx' ? S.D.fuente.saturacion(di, u.x, mapa.ventana) : null;
+  const vivas = u.refs ? refsU().filter(r => etapaLocal(r, S.t)) : [];
   const orden = [...vivas].sort((a, b) => a.tCrea - b.tCrea).slice(0, 40);
   body.innerHTML = `<div class="rf-uni"><span>El diagrama muestra solo las referencias de esta unidad.</span><button id="u-x" class="btn">Salir</button></div>
     ${s ? `<div class="meta">
       <span>Saturación</span><b style="color:${SEM[s.sem]}">${SAT_ES[s.sem]}</b>
       <span>Lista de espera</span><b>${nf.format(s.L)}</b>
+      <span>Cupo de primeras consultas</span><b>${C.meta.rx[u.x].capSem != null ? C.meta.rx[u.x].capSem.toFixed(1) + ' / sem' : '—'}${C.meta.rx[u.x].holgura != null ? ` · holgura ${Math.round(100 * C.meta.rx[u.x].holgura)} %` : ''}</b>
       <span>Entran / salen por semana</span><b>${s.lambdaSem.toFixed(1)} / ${s.salidasSem.toFixed(1)}</b>
       <span>Atendidas por semana</span><b>${s.muSem.toFixed(1)}</b>
       <span>Utilización ρ</span><b>${Number.isFinite(s.rho) ? s.rho.toFixed(2) : '—'}</b>
@@ -260,12 +273,19 @@ function update(force) {
   if (di === S.dia && !force) return;
   const salto = S.dia >= 0 && di === S.dia + 1;
   S.dia = di;
-  const E = C.etapas(di, S.f), tot = Object.fromEntries(ET.map(k => [k, E[k].reduce((a, b) => a + b, 0)]));
+  if (S.esp) pedirVista(di, d, salto); else pintarDia(di, d, salto, datosCubo(di));
+  if (!S.tb || Math.abs(S.tb.t - t) > DAY / 2 || force) tablero();
+}
+
+/** dibuja el día con los datos de una fuente (cubo o foto por especialidad) */
+function pintarDia(di, d, salto, D) {
+  S.D = D;
+  const E = D.E, tot = Object.fromEntries(ET.map(k => [k, E[k].reduce((a, b) => a + b, 0)]));
   // escala: el nodo más lleno (que no sea un cierre) cabe en sus 28 lugares
   const max = Math.max(1, ...ET.filter(k => !TERMINAL.has(k)).map(k => tot[k]));
   S.N = ESCALAS.find(n => n * CAP >= max) || ESCALAS.at(-1);
   $('lg-n').innerHTML = `<i class="sw ck" style="background:#cbd5e1"></i>1 punto = ${nf.format(S.N)} referencia${S.N > 1 ? 's' : ''}`;
-  const acum = C.resumen(di, S.f, 90), tiempos = C.tiempos(di, S.f, 28);
+  const acum = D.acum, tiempos = D.tiempos;
   gTok.innerHTML = '';
   let dots = '';
   for (const k of Object.keys(NODES)) {
@@ -289,30 +309,71 @@ function update(force) {
   }
   gTok.innerHTML = S.uni ? '' : dots;
   if (S.uni) { dibujarUnidad(); pedirUnidad(); }
-  mapa.set(di, S.f, S.uni?.key);
+  mapa.fuente = D.fuente; mapa.set(di, S.f, S.uni?.key);
   $('m-up').hidden = !(S.f.cve || S.f.region);
-  pintarFlechas(di);
+  pintarFlechas(di, D);
   // partículas solo al avanzar un día con la reproducción (en una unidad, 1 partícula = 1 referencia)
   if (S.uni) S.N = 1;
-  if (salto && S.playing) particulas(pasos(di, 1));
-  movimientos(di, d, salto);
+  if (salto && S.playing) particulas(pasos(di, 1, D));
+  movimientos(di, d, salto, D);
   if (S.node) panel();
-  if (!S.tb || Math.abs(S.tb.t - t) > DAY / 2 || force) tablero();
+}
+
+// ---------------------------------------------------------------------
+//  Fuentes de datos: el cubo diario o una foto del worker (especialidad)
+// ---------------------------------------------------------------------
+const refsU = () => (S.uni?.refs || []).filter(r => !S.esp || r.esp.n === S.esp);
+function datosCubo(di) {
+  return { E: C.etapas(di, S.f), tr1: C.transiciones(di, S.f, 1), tr7: C.transiciones(di, S.f, 7), tiempos: C.tiempos(di, S.f, 28), acum: C.resumen(di, S.f, 90), res1: C.resumen(di, S.f, 1), porEstado: null, fuente: C };
+}
+function fuenteVista(v) {
+  const m = C.meta;
+  const una = x => ({ u: m.rx[x], x, ...v.sat[x] });
+  return {
+    meta: m,
+    saturacion: (di, x) => una(x),
+    saturacionTodas: () => {
+      const S2 = m.rx.map((u, x) => una(x)), ord = [...S2].sort((a, b) => a.W - b.W);
+      ord.forEach((q, i) => { q.rango = ord.length > 1 ? i / (ord.length - 1) : 0; });
+      return S2;
+    },
+    flujos: (di, ventana, nivel, f) => agregarFlujos(m, v.flujos, nivel, f),
+  };
+}
+function datosVista(v) {
+  const vacio = () => new Array(EDAD_ES.length).fill(0);
+  return { E: Object.fromEntries(ET.map(k => [k, v.etapas[k] || vacio()])), tr1: v.tr1, tr7: v.tr7, tiempos: v.tiempos, acum: v.res90, res1: v.res1, porEstado: v.porEstado, fuente: fuenteVista(v) };
+}
+/** foto por especialidad: se pide al worker; si llega otra petición mientras tanto, se atiende la última */
+async function pedirVista(di, d, salto) {
+  if (S.pidiendoVista) { S.vistaPend = [di, d, salto]; return; }
+  S.pidiendoVista = true;
+  const esp = S.esp, f = S.f;
+  try {
+    const t = (C.meta.d0 + di) * DAY + C.meta.hora * H;
+    const { v } = await pedir({ tipo: 'vista', t, f: { ...f, esp }, ventana: mapa.ventana }, 'vista');
+    if (S.esp === esp && S.f === f && S.dia === di) pintarDia(di, d, salto, datosVista(v));
+  } finally {
+    S.pidiendoVista = false;
+    const p = S.vistaPend; S.vistaPend = null;
+    if (p && S.esp) pedirVista(...p);
+    else if (S.esp && S.dia !== di) pedirVista(S.dia, C.meta.d0 + S.dia, false);
+  }
 }
 
 /** pasos entre etapas en los últimos `dias`: del cubo (filtro) o de las referencias de la unidad elegida */
-function pasos(di, dias) {
-  if (!S.uni?.refs) return C.transiciones(di, S.f, dias);
+function pasos(di, dias, D = S.D) {
+  if (!S.uni?.refs) return dias === 1 ? D.tr1 : dias === 7 ? D.tr7 : C.transiciones(di, S.f, dias);
   const a = S.t - dias * DAY, b = S.t, out = {};
-  for (const r of S.uni.refs) for (let i = 1; i < r.seg.length; i++) {
+  for (const r of refsU()) for (let i = 1; i < r.seg.length; i++) {
     const x = r.seg[i];
     if (x.t0 > a && x.t0 <= b) { const k = r.seg[i - 1].etapa + '>' + x.etapa; out[k] = (out[k] || 0) + 1; }
   }
   return out;
 }
 /** grosor por pasos diarios de la última semana y su cifra en la etiqueta */
-function pintarFlechas(di) {
-  const tr7 = pasos(di, 7), vmax = Math.max(1, ...Object.values(tr7));
+function pintarFlechas(di, D = S.D) {
+  const tr7 = pasos(di, 7, D), vmax = Math.max(1, ...Object.values(tr7));
   for (const Ed of EDGES) {
     const key = Ed[0] + '>' + Ed[1], v = (tr7[key] || 0) / 7, p = paths[key];
     p.style.strokeWidth = (1.2 + 7 * Math.sqrt((tr7[key] || 0) / vmax)).toFixed(2);
@@ -355,9 +416,9 @@ function limpiarParticulas() { for (const o of parts) o.el.remove(); parts = [];
 // ---------------------------------------------------------------------
 //  Movimientos del día (resumen en lugar de una línea por referencia)
 // ---------------------------------------------------------------------
-function movimientos(di, d, salto) {
+function movimientos(di, d, salto, D = S.D) {
   if (!salto) { $('feed').innerHTML = ''; }
-  const r = S.uni?.refs ? resumenUnidad() : C.resumen(di, S.f, 1), tr = pasos(di, 1);
+  const r = S.uni?.refs ? resumenUnidad() : D.res1, tr = pasos(di, 1, D);
   const dev = (tr['ACEPTACION>DEVUELTA'] || 0) + (tr['VALIDACION>DEVUELTA'] || 0), lim = tr['ACEPTACION>LIMBO'] || 0, noa = tr['CITA>NO_ACUDIO'] || 0;
   if (!r.CREADAS && !r.ATENDIDAS && !dev) return;
   const li = document.createElement('li');
@@ -370,7 +431,7 @@ function movimientos(di, d, salto) {
 /** lo mismo que C.resumen(día) pero con las referencias de la unidad elegida */
 function resumenUnidad() {
   const a = S.t - DAY, b = S.t, o = { CREADAS: 0, ATENDIDAS: 0, EN_PLAZO: 0, CERRADA: 0, SIN_CIERRE: 0, ABANDONO: 0, QUEMADA: 0 };
-  for (const r of S.uni.refs) {
+  for (const r of refsU()) {
     if (r.tCrea > a && r.tCrea <= b) o.CREADAS++;
     if (r.tAtencion > a && r.tAtencion <= b) { o.ATENDIDAS++; if (r.tAtencion - r.tCrea <= REGLAS.plazoDias * DAY) o.EN_PLAZO++; }
     const f = r.seg.at(-1);
@@ -382,21 +443,21 @@ function resumenUnidad() {
 // ---------------------------------------------------------------------
 //  Panel: etapa seleccionada (por estado y por receptora) o una referencia
 // ---------------------------------------------------------------------
-const filtroTxt = () => (S.f.cve ? nombreEstado(S.f.cve) : S.f.region ? 'Región ' + S.f.region : 'todo el país');
+const filtroTxt = () => (S.f.cve ? nombreEstado(S.f.cve) : S.f.region ? 'Región ' + S.f.region : 'todo el país') + (S.esp ? ' · ' + S.esp : '');
 function panel() {
   const body = $('sel-body');
   $('sel-x').hidden = !S.node && !S.ref && !S.uni;
   if (S.ref) return panelRef();
   if (S.uni && !S.node) return panelUnidad();
   if (!S.node) { $('sel-title').textContent = 'Red nacional'; body.innerHTML = '<p class="muted">Toca una etapa para ver en qué estados y receptoras están esas referencias.</p>'; return; }
-  const k = S.node, Et = ETAPAS[k], di = S.dia, E = C.etapas(di, S.f)[k], n = E.reduce((a, b) => a + b, 0), tm = C.tiempos(di, S.f, 28)[k];
+  const k = S.node, Et = ETAPAS[k], di = S.dia, E = S.D.E[k], n = E.reduce((a, b) => a + b, 0), tm = S.D.tiempos[k];
   $('sel-title').innerHTML = `${esc(Et.n)} <small>${esc(Et.area)} · ${nf.format(n)} · ${esc(filtroTxt())}</small>`;
   // por estado (de la unidad que refiere)
   const m = C.meta, ests = m.estados.filter((c, i) => (!S.f.region || m.region[i] === S.f.region) && (!S.f.cve || c === S.f.cve));
-  const porE = ests.map(c => [c, C.etapas(di, { cve: c })[k].reduce((a, b) => a + b, 0)]).filter(([, v]) => v).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  const porE = ests.map(c => [c, S.D.porEstado ? (S.D.porEstado[c]?.[k] || 0) : C.etapas(di, { cve: c })[k].reduce((a, b) => a + b, 0)]).filter(([, v]) => v).sort((a, b) => b[1] - a[1]).slice(0, 12);
   // receptoras con más lista de espera (para las etapas de espera)
   const espera = ['ACEPTACION', 'LIMBO', 'CITA', 'NO_ACUDIO'].includes(k);
-  const sat = espera ? C.saturacionTodas(di).filter(s => (!S.f.region || s.u.region === S.f.region) && (!S.f.cve || s.u.cve === S.f.cve)).sort((a, b) => b.L - a.L).slice(0, 10) : [];
+  const sat = espera ? S.D.fuente.saturacionTodas(di).filter(s => (!S.f.region || s.u.region === S.f.region) && (!S.f.cve || s.u.cve === S.f.cve)).sort((a, b) => b.L - a.L).slice(0, 10) : [];
   body.innerHTML = `<div class="meta">
       ${EDAD_ES.map((e, i) => `<span><i class="sw ck" style="background:${EDAD_C[i]}"></i> ${e}</span><b>${nf.format(E[i])}</b>`).join('')}
       <span>Tiempo promedio en la etapa (28 d)</span><b>${tm ? (tm.dias < 2 ? tm.dias.toFixed(1) : Math.round(tm.dias)) + ' días' : '—'}</b>
@@ -443,11 +504,11 @@ const pct = (a, b) => (b ? Math.round(100 * a / b) + ' %' : '—');
 async function tablero() {
   if (S.pidiendo) { S.otraVez = true; return; } // al terminar la que va en camino se pide de nuevo
   S.pidiendo = true;
-  const t = S.t, f = S.f, u = S.uni;
+  const t = S.t, f = S.f, u = S.uni, esp = S.esp;
   try {
-    const filtro = u ? (u.tipo === 'rx' ? u.id : { em: u.id }) : f.cve || f.region ? f : '';
+    const filtro = { ...(u ? (u.tipo === 'rx' ? { rx: u.id } : { em: u.id }) : f), ...(esp ? { esp } : {}) };
     const { B } = await pedir({ tipo: 'tablero', t, filtro }, 'tablero');
-    if (S.uni !== u || S.f !== f) { S.otraVez = true; return; }
+    if (S.uni !== u || S.f !== f || S.esp !== esp) { S.otraVez = true; return; }
     S.tb = { t, B };
     pintarTablero(B, t);
   } finally {
@@ -468,7 +529,7 @@ function pintarTablero(B, t) {
   const ci = B.cierres, nc = ci.CERRADA + ci.SIN_CIERRE + ci.ABANDONO + ci.QUEMADA;
   // en una unidad: si es receptora, ella misma; si refiere, las receptoras a las que envía
   const destinos = S.uni?.tipo === 'em' && S.uni.refs ? new Set(S.uni.refs.flatMap(r => [...r.rxSet])) : null;
-  const sat = C.saturacionTodas(di).filter(s => S.uni ? (S.uni.tipo === 'rx' ? s.x === S.uni.x : destinos?.has(s.u.id)) : (!S.f.region || s.u.region === S.f.region) && (!S.f.cve || s.u.cve === S.f.cve));
+  const sat = S.D.fuente.saturacionTodas(di).filter(s => S.uni ? (S.uni.tipo === 'rx' ? s.x === S.uni.x : destinos?.has(s.u.id)) : (!S.f.region || s.u.region === S.f.region) && (!S.f.cve || s.u.cve === S.f.cve));
   const cs = sat.reduce((o, s) => ((o[s.sem] = (o[s.sem] || 0) + 1), o), {});
   $('kpis').innerHTML = `
     <div><b>Referencias abiertas</b><span class="big">${nf.format(tot)}</span><div class="rf-bar">${bar}</div>
@@ -494,9 +555,9 @@ function pintarTablero(B, t) {
     <p>De esas ${nf.format(sumO)}: <b>${nf.format(O.SIN_CIERRE)}</b> se atendieron y nadie cerró, <b>${nf.format(O.ABANDONO)}</b> el paciente no regresó, <b>${nf.format(O.QUEMADA)}</b> se quemaron y <b>${nf.format(O.CERRADA)}</b> sí cerraron pero no se registró.</p>`;
   // receptoras más saturadas del filtro
   const top = [...sat].sort((a, b) => (b.W === a.W ? b.L - a.L : (Number.isFinite(b.W) ? b.W : 1e9) - (Number.isFinite(a.W) ? a.W : 1e9))).slice(0, 15);
-  $('t-rx').innerHTML = `<table><thead><tr><th>Unidad receptora</th><th>Estado</th><th>Lista de espera</th><th>Entran / sem</th><th>Salen / sem</th><th>ρ</th><th>Espera estimada</th><th>Sin atender &gt; ${REGLAS.plazoDias} d</th><th>Sin rastro</th></tr></thead><tbody>${top.map(s => {
+  $('t-rx').innerHTML = `<table><thead><tr><th>Unidad receptora</th><th>Estado</th><th>Lista de espera</th><th>Cupo / sem</th><th>Entran / sem</th><th>Salen / sem</th><th>ρ</th><th>Espera estimada</th><th>Sin atender &gt; ${REGLAS.plazoDias} d</th><th>Sin rastro</th></tr></thead><tbody>${top.map(s => {
     const P = B.porRx[s.u.id] || {};
-    return `<tr><td><i style="background:${SEM[s.sem]}"></i>${esc(s.u.corto)}</td><td>${esc(nombreEstado(s.u.cve))}</td><td>${nf.format(s.L)}</td><td>${s.lambdaSem.toFixed(1)}</td><td>${s.salidasSem.toFixed(1)}</td>
+    return `<tr><td><i style="background:${SEM[s.sem]}"></i>${esc(s.u.corto)}</td><td>${esc(nombreEstado(s.u.cve))}</td><td>${nf.format(s.L)}</td><td>${s.u.capSem != null ? s.u.capSem.toFixed(1) : '—'}</td><td>${s.lambdaSem.toFixed(1)}</td><td>${s.salidasSem.toFixed(1)}</td>
       <td class="${s.rho > 1 ? 'bad' : ''}">${Number.isFinite(s.rho) ? s.rho.toFixed(2) : '—'}</td><td class="${s.W > 30 ? 'bad' : ''}">${Number.isFinite(s.W) ? Math.round(s.W) + ' d' : '—'}</td><td>${nf.format(P.sinAtender15 ?? 0)}</td><td>${nf.format(P.sinRastro ?? 0)}</td></tr>`;
   }).join('')}</tbody></table>
   <p class="muted rf-nota">Espera estimada = lista de espera ÷ salidas por día (Ley de Little); ρ = entradas ÷ salidas (más de 1: la lista crece). Ventana de 28 días, más larga si la unidad tiene poco movimiento.</p>`;

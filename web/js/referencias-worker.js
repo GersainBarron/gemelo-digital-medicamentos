@@ -11,6 +11,7 @@
 // =====================================================================
 import { Referencias } from './referencias.js';
 import { Cubo } from './referencias-cubo.js';
+import { vistaDia } from './referencias-vista.js';
 
 let K = null;
 
@@ -23,6 +24,9 @@ self.onmessage = async ({ data: m }) => {
       const t1 = performance.now();
       const [cubo, buf] = Cubo.build(K).toTransfer();
       self.postMessage({ tipo: 'cubo', cubo, n: K.refs.length, ms: { motor: t1 - t0, cubo: performance.now() - t1 } }, buf);
+    } else if (m.tipo === 'vista') {
+      // foto del día con filtros que el cubo no guarda (especialidad)
+      self.postMessage({ tipo: 'vista', v: vistaDia(K, m.t, m.f || {}, m.ventana ?? 28) });
     } else if (m.tipo === 'tablero') {
       // tablero de seguimiento (mismas cuentas que la vista de Hidalgo) con listas compactas
       const B = K.tablero(m.t, m.filtro || '');

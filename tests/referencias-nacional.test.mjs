@@ -92,6 +92,26 @@ const RES = C.resumen(dC);
 console.log(`últimos 90 días: creadas ${RES.CREADAS} · atendidas ${RES.ATENDIDAS} (${(100 * RES.EN_PLAZO / RES.ATENDIDAS).toFixed(1)} % en ≤ 15 d) · cierres natural ${RES.CERRADA} / sin cierre ${RES.SIN_CIERRE} / no regresó ${RES.ABANDONO} / quemada ${RES.QUEMADA}`);
 for (const g of C.flujos(dC, 28, 'region').filter(g => g.ori !== g.des).slice(0, 5)) console.log(`  región ${g.ori} → ${g.des}: ${g.n} envíos (${g.fuera} por microrregión, ${g.escal} escalamientos)`);
 
+// 6b) la foto calculada en el worker (para filtros por especialidad) cuadra con el cubo
+const { vistaDia } = await import(new URL('js/referencias-vista.js', W));
+const { ESPECIALIDADES } = await import(new URL('js/referencias.js', W));
+const tV = (m.d0 + dC) * DAY + m.hora * H;
+t0 = performance.now();
+const V = vistaDia(K, tV, {}, 28);
+const tVista = performance.now() - t0;
+const Ec = C.etapas(dC);
+for (const k of ET) assert.deepEqual(V.etapas[k] || new Array(EDADES.length + 1).fill(0), Ec[k], 'vista ≠ cubo en ' + k);
+assert.deepEqual(V.sat.map(s => s.L), m.rx.map((u, x) => C.saturacion(dC, x).L), 'listas de espera de la vista ≠ cubo');
+const porEsp = ESPECIALIDADES.map(e => vistaDia(K, tV, { esp: e.n }, 28));
+for (const k of ET) {
+  const suma = porEsp.reduce((a, v) => a + (v.etapas[k] || []).reduce((x, y) => x + y, 0), 0);
+  assert.equal(suma, Ec[k].reduce((x, y) => x + y, 0), 'las especialidades no suman el total en ' + k);
+}
+const espCita = porEsp.map((v, i) => [ESPECIALIDADES[i].n, (v.etapas.CITA || []).reduce((a, b) => a + b, 0)]).sort((a, b) => b[1] - a[1]);
+console.log(`vista por especialidad: ${tVista.toFixed(0)} ms · en cita: ${espCita.slice(0, 4).map(([n, c]) => `${n} ${c}`).join(' · ')}`);
+const Bt = K.tablero(tV, { esp: 'Oftalmología', region: 'I' });
+assert.ok(Bt.abiertas.a15 + Bt.abiertas.a30 + Bt.abiertas.a90 + Bt.abiertas.cron > 0, 'el tablero no filtra por especialidad');
+
 // 6) el cubo también funciona con la red de Hidalgo
 const Kh = new Referencias(JSON.parse(readFileSync(new URL('assets/unidades_hidalgo.json', W))), { corteDia: 0 });
 const Ch = Cubo.build(Kh);

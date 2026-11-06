@@ -34,6 +34,8 @@ import * as nsim from './network-sim.js';
 import { Network } from './network.js';
 import { Router } from './routing.js';
 import { Contratos } from './contratos.js';
+import { Referencias } from './referencias.js';
+import { vistaDia } from './referencias-vista.js';
 
 // ------------------------------------------------------------------ escenarios
 export const ESCENARIOS = {
@@ -68,6 +70,7 @@ export const ESLABONES = [
   { id: 'unidad', n: 'Unidad y farmacia', ic: '🏥', up: ['dest', 'alm'], dueno: 'Director(a) de la unidad y Jefatura de farmacia', alcance: 'Piloto Hidalgo · 60 unidades · 30 días', link: 'unidad.html' },
   { id: 'frio', n: 'Red fría', ic: '❄️', up: [], dueno: 'Coordinación de Red Fría', alcance: 'Nacional · CENADI, 32 almacenes y unidades con refrigerador · 30 días', link: 'redfria.html', trans: true },
   { id: 'integ', n: 'Integridad', ic: '🛡️', up: [], dueno: 'Área central (controles de datos) y Órgano Interno de Control', alcance: 'Nacional · pedidos del plan anual 2027', link: 'planeacion.html#/integridad', trans: true },
+  { id: 'ref', n: 'Referencia de pacientes', ic: '🩺', up: [], dueno: 'Coordinación de Referencia y Contrarreferencia (Dirección Médica)', alcance: 'Nacional · 1,033 unidades · simulación · últimos 90 días', link: 'referencias.html?red=nacional', trans: true },
 ];
 export const ESLABON = Object.fromEntries(ESLABONES.map(e => [e.id, e]));
 
@@ -165,6 +168,14 @@ function gemeloMarbetes(D, esc) {
   return { kpi: R.kpi, alertas: R.alertas, serie };
 }
 
+function gemeloReferencias(D) {
+  const K = new Referencias(D.iss, { corteDia: 0 });
+  const t = 8 * 3600, V = vistaDia(K, t, {}, 28), B = K.tablero(t);
+  const sat = V.sat.map((q, x) => ({ ...q, u: K.receptoras[x] }));
+  const porRx = K.receptoras.map(u => ({ u, ...B.porRx[u.id] }));
+  return { V, B: { ...B, cronicas: B.cronicas.length, vueltas: B.vueltas.length, diasAt: undefined, acepDias: undefined }, sat, porRx, n: K.refs.length };
+}
+
 // ------------------------------------------------------------------ evaluación completa
 // resultados que no cambian con el escenario se guardan mientras el worker vive
 const CACHE = new Map();
@@ -176,7 +187,7 @@ function memo(id, key, fn, prog, txt) {
 
 export function evaluar(D, cfg = {}, onProg = () => {}) {
   const escId = ESCENARIOS[cfg.esc] ? cfg.esc : 'normal', esc = ESCENARIOS[escId];
-  let paso = 0; const PASOS = 10;
+  let paso = 0; const PASOS = 11;
   const prog = txt => onProg({ txt, p: Math.min(1, paso++ / PASOS) });
 
   const kPlan = JSON.stringify([cfg.entries || null, cfg.integ || null]);
@@ -196,9 +207,11 @@ export function evaluar(D, cfg = {}, onProg = () => {}) {
   const Hg = memo('hgo', esc.hgo, () => gemeloHidalgo(D, esc));
   prog('Inventario físico: marbetes del año en el CEDIS');
   const M = memo('marb', esc.marb, () => gemeloMarbetes(D, esc));
+  prog('Referencia de pacientes: 1,033 unidades, 90 días');
+  const Rf = memo('ref', 'v1', () => gemeloReferencias(D));
   prog('Torre: semáforos, atribución y a quién llamar');
 
-  const eslabones = construir({ G, C, N, F, Y, Hg, M, escId });
+  const eslabones = construir({ G, C, N, F, Y, Hg, M, Rf, escId });
   const R = atribuir(eslabones);
   const norte = estrellaNorte({ Hg, N, C, F, G });
   const matriz = matrizDelegaciones({ G, N, F });
@@ -214,7 +227,7 @@ export function evaluar(D, cfg = {}, onProg = () => {}) {
 }
 
 // ------------------------------------------------------------------ los indicadores de cada eslabón
-function construir({ G, C, N, F, Y, Hg, M }) {
+function construir({ G, C, N, F, Y, Hg, M, Rf }) {
   const E = {};
   const kp = (id, o) => ({ id, w: 1, dir: 1, hereda: false, of: [], ...o });
   const sg = G.sg, rs = G.rs, k = G.k;
@@ -512,6 +525,44 @@ function construir({ G, C, N, F, Y, Hg, M }) {
       n: 'Alertas falsas de los controles', v: ig.fp, fmt: 'num', dir: -1, meta: 50, crit: 300, w: 0, info: true,
       def: 'Pedidos legítimos que los controles frenaron por error: quitan tiempo a las unidades honestas. Informativo: con los datos mínimos el control de consumo está apagado y por eso casi no hay falsas alarmas.', formula: 'pedidos legítimos frenados', fuente: 'Meta interna del gemelo',
       quien: 'Área central (calibración de reglas)',
+    }),
+  ];
+  // 11 · Referencia de pacientes ---------------------------------------------------
+  const rv = Rf.V.res90, rB = Rf.B, nCierres = rv.CERRADA + rv.SIN_CIERRE + rv.ABANDONO + rv.QUEMADA;
+  const satur = Rf.sat.filter(q => q.sem === 'NARANJA' || q.sem === 'ROJO').sort((a, b) => (isFinite(b.W) ? b.W : 1e9) - (isFinite(a.W) ? a.W : 1e9));
+  const sinCierreRx = [...Rf.porRx].sort((a, b) => (b.sinCierre || 0) - (a.sinCierre || 0));
+  const abiertasSis = rB.sistema.EN_PROCESO + rB.sistema.SIN_RASTRO;
+  const ocultas = rB.ocultas.SIN_CIERRE + rB.ocultas.ABANDONO + rB.ocultas.QUEMADA + rB.ocultas.CERRADA;
+  E.ref = [
+    kp('plazo', {
+      n: 'Atendidas en 15 días o menos', v: pct(rv.EN_PLAZO, rv.ATENDIDAS), fmt: 'pct', meta: 0.565, crit: 0.30, w: 2,
+      def: 'Pacientes referidos que fueron atendidos en la unidad receptora a 15 días o menos de creada la referencia (norma de 15 días).', formula: 'atendidas en ≤ 15 días ÷ atendidas en 90 días',
+      fuente: 'Meta sexenal del Programa Institucional ISSSTE 2025-2030: 43.5 % o menos de citas de especialidad a más de 15 días', quien: 'Coordinación de Referencia y Contrarreferencia',
+      det: `${pl(rv.ATENDIDAS, 'paciente atendido', 'pacientes atendidos')} en 90 días; ${pl(rB.sinAtender15, 'referencia sigue', 'referencias siguen')} sin atender después de 15 días.`,
+    }),
+    kp('saturadas', {
+      n: 'Receptoras saturadas', v: pct(satur.length, Rf.sat.length), fmt: 'pct', dir: -1, meta: 0.15, crit: 0.40, w: 1,
+      def: 'Unidades receptoras cuya espera estimada pasa de 30 días o cuya lista de espera crece (entran más de las que salen).', formula: 'receptoras saturadas o colapsadas ÷ receptoras',
+      fuente: 'Espera estimada por Ley de Little (lista de espera ÷ salidas por día), ventana de 28 días; metas internas del gemelo', quien: 'Dirección Médica (capacidad de las unidades receptoras)',
+      of: satur.slice(0, 4).map(q => ({ quien: `Director(a) de ${q.u.corto}`, txt: `espera estimada ${isFinite(q.W) ? Math.round(q.W) + ' días' : 'sin salidas'} · ${pl(q.L, 'paciente', 'pacientes')} en lista · cupo ${(q.u.capSem || 0).toFixed(1)} por semana`, nivel: q.W > 90 ? 2 : 1 })),
+    }),
+    kp('cierre', {
+      n: 'Cierres con contrarreferencia', v: pct(rv.CERRADA, nCierres), fmt: 'pct', meta: 0.85, crit: 0.60, w: 1,
+      def: 'Referencias que terminaron con su contrarreferencia (el paciente regresa a su unidad con plan de manejo), contra todas las que terminaron.', formula: 'cierres naturales ÷ (natural + sin cierre + no regresó + quemada), 90 días',
+      fuente: 'Reglamento de Servicios Médicos del ISSSTE: la contrarreferencia es obligatoria; meta interna del gemelo', quien: 'Unidades receptoras (emiten la contrarreferencia)',
+      det: `${rv.SIN_CIERRE.toLocaleString('es-MX')} atendidas sin cierre, ${rv.ABANDONO.toLocaleString('es-MX')} no regresaron y ${rv.QUEMADA.toLocaleString('es-MX')} se quemaron.`,
+      of: sinCierreRx.slice(0, 3).filter(x => x.sinCierre).map(x => ({ quien: `Área de referencia de ${x.u.corto}`, txt: `${pl(x.sinCierre, 'atendida', 'atendidas')} sin contrarreferencia en 90 días`, nivel: 1 })),
+    }),
+    kp('rastro', {
+      n: 'Referencias sin rastro', v: pct(rB.sistema.SIN_RASTRO, abiertasSis), fmt: 'pct', dir: -1, meta: 0.05, crit: 0.25, w: 1,
+      def: 'Referencias que el sistema ve abiertas pero sin movimiento registrado más allá de lo esperado: no se sabe si se atendieron, si el paciente no fue o si se quemaron.', formula: 'sin rastro ÷ abiertas en el sistema',
+      fuente: 'Meta interna del gemelo', quien: 'Áreas de Referencia y Contrarreferencia de cada unidad',
+      det: `${ocultas.toLocaleString('es-MX')} ya terminaron pero el sistema las sigue viendo abiertas.`,
+    }),
+    kp('limbo', {
+      n: 'Sin respuesta de la receptora', v: rB.limbo, fmt: 'num', dir: -1, meta: 0, crit: 0, w: 0, info: true,
+      def: 'Referencias enviadas que la unidad receptora no ha aceptado ni rechazado después de su plazo de respuesta. Informativo.', formula: 'referencias en «sin respuesta» hoy', fuente: 'Regla del gemelo',
+      quien: 'Unidades receptoras',
     }),
   ];
   return ESLABONES.map(e => ({ ...e, kpis: E[e.id].map(k => ({ ...k, g: brecha(k), st: sinDato(k) ? 'nd' : semDe(brecha(k)) })) }));

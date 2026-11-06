@@ -468,7 +468,7 @@ function matriz() {
 
 function textos() {
   $('#reglas').innerHTML = `
-    <p><b>Una cadena, diez eslabones, un dueño por indicador.</b> Cada indicador tiene una meta escrita, un nivel crítico y un área que responde (la A de la matriz RACI); cuando otra área tiene que enterarse, se dice entre paréntesis. Los nombres concretos (analistas, delegaciones, unidades, contratos, almacenistas) salen de cada gemelo.</p>
+    <p><b>Una cadena, once eslabones, un dueño por indicador.</b> Cada indicador tiene una meta escrita, un nivel crítico y un área que responde (la A de la matriz RACI); cuando otra área tiene que enterarse, se dice entre paréntesis. Los nombres concretos (analistas, delegaciones, unidades, contratos, almacenistas) salen de cada gemelo.</p>
     <p><b>Semáforo contra una referencia.</b> Brecha = (meta − valor) ÷ (meta − crítico). Cero es verde, menos de uno es ámbar, uno o más es rojo, y se topa en 3 para que un solo indicador no se lleve todo. Gris: sin dato, que no cuenta como verde. Cada meta dice de dónde sale: MIR del ISSSTE, cifras públicas, IAPHL, una norma o, cuando no hay fuente, una meta interna del gemelo que se dice como tal.</p>
     <p><b>Atribuir la falla al eslabón correcto.</b> Un indicador de resultado sólo cuenta completo contra su dueño si lo de arriba cumplió. Como los gemelos no están conectados entre sí, son reglas de atribución que la torre aplica, no causas que deduzca. Si el indicador que lo alimenta está en rojo, 65 % de la brecha pasa a ese eslabón; si está en ámbar, 25 %. Las dependencias que usa la torre:</p>
     <ul class="tw-dep">${Object.entries(DEP).map(([k, v]) => `<li><b>${esc(nameK(k))}</b> ← ${v.map(x => esc(nameK(x))).join(' · ')}</li>`).join('')}</ul>

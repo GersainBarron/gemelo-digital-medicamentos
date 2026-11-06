@@ -58,6 +58,7 @@
           <div class="rf-modo" role="group" aria-label="Red"><a id="m-hgo" href="referencias.html">Hidalgo · detalle</a><a id="m-nac" href="referencias.html?red=nacional">Nacional · agregado</a></div>
           <select id="f-reg" hidden></select>
           <select id="f-est" hidden></select>
+          <select id="f-esp" hidden></select>
           <select id="f-rx"><option value="">Todas las unidades receptoras</option></select>
           <select id="f-v">
             <option value="">Todas las referencias</option>
@@ -78,14 +79,15 @@
       <div class="card-h"><h2>Mapa de flujos <small id="mapa-sub">envíos de los últimos 28 días</small></h2>
         <div class="xp-tools">
           <select id="m-ven"><option value="7">7 días</option><option value="28" selected>28 días</option><option value="90">90 días</option></select>
+          <select id="m-color"><option value="norma">Color contra la norma (15 días)</option><option value="relativo">Color comparado entre unidades</option></select>
           <select id="m-top"><option value="40">40 flujos más grandes</option><option value="120" selected>120 flujos más grandes</option><option value="400">400 flujos</option></select>
           <button id="m-up" class="btn" hidden>← Volver al país</button>
         </div>
       </div>
       <div class="rf-mapa-box"><canvas id="mapa"></canvas><div id="mapa-tip" class="tip" hidden></div></div>
       <div class="legend xp-legend">
-        <span><i class="sw ck" style="background:#22c55e"></i>fluye (espera ≤ 15 d)</span><span><i class="sw ck" style="background:#facc15"></i>presión</span>
-        <span><i class="sw ck" style="background:#f97316"></i>saturada (&gt; 30 d o ρ ≥ 1)</span><span><i class="sw ck" style="background:#ef4444"></i>colapsada (&gt; 90 d)</span>
+        <span id="m-leg"><span><i class="sw ck" style="background:#22c55e"></i>fluye (espera ≤ 15 d)</span><span><i class="sw ck" style="background:#facc15"></i>presión</span>
+        <span><i class="sw ck" style="background:#f97316"></i>saturada (&gt; 30 d o ρ ≥ 1)</span><span><i class="sw ck" style="background:#ef4444"></i>colapsada (&gt; 90 d)</span></span>
         <span>círculo = lista de espera</span><span><i class="sw" style="background:#2dd4bf"></i>envío</span><span><i class="sw" style="background:#fb923c"></i>fuera de región</span><span><i class="sw" style="background:#a78bfa"></i>escalamiento</span>
         <span>toca un estado para acercarte; una unidad para ver sus referencias</span>
       </div>

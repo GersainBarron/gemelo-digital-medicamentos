@@ -13,10 +13,10 @@ permissions:
   pages: write
   id-token: write
 
-# una publicación a la vez; si llega otra, la nueva espera y la vieja termina
+# una publicación a la vez; si llega otra más nueva, reemplaza a la anterior
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   publicar:

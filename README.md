@@ -2,6 +2,10 @@
 
 **Autor:** Gersain Barron · [Licencia MIT](LICENSE)
 
+> 🌐 **Ver el gemelo en línea:** **[gersainbarron.github.io/gemelo-digital-medicamentos](https://gersainbarron.github.io/gemelo-digital-medicamentos/)** — se abre en el navegador o el celular, sin instalar nada. Se actualiza solo con cada cambio en `web/`.
+>
+> Accesos directos: [Torre de control](https://gersainbarron.github.io/gemelo-digital-medicamentos/torre.html) · [Referencias (red nacional y laboratorio)](https://gersainbarron.github.io/gemelo-digital-medicamentos/referencias.html?red=nacional) · [Red nacional](https://gersainbarron.github.io/gemelo-digital-medicamentos/nacional.html)
+
 Gemelo digital de la cadena de abasto de medicamentos de las unidades **IMSS e ISSSTE de Hidalgo**: del almacén
 central (CEDIS) a las 60 unidades médicas y de ahí al paciente. Combina modelos 3D construidos con código en
 **Blender**, un visor web en **three.js** que funciona en PC y en iPad, y una simulación determinista de la operación

@@ -169,7 +169,7 @@ const hashStr = s => { let h = 2166136261; for (const ch of s) h = Math.imul(h ^
 //  14 a 30 meses; ~12 % de los lotes llega con caducidad corta (2 a 5 meses).
 //  Días como índice (0 = lunes 26 de octubre de 2026).
 // ---------------------------------------------------------------------
-const LOT_SUPPLIERS = ['Laboratorio nacional A', 'Laboratorio nacional B', 'Distribuidor nacional C', 'Distribuidor regional E', 'CENADI-Birmex'];
+const LOT_SUPPLIERS = ['Laboratorio nacional A', 'Laboratorio nacional B', 'Distribuidor nacional C', 'Distribuidor regional E', 'CND'];
 const LOT_CACHE = new Map();
 export function lotFor(c, idx) {
   const off = hashStr(c) % 14, k = Math.floor((idx + off) / 14), key = c + '|' + k + '|' + REP;
@@ -294,7 +294,7 @@ export class UnitSupply {
         if (q > 1 && SCEN === 'contingencia' && cedisShort(m.c, idx)) lines.push({ c: m.c, q: 1, adj: true });
         else lines.push({ c: m.c, q });
       }
-      ev.push({ t, kind: 'rx', folio: `${u.inst === 'IMSS' ? 'RX' : 'RE'}-${++folio}`, pac: 1000 + Math.floor(R() * 9000), cons: 1 + Math.floor(R() * (u.hosp ? 24 : 14)), lines });
+      ev.push({ t, kind: 'rx', folio: `RX-${++folio}`, pac: 1000 + Math.floor(R() * 9000), cons: 1 + Math.floor(R() * (u.hosp ? 24 : 14)), lines });
     }
     // Quirófano
     if (this.surgical) {

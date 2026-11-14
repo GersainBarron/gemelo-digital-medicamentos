@@ -1,8 +1,8 @@
 # Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 # =====================================================================
-#  redfria_builder.py · Cadena de red fría del CENADI a la unidad (diorama)
+#  redfria_builder.py · Cadena de red fría del CND a la unidad (diorama)
 #  Para la ventana redfria.html. Cinco eslabones en fila, en metros:
-#   1. Cámara fría del CENADI (2 a 8 °C), en corte: racks con cajas de
+#   1. Cámara fría del CND (2 a 8 °C), en corte: racks con cajas de
 #      insulina y vacunas, evaporadores, cortina de tiras, registrador.
 #   2. Tráiler refrigerado de 53' con su unidad de frío y tractocamión.
 #   3. Almacén estatal: cámara fría chica con dos racks.
@@ -26,7 +26,7 @@ OUT = os.path.join(ROOT, "nacional")
 
 # centro de cada eslabón en x (m); y = 0 es el pasillo de enfrente
 STATIONS = [
-    ('cenadi', 'Cámara fría del CENADI', 0.0),
+    ('cnd', 'Cámara fría del CND', 0.0),
     ('reefer', 'Tráiler refrigerado', 24.0),
     ('estatal', 'Almacén estatal', 46.0),
     ('caja', 'Camioneta con cajas térmicas', 64.0),
@@ -205,8 +205,8 @@ def wheel(name, c, key, x, y, z, r=0.5, w=0.3):
 
 
 # ------------------------------------------------------------------ eslabones
-def st_cenadi(c, cx):
-    key = 'cenadi'; W, D, Hh = 14.0, 9.0, 5.0
+def st_cnd(c, cx):
+    key = 'cnd'; W, D, Hh = 14.0, 9.0, 5.0
     y0 = 6.0                                         # fondo de la cámara
     tag(box('RF_CN_Piso', c, (cx, y0, 0.1), (W, D, 0.2), M['floor']), key)
     tag(box('RF_CN_MuroFondo', c, (cx, y0 + D / 2, Hh / 2), (W, 0.25, Hh), M['panel']), key)
@@ -375,7 +375,7 @@ def main():
     w = bpy.data.worlds.new('RF_Cielo'); w.color = (0.04, 0.06, 0.09); bpy.context.scene.world = w
     g = box('RF_Suelo', c, (41, 4, -0.05), (120, 34, 0.1), M['ground'])
     g['wh_type'] = 'ground'
-    builders = {'cenadi': st_cenadi, 'reefer': st_reefer, 'estatal': st_estatal, 'caja': st_caja, 'unidad': st_unidad}
+    builders = {'cnd': st_cnd, 'reefer': st_reefer, 'estatal': st_estatal, 'caja': st_caja, 'unidad': st_unidad}
     for key, name, x in STATIONS:
         builders[key](c, x)
         e = bpy.data.objects.new(f'RF_Eslabon_{key}', None)

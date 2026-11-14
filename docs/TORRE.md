@@ -25,7 +25,7 @@ Es la vista del "jefe de jefes". Corre **todos los gemelos del proyecto** con un
 
 Un solo botón cambia el escenario de **toda** la cadena. Cada gemelo corre su versión del escenario.
 
-| Escenario | Nacional | Red fría | Compra | Piloto Hidalgo (CEDIS, contratos) | CENADI (patio) | Marbetes |
+| Escenario | Nacional | Red fría | Compra | Piloto Hidalgo (CEDIS, contratos) | CND (patio) | Marbetes |
 |---|---|---|---|---|---|---|
 | Operación normal | normal | otoño | 2027-2028 | normal | A · día normal | disciplina media |
 | Un proveedor falla | falla de proveedor | otoño | una sola fuente por clave | contingencia | A · contingencia | media |
@@ -41,8 +41,8 @@ El plan anual sale de la **bitácora de Planeación** de ese navegador (`planeac
 | 1 | Planeación | Subdirección de Planeación de Insumos | Nacional · plan 2027 | partidas vencidas en bandeja (meta ≤ 2 %), avance contra lo programado (≥ 100 %), holgura del calendario (≥ 5 días), pedido arriba de la propuesta (≤ 10 %), WAPE (≤ 20 %) |
 | 2 | Compra consolidada | Subdirección de Adquisiciones | Nacional · licitación 2027 | piezas con contrato (≥ 99 %), vitales sin contrato completo (0), claves con 30 días o más sin medicamento (0), días entre la firma y el 1 de enero (≥ 30) |
 | 3 | Proveedores y contratos | Administración de contratos; pago: Finanzas | Piloto Hidalgo · 90 días | OTIF (≥ 93 %), piezas a tiempo (≥ 95 %), rechazos (≤ 2 %), facturas pagadas a tiempo (≥ 95 %), contratos en naranja o rojo (0) |
-| 4 | CENADI | Gerencia del CENADI | Un día tipo | estancia del proveedor (≤ 120 min), tráileres con más de 3 h (≤ 5 %), embarques que salen a tiempo (≥ 95 %), del andén al rack (≤ 120 min) |
-| 5 | Distribución nacional | Coordinación de Distribución del CENADI | 32 estados · 30 días | llegadas a tiempo (≥ 95 %), lo pedido que se embarcó (≥ 98 %), estados que llegaron a cero (0), demanda estatal atendida (≥ 97 %) |
+| 4 | CND | Gerencia del CND | Un día tipo | estancia del proveedor (≤ 120 min), tráileres con más de 3 h (≤ 5 %), embarques que salen a tiempo (≥ 95 %), del andén al rack (≤ 120 min) |
+| 5 | Distribución nacional | Coordinación de Distribución del CND | 32 estados · 30 días | llegadas a tiempo (≥ 95 %), lo pedido que se embarcó (≥ 98 %), estados que llegaron a cero (0), demanda estatal atendida (≥ 97 %) |
 | 6 | Almacén estatal | Jefe(a) del almacén delegacional | Piloto Hidalgo · 90 días y el año de marbetes | surtido completo a unidades (≥ 95 %), exactitud de inventario (≥ 95 %), diferencia del inventario anual (≤ 0.72 %), almacenistas con patrón de faltantes (0) |
 | 7 | Distribución estatal | Jefatura de Distribución delegacional | Piloto Hidalgo · 30 días | urgencias fuera de plazo (≤ 5 %), sobrecosto de rutas contra las optimizadas (≤ 10 %) |
 | 8 | Unidad y farmacia | Director(a) de la unidad y Jefatura de farmacia | Piloto Hidalgo · 60 unidades | **recetas surtidas completas (≥ 97 %)**, PEX autorizados en plazo (≥ 90 %), piezas caducadas (informativo) |
@@ -53,8 +53,8 @@ Cada indicador trae en pantalla qué mide, su fórmula, de dónde sale la meta, 
 
 **Estrella del norte** (lo que ve primero el jefe):
 
-- recetas surtidas completas en el piloto (meta 97 %, MIR E018 del ISSSTE);
-- abasto de los almacenes estatales (97 %, cifra del ISSSTE de abril de 2026);
+- recetas surtidas completas en el piloto (meta 97 %, meta institucional de recetas surtidas);
+- abasto de los almacenes estatales (97 %, cifra pública de farmacias de abril de 2026);
 - piezas del plan con contrato (99 %, compra consolidada 2025-2026);
 - dinero expuesto sin control (pedidos maliciosos que pasaron más producto de red fría dañado sin detectar).
 
@@ -79,9 +79,9 @@ Los indicadores de resultado dependen de otros de arriba (`DEP` en el motor):
 | Indicador | Depende de |
 |---|---|
 | Proveedores: OTIF y piezas a tiempo | Compra: días entre la firma y el 1 de enero (sin contrato a tiempo no hay a quién exigirle) |
-| Distribución nacional: llegadas a tiempo | CENADI: embarques que salen a tiempo |
+| Distribución nacional: llegadas a tiempo | CND: embarques que salen a tiempo |
 | Distribución nacional: surtido | Proveedores: OTIF; Compra: con contrato |
-| Distribución nacional: estados en cero, demanda atendida | CENADI: salidas, si también llegan tarde; Proveedores: OTIF, si el CENADI tampoco surtió |
+| Distribución nacional: estados en cero, demanda atendida | CND: salidas, si también llegan tarde; Proveedores: OTIF, si el CND tampoco surtió |
 | Almacén estatal: surtido a unidades | Proveedores: OTIF; Distribución nacional: surtido |
 | Distribución estatal: urgencias | Almacén estatal: surtido |
 | Unidad: recetas completas | Almacén estatal: surtido; Distribución estatal: urgencias |
@@ -117,7 +117,7 @@ Si más de la mitad de la brecha viene de arriba, baja un nivel: primero se llam
 
 ### Hallazgos
 
-- **El paciente es lo último en enterarse.** Con un proveedor que falla, las recetas completas del piloto bajan de 99.9 % a 97.9 %, todavía en meta. Mientras, el CENADI solo embarca 66 % de lo que piden los estados y 86 % de las urgencias llegan tarde. La torre lo ve antes que la ventanilla.
+- **El paciente es lo último en enterarse.** Con un proveedor que falla, las recetas completas del piloto bajan de 99.9 % a 97.9 %, todavía en meta. Mientras, el CND solo embarca 66 % de lo que piden los estados y 86 % de las urgencias llegan tarde. La torre lo ve antes que la ventanilla.
 - **Siempre en rojo, aunque la operación sea normal:**
     - **Red fría:** con registro manual se detecta menos de la mitad de las excursiones y hay $6.6 M de producto dañado sin detectar.
     - **Integridad:** 4.7 % del costo del plan son pedidos maliciosos que pasan los controles mínimos.
@@ -170,12 +170,12 @@ Prueba (operación normal): se comprometieron las 20 llamadas del día 15 y las 
 `web/js/torre3d.js` con el modelo `web/assets/vigia.glb` (`nacional/vigia_builder.py`, diseño propio). Ideas tomadas de torres de control de aeropuerto (cabina de vidrio inclinado), faros (haz que barre) y cámaras de vigilancia (lente con iris).
 
 - **Torre vigía en el Golfo de México**, exagerada (unos 210 m llevados a unos 840 km). Su **ojo-sensor gira** hacia lo que la torre señala y proyecta un haz con el color del semáforo; los anillos de los balcones toman el estado general (rojo con 5 o más eslabones en rojo).
-- **Patrullar:** el ojo recorre los focos cada 4 segundos: las delegaciones con peor fila en la matriz, las unidades en rojo (primero las de pedidos maliciosos más grandes) y el CENADI si está fuera de meta. La lista "Lo que mira el ojo" muestra el recorrido; tocar uno lo enfoca.
+- **Patrullar:** el ojo recorre los focos cada 4 segundos: las delegaciones con peor fila en la matriz, las unidades en rojo (primero las de pedidos maliciosos más grandes) y el CND si está fuera de meta. La lista "Lo que mira el ojo" muestra el recorrido; tocar uno lo enfoca.
 - **Mapa:** cada estado se tiñe con su fila de la matriz; cada delegación tiene su edificio con franja y baliza en semáforo; las 1,033 unidades son columnas más altas y rojas cuanto peor están (plan vencido o escalado, alertas y pedidos maliciosos de integridad y, en el piloto Hidalgo, recetas completas y PEX).
-- **Fichas** (como en el CENADI 3D), al tocar:
+- **Fichas** (como en el CND 3D), al tocar:
     - **unidad:** a quién se le reclama, su supervisor, nivel de escalamiento, plan, integridad, farmacia (solo en el piloto) y por qué está así;
     - **delegación:** su fila de la matriz, almacén estatal a 30 días, reparto de sus unidades y directores a llamar;
-    - **CENADI:** indicadores de CENADI y distribución nacional;
+    - **CND:** indicadores de CND y distribución nacional;
     - **torre:** reparto de la culpa, estrella del norte y a quién llamar primero.
 - **Ojo vivo:** parpadea al cambiar de foco y cada pocos segundos; en los focos rojos se queda 7 s (4 s en los demás). Al patrullar abre sola la ficha de lo que mira. Si nadie toca la vista 20 s, vuelve a patrullar.
 - Parámetro `tab=3d` para abrir directo en esta pestaña.
@@ -184,7 +184,7 @@ Prueba (operación normal): se comprometieron las 20 llamadas del día 15 y las 
 
 - **Los gemelos no están conectados entre sí.** Cada uno corre su escenario con sus propios datos. La torre los pone lado a lado con alcance y periodo, no como un solo modelo.
 - **El detalle de CEDIS, rutas, unidades y recetas solo existe para Hidalgo.** Los otros 31 estados se ven a nivel de almacén estatal.
-- **El ISSSTE no registra la causa de cada receta no surtida.** El INAI le ordenó informarla.
+- **La causa de cada receta no surtida no se registra.** Un órgano de transparencia ya ordenó a una institución pública informarla.
 - **Al proveedor no se le regaña: se le aplica el contrato.** La torre señala al administrador del contrato.
 - **Todo es simulado.** Sirve para decidir qué datos capturar y quién responde por cada uno, no para calificar a personas reales.
 
@@ -196,12 +196,9 @@ Prueba (operación normal): se comprometieron las 20 llamadas del día 15 y las 
 - ASCM, tablero SCORmark: https://www.ascm.org/globalassets/ascm_website_assets/docs/2026-scormark-dashboard-example-deliverables.pdf
 - DSG.ai, torre de control: https://www.dsg.ai/blog/control-tower-in-supply-chain
 - BSC Designer, RACI: https://bscdesigner.com/raci-strategic-planning.htm
-- CONEVAL, ficha E018 del ISSSTE: https://www.coneval.org.mx/Evaluacion/Documents/EVALUACIONES/FMyE_2017_2018/FMyE_51_E018.pdf
-- Consultor Salud, ISSSTE 97 % de abasto (1-abr-2026): https://consultorsalud.com.mx/issste-reporta-97-de-abasto-de-medicamentos-en-sus-unidades-y-elimina-farmacias-por-debajo-del-90/
-- Zeta Tijuana, comparecencia de Salud (7-nov-2025): https://zetatijuana.com/2025/11/salud-federal-presume-96-de-abasto-de-medicamentos-imss-surte-97-recetas-dice/
+- Fuentes institucionales (metas de abasto y recetas, evaluación de encuestas, transparencia): `investigacion/fuentes_institucionales.md`
 - Cero Desabasto, radiografía 2017-2021: https://a.storyblok.com/f/162801/x/0680df0f5f/resumen-radiografia-desabasto-2017-2021.pdf
 - Expansión, recetas no surtidas en 2023: https://politica.expansion.mx/mexico/2024/05/06/recetas-no-se-surtieron-completamente-en-2023
-- El Universal, INAI y recetas no surtidas del ISSSTE: https://www.eluniversal.com.mx/nacion/ordena-inai-al-issste-transparentar-numero-de-medicamentos-no-surtidos-en-2024-debe-informar-la-causa/
 - IAPHL, manual de indicadores: https://iaphl.org/wp-content/uploads/2016/05/M_E_indicators_hdbk.pdf
 - OMS, indicadores de acceso: https://www.who.int/tools/monitoring-and-evaluation/access-indicators
 - RHSC, indicadores armonizados de desabasto: https://rhsupplies.org/activities-resources/publications/harmonized-suite-of-indicators-to-measure-stockouts-and-availability-of-contraceptives-7374
@@ -211,7 +208,7 @@ Prueba (operación normal): se comprometieron las 20 llamadas del día 15 y las 
 | Parámetro | Valores | Para qué |
 |---|---|---|
 | `esc` | `normal`, `proveedor`, `huracan`, `tardia` | Escenario |
-| `e` | `plan`, `compra`, `prov`, `cenadi`, `dnac`, `alm`, `dest`, `unidad`, `frio`, `integ` | Eslabón abierto |
+| `e` | `plan`, `compra`, `prov`, `cnd`, `dnac`, `alm`, `dest`, `unidad`, `frio`, `integ` | Eslabón abierto |
 | `rol` | `jefe`, `area:frio`, `ana:0`, `del:13`, `unit:377`, `k:C1` | Ver como |
 | `tab` | `seg`, `3d` | Abre la pestaña Seguimiento o Torre 3D |
 | `dia` | 16 a 120 | Reloj de la torre (día hábil del plan) |

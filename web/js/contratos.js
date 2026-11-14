@@ -678,7 +678,7 @@ export class Contratos {
   expediente(os, t) {
     const e = this.estadoOS(os, t);
     return {
-      dossier_id: os.id, folio_institucional: `EXP-2026-IMSS-HGO-${os.id.slice(3)}`, institucion: 'IMSS',
+      dossier_id: os.id, folio_institucional: `EXP-2026-SNS-HGO-${os.id.slice(3)}`, institucion: 'SNS',
       clave_cnis: os.partidas[0].c, fase_actual: e.cerrada ? 12 : os.camiones.some(c => c.t <= t) ? 3 : 2,
       estado_flujo: { EMITIDA: 'ORDEN_EMITIDA', NOTIFICADA: 'ORDEN_EMITIDA', RECIBIDA_PARCIAL: 'EN_ANDEN_CEDIS', ATRASADA: 'ORDEN_EMITIDA', EN_RESCATE: 'EN_RESCISION_ADMINISTRATIVA', CERRADA: 'EN_CONCILIACION_PAGO' }[e.estado],
       semaforo_global: e.sem,

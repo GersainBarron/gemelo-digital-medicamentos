@@ -6,7 +6,7 @@ Simula un año de operación del CEDIS ubicación por ubicación (1,366 ubicacio
 
 ## Normativa en la que se basa
 
-No se cuenta con la norma interna del ISSSTE. Se usa como referencia general:
+No se cuenta con una norma interna de inventarios del SNS. Se usa como referencia general:
 
 - **Ley General de Contabilidad Gubernamental, art. 27:**
     - el levantamiento físico del inventario es obligatorio;
@@ -14,7 +14,7 @@ No se cuenta con la norma interna del ISSSTE. Se usa como referencia general:
     - los bienes que se adquieren se incorporan al inventario en 30 días hábiles.
 
   ([texto](https://www.hcnl.gob.mx/transparencia/contabilidad.php), [aplicación en la APF](https://www.gob.mx/cms/uploads/attachment/file/430077/INTRODUCCION_INVENTARIO_BIENES_MUEBLES_INSTRUMENTALES_2018_pdf.pdf))
-- **IMSS, procedimiento 1821-A03-002** ([PDF](https://www.imss.gob.mx/sites/all/statics/pdf/procedimientos/1821-A03-002.pdf)): levantamiento del inventario físico anual, rotativo y selectivo de bienes de consumo. Es el documento público más cercano del sector salud.
+- **Procedimiento público de toma de inventario de una institución federal de salud** (fuente en `investigacion/fuentes_institucionales.md`): levantamiento del inventario físico anual, rotativo y selectivo de bienes de consumo. Es el documento público más cercano del sector salud.
     - **Frecuencia:**
         - anual, total, al menos una vez al año;
         - rotativo mensual, que cubre todo en el año e incluye siempre el grupo 040 (estupefacientes y psicotrópicos);
@@ -33,7 +33,7 @@ No se cuenta con la norma interna del ISSSTE. Se usa como referencia general:
     - **Responsabilidades:** si no se cumple, hay medidas disciplinarias o las de la Ley General de Responsabilidades Administrativas.
 - **Controlados:** el libro de control y el balance que piden el Reglamento de Insumos para la Salud y el Suplemento para establecimientos de la FEUM. Aquí, toda diferencia en controlados lleva acta y se asienta en el libro de control.
 
-**Supuestos propios** (editables o por confirmar con la norma del ISSSTE):
+**Supuestos propios** (editables o por confirmar con la norma del SNS):
 - montos de autorización del ajuste: hasta $1,000 el jefe de almacén, hasta $10,000 el administrador del CEDIS; más, acta administrativa con el Órgano Interno de Control;
 - tasas de error, tiempos de conteo (4 minutos por tarima y 2 por anaquel) y 8 almacenistas.
 
@@ -86,12 +86,12 @@ No se cuenta con la norma interna del ISSSTE. Se usa como referencia general:
 | Cíclico ABC + anual | 86 % | 73 | 0.46 % ✓ | 886 |
 
 - **Solo la toma anual no alcanza el tope de 0.72 %:** las diferencias se acumulan todo el año.
-- **El rotativo mensual** del IMSS cumple con el doble de horas que la anual sola.
+- **El rotativo mensual** del procedimiento de referencia cumple con el doble de horas que la anual sola.
 - **El cíclico ABC** lleva la exactitud a 86 % y detecta en 73 días, pero cuesta siete veces las horas.
 - **El almacenista deshonesto:** con disciplina media la alerta lo encuentra. Con disciplina baja y solo la toma anual, su robo se esconde entre los demás errores.
 
 ## Pendiente
 
-- Norma interna de inventarios del ISSSTE: frecuencias, montos de autorización y formatos de acta.
+- Norma interna de inventarios del SNS: frecuencias, montos de autorización y formatos de acta.
 - Ligar los ajustes a la existencia del inventario del CEDIS (`network-sim.js`), al indicador "Exactitud de inventario" de la pestaña Almacén y a la ventana de Integridad del plan.
-- Inventario físico en las farmacias de las unidades y en el CENADI.
+- Inventario físico en las farmacias de las unidades y en el CND.

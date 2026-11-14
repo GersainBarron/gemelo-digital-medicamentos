@@ -103,7 +103,7 @@ En Blender se hizo `build_jefatura()`; el marcador 3D va en `unit3d.js`. El esqu
   indicador visual en el 3D cuando hay un pedido por aprobar.
 
 ## Fase 4 · Última milla al paciente (Proyecto 3) — HECHO (26 oct, 09:10)
-Resultado (HGZMF 1, 30 días):
+Resultado (HGZ/MF Pachuca, 30 días):
 - 501 entregas, de las que 324 fueron a domicilio;
 - 364 visitas a farmacia evitadas;
 - unas 529 horas de pacientes ahorradas;
@@ -120,28 +120,28 @@ En Blender se hizo `recoleccion/punto_recoleccion_builder.py`; la moto se anima 
 - **Blender:** punto de recolección o módulo `punto_recoleccion_builder.py`; la moto repartidora de la
   fase 1 se anima en el 3D de la unidad, saliendo del andén.
 
-## Fase 5 · CENADI: patio, andenes y flujo interno (Proyectos 2 y 3, nivel nacional) — HECHO (26 oct, 23:15)
+## Fase 5 · CND: patio, andenes y flujo interno (Proyectos 2 y 3, nivel nacional) — HECHO (26 oct, 23:15)
 Resultado (día pico ×2.5, misma semilla):
 - plan A (actual tipo): estancia promedio de 2 h 59, cola máxima en carretera de 22 vehículos y 73 % de
   salidas a tiempo;
 - plan C (citas, horario de 6:00 a 22:00 y validación en cuarentena): 1 h 01, 3 vehículos y 100 %;
 - plan B (solo citas): sin cola, pero 9 de 55 proveedores sin cupo ese día.
 
-Investigación y supuestos: documento "CENADI · Simulación de entradas y salidas de vehículos"
+Investigación y supuestos: documento "CND · Simulación de entradas y salidas de vehículos"
 (https://claude.ai/artifact/DXzCFe1kFtQMbMDpWHifbg). Datos públicos: 35,000 posiciones, 38 andenes,
 6 antecámaras, ~22 millones de piezas recibidas y ~20 millones enviadas al mes a ~786 unidades.
 - **Código:** `web/js/yard-sim.js` (motor de eventos discretos minuto a minuto, determinista),
-  `web/js/cenadi3d.js` (escena) y `web/js/cenadi.js` + `web/cenadi.html` + `web/css/cenadi.css`.
+  `web/js/cnd3d.js` (escena) y `web/js/cnd.js` + `web/cnd.html` + `web/css/cnd.css`.
 - **Flujo:** carretera → caseta → patio regulador → andén → carrito de descarga → cuarentena (validación)
   → montacargas al rack. Embarque: ola liberada 4 h antes → surtido por tarima → carril de la ruta → carga.
 - **Escenarios:** A, B y C, cada uno en día normal, pico ×2.5 o contingencia (un carrito menos y 30 % de
   llegadas tarde). Parámetros editables en pantalla.
 - **Pantalla:** 3D con 10 vistas, panel "Dónde se atrasa" con 11 etapas y lista de atrasos ligada a la
   cámara, 8 KPIs, Gantt de andenes, colas, agenda (proveedores y salidas, CSV) y comparación de escenarios.
-- **Blender:** `nacional/cenadi_builder.py` (CENADI, también en `web/assets/cenadi.glb`),
-  `issste_buenavista/issste_buenavista_builder.py` (oficinas centrales del ISSSTE) y
+- **Blender:** `nacional/cnd_builder.py` (CND, también en `web/assets/cnd.glb`),
+  `oficinas_centrales/oficinas_centrales_builder.py` (oficinas centrales del SNS) y
   `unidades_tipo/unidades_medicas.py` (CAF, UMF y hospital; sin integrar).
-- **Otros cambios:** enlace "CENADI" en la barra de todas las páginas; en `css/unidad.css`, la navegación
+- **Otros cambios:** enlace "CND" en la barra de todas las páginas; en `css/unidad.css`, la navegación
   pasa a su propio renglón por debajo de 1400 px.
 
 Pendiente:
@@ -150,7 +150,7 @@ Pendiente:
 - separar los tipos de unidad en builders e integrarlos al mapa de red;
 - el 3D solo se probó con renderizador de software: revisar fluidez en el iPad (el modelo pesa 5.5 MB).
 
-## Fase 6 · Red nacional: CENADI a los 32 estados (Metas 1 y 2, nivel nacional) — HECHO (27 oct)
+## Fase 6 · Red nacional: CND a los 32 estados (Metas 1 y 2, nivel nacional) — HECHO (27 oct)
 Resultado (30 días, misma semilla):
 - normal: 100 % de abasto, ningún estado sin existencia, 343 embarques, ~$17 M de flete;
 - falla de proveedor (45 % de existencia del día 5 al 16): reparto proporcional deja 4 estados sin
@@ -161,14 +161,14 @@ Resultado (30 días, misma semilla):
   cualquier regla: ahí la solución es inventario previo, no reparto;
 - cierre carretero en Sinaloa (+48 h, días 4 a 11): sólo entregas tarde, el inventario de seguridad absorbe.
 
-Investigación: documento "Mapa nacional · CENADI hacia los 32 estados"
+Investigación: documento "Mapa nacional · CND hacia los 32 estados"
 (https://claude.ai/artifact/GbbUhTE7iFTBg8q9JZLJaq).
-- **Datos:** 1,033 unidades ISSSTE en operación del CLUES ago 2026 (`investigacion/issste_unidades.csv`,
-  `estados_issste_cenadi.csv`); geometría de la CONABIO 2023 (Marco Geoestadístico del INEGI).
+- **Datos:** 1,033 unidades del SNS (ubicación y tipología del CLUES ago 2026) (`investigacion/unidades_nacional.csv`,
+  `estados_cnd.csv`); geometría de la CONABIO 2023 (Marco Geoestadístico del INEGI).
 - **Blender:** `nacional/mapa_mexico_builder.py` → `mapa_mexico.blend/.glb` y vista previa.
 - **Código:** `web/nacional.html`, `web/js/nacional-sim.js` (simulación horaria de 30 días),
   `web/js/nacional3d.js` (mapa, arcos, tráileres, unidades, selección con animación) y `web/js/nacional.js`;
-  datos en `web/assets/estados_issste.json` y `estados_mx.json`.
+  datos en `web/assets/unidades_nacional.json` y `estados_mx.json`.
 - **Otros cambios:** enlace "Nacional" en todas las páginas; la navegación pasa a su renglón por debajo de
   1640 px.
 
@@ -176,9 +176,9 @@ Pendiente:
 - matriz de carretera real y tiempos de tránsito medidos;
 - demanda por estado con consumos reales en vez del peso por tipo de unidad;
 - inventario por clave (no sólo en tarimas) en los almacenes estatales;
-- ligar la salida diaria del CENADI con `cenadi.html` (olas de embarque y carriles por región).
+- ligar la salida diaria del CND con `cnd.html` (olas de embarque y carriles por región).
 
-## Fase 7 · Red fría del CENADI a la unidad (Proyectos 2 y 3) — HECHO (27 oct)
+## Fase 7 · Red fría del CND a la unidad (Proyectos 2 y 3) — HECHO (27 oct)
 Resultado (30 días de otoño, misma semilla; costos y precios de referencia):
 - como está (registro manual, 70 % de refrigeradores domésticos en 1er nivel, refrigerantes directo del
   congelador): $22.7 M de producto perdido al mes, $6.6 M de ese daño sin detectar (se aplicaría), 91.1 %
@@ -189,7 +189,7 @@ Resultado (30 días de otoño, misma semilla; costos y precios de referencia):
 - acondicionados + registrador + grado médico: $0 de pérdida con $41.4 M; recupera en menos de 2 meses;
 - el calor casi no daña producto; la pérdida viene de congelar (cajas y refrigeradores domésticos).
 
-Investigación: documento "Red fría · simulación del CENADI a la unidad"
+Investigación: documento "Red fría · simulación del CND a la unidad"
 (https://claude.ai/artifact/9nT6KmEvjKEHoznrnZiiuA).
 - **Blender:** `nacional/redfria_builder.py` → `redfria.blend/.glb` y vista previa.
 - **Código:** `web/redfria.html`, `web/js/redfria-sim.js` (modelo térmico de 1,066 equipos y ~4,700
@@ -230,7 +230,7 @@ supuestos, resultados y fuentes en `docs/COMPRAS.md`.
 
 ## Fase 10 · Inventario físico con marbetes en el CEDIS (Proyecto 2) — HECHO (29 oct)
 Toma de inventario con marbetes, conteos, conciliación y ajustes, con la normativa general (LGCG art. 27 y el
-procedimiento 1821-A03-002 del IMSS). Detalle en `docs/MARBETES.md`.
+un procedimiento público de toma de inventario). Detalle en `docs/MARBETES.md`.
 - **Código:** `web/js/marbetes-sim.js` (errores ocultos, estrategias de conteo, conciliación, autorización,
   tolerancias y alertas por almacenista) y `web/js/marbetes-ui.js` (pestaña "Marbetes" del CEDIS 3D y capa con un
   marbete por ubicación).
@@ -249,7 +249,7 @@ con qué nivel de escalamiento. Detalle en `docs/TORRE.md`.
   proveedor que falla, Proveedores sube a 30 % y las recetas completas siguen en 97.9 %. Con la compra tardía,
   Adquisiciones pasa a primer lugar (22 %) porque los contratos se firman 49 días después del 1 de enero.
 - **Revisión independiente:** se corrigieron unidades (horas extra en minutos), el estado "sin dato", nombres
-  duplicados, la red fría del CENADI cargada al Estado de México y las fuentes que no respaldaban su meta.
+  duplicados, la red fría del CND cargada al Estado de México y las fuentes que no respaldaban su meta.
 - **Torre 3D:** pestaña con la torre vigía (modelo propio, `nacional/vigia_builder.py`) en el Golfo de México; su ojo
   patrulla las delegaciones y unidades en rojo y al tocar cualquier cosa abre su ficha.
 - **Ver como:** la torre de cada responsable (`web/js/torre-roles.js`): dueño de área, analista de Central, administrador

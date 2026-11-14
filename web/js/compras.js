@@ -23,7 +23,7 @@ const S = { esc: 'base', over: {}, seed: 1, puente: 60, filtro: 'todas', sort: {
 let U, claves, demanda, plan, R, V = null;
 
 async function init() {
-  const [iss, meds] = await Promise.all(['assets/estados_issste.json', 'assets/medicamentos.json'].map(u => fetch(u).then(r => r.json())));
+  const [iss, meds] = await Promise.all(['assets/unidades_nacional.json', 'assets/medicamentos.json'].map(u => fetch(u).then(r => r.json())));
   U = E.buildUniverse(iss, meds);
   let entries = null;
   try { const v = localStorage.getItem('planeacion.bitacora.v1'); if (v) entries = JSON.parse(v); } catch { /* sin almacenamiento */ }
@@ -224,10 +224,10 @@ async function start3d() {
   };
   requestAnimationFrame(loop);
 }
-const ZN = { plan: 'En el plan, por convocar', convocatoria: 'Convocatoria y apertura', tecnica: 'Evaluación técnica', precio: 'Precio y ofertas de descuento', fallo: 'Esperando el fallo', firma: 'Adjudicada, firma y fabricación', patente: 'Patente o fuente única', desiertas: 'Desierta', segunda: 'Rescatada en la segunda vuelta', sincontrato: 'Sin contrato', cenadi: 'Entregada en el CENADI' };
+const ZN = { plan: 'En el plan, por convocar', convocatoria: 'Convocatoria y apertura', tecnica: 'Evaluación técnica', precio: 'Precio y ofertas de descuento', fallo: 'Esperando el fallo', firma: 'Adjudicada, firma y fabricación', patente: 'Patente o fuente única', desiertas: 'Desierta', segunda: 'Rescatada en la segunda vuelta', sincontrato: 'Sin contrato', cnd: 'Entregada en el CND' };
 function labels3d() {
   const L = [], c = V.counts || {};
-  for (const [z, txt] of [['desiertas', 'Desiertas'], ['sincontrato', 'Sin contrato'], ['cenadi', 'En el CENADI'], ['patente', 'Patente'], ['firma', 'Adjudicadas'], ['plan', 'Por convocar'], ['segunda', 'Segunda vuelta']]) {
+  for (const [z, txt] of [['desiertas', 'Desiertas'], ['sincontrato', 'Sin contrato'], ['cnd', 'En el CND'], ['patente', 'Patente'], ['firma', 'Adjudicadas'], ['plan', 'Por convocar'], ['segunda', 'Segunda vuelta']]) {
     if (!c[z]) continue;
     const a = V.anchors[z]; if (!a) continue;
     const [x, y, ok] = V.project(a.clone().setY(a.y + 9)); if (!ok) continue;
@@ -261,22 +261,22 @@ function ficha() {
   }
   const c = V.counts || {}, m = V.marks, t = V.t;
   const etapa = t < 0 ? 'Antes de la convocatoria' : t < m.apertura ? 'Convocatoria y junta de aclaraciones' : t < m.evalFin ? 'Evaluación técnica' : t < m.descFin ? 'Ofertas subsecuentes de descuento' : t < m.fallo ? 'Esperando el fallo' : t < m.firma ? 'Firma de contratos' : t < m.ini ? 'Fabricación, antes de arrancar el año' : t < m.puente ? 'Año en curso: aún hay inventario puente' : 'Año en curso: sin inventario puente';
-  el.innerHTML = `<span class="eyebrow">${fecha(V.dateOf(t))}</span><h2>${etapa}</h2><p class="sub">Dale ▶ para ver avanzar las ${R.rows.length} claves desde la convocatoria hasta su entrega en el CENADI.</p>
+  el.innerHTML = `<span class="eyebrow">${fecha(V.dateOf(t))}</span><h2>${etapa}</h2><p class="sub">Dale ▶ para ver avanzar las ${R.rows.length} claves desde la convocatoria hasta su entrega en el CND.</p>
     <h3>Dónde están las claves</h3>${Object.entries(ZN).filter(([z]) => c[z]).map(([z, n]) => `<div class="cp-zone"><span>${n}</span><b style="${z === 'desiertas' || z === 'sincontrato' ? 'color:var(--crit)' : ''}">${c[z]}</b></div>`).join('')}
     <p class="note">Las lámparas de cada arco se encienden al terminar la etapa: verde agua si ninguna clave se quedó ahí, ámbar si una o dos, rojo si más.</p>`;
 }
 
 function defs() {
   $('#defs').innerHTML = `
-  <p><b>Demanda.</b> Las piezas 2027 de cada clave salen del plan anual de Planeación: la suma de lo asignado a cada unidad, con lo que hayan negociado si avanzaste la aprobación. Se simula solo la parte del ISSSTE y las 60 claves del gemelo; la compra consolidada real 2027-2028 incluyó IMSS, ISSSTE, IMSS-Bienestar y Pemex, más de 2,700 claves y más de 5,000 millones de piezas.</p>
-  <p><b>Procedimiento.</b> Como la licitación LA-12-NEF-012NEF001-T-218-2026 de Birmex: convocatoria el 16 de julio, junta de aclaraciones a los 7 días, apertura a los 20, evaluación binaria (cumple o no cumple), ofertas subsecuentes de descuento, fallo y firma en 20 días hábiles. Las claves de patente y fuente única se adjudican directo y cierran antes, a principios de agosto. Vigencia de los contratos: 2027 y 2028.</p>
+  <p><b>Demanda.</b> Las piezas 2027 de cada clave salen del plan anual de Planeación: la suma de lo asignado a cada unidad, con lo que hayan negociado si avanzaste la aprobación. Se simula solo la parte del SNS y las 60 claves del gemelo; una compra consolidada nacional real reúne a varias instituciones públicas, más de 2,700 claves y más de 5,000 millones de piezas.</p>
+  <p><b>Procedimiento.</b> Como una licitación pública consolidada: convocatoria el 16 de julio, junta de aclaraciones a los 7 días, apertura a los 20, evaluación binaria (cumple o no cumple), ofertas subsecuentes de descuento, fallo y firma en 20 días hábiles. Las claves de patente y fuente única se adjudican directo y cierran antes, a principios de agosto. Vigencia de los contratos: 2027 y 2028.</p>
   <p><b>Precio.</b> Ley de Adquisiciones (DOF 16 abr 2025): precio no aceptable si pasa 10 % la media de la investigación de mercado o el presupuesto; no conveniente si queda 40 % abajo. Aquí la media es el precio de referencia de cada clave del gemelo.</p>
   <p><b>Abastecimiento simultáneo.</b> Hasta 4 fuentes si su precio no pasa 10 % el del primero, con reparto 40/25/20/15, 50/30/20 o 60/40, como en la convocatoria 2027-2028. Si un ganador no alcanza con su capacidad, los otros completan; si no alcanza nadie, queda parcial.</p>
   <p><b>Mercado (supuesto).</b> Cada clave tiene de 0 a 9 laboratorios interesados según qué tan común es; biológicos, red fría, hematología y neumología tienen más probabilidad de ser patente. Cada laboratorio tiene un costo, un margen, una capacidad y una probabilidad de error en su documentación técnica. Fabricar y entregar toma de 4 a 12 semanas tras la firma.</p>
   <p><b>Desiertas.</b> Segunda licitación con fallo 75 días después (recupera de 45 a 62 % de las claves, un poco más cara) o invitación a tres en 35 días (recupera 75 %, de 12 a 32 % más cara). Lo que siga sin contrato lo compra la unidad de emergencia: la mitad de lo que falta, 40 % más caro.</p>
   <p><b>2027.</b> Cada ganador puede incumplir y rescindirse (6 %, el doble si ofertó 25 % abajo de la referencia). Las unidades arrancan el año con el inventario puente elegido.</p>
   <p><b>Referencias reales para calibrar:</b> en 2027-2028 se adjudicaron 626 de 766 claves (82 %) en la licitación de genéricos, oncológicos y antiinfecciosos, con 102 empresas, 375 claves a un solo proveedor y 251 a dos o más; el fallo salió el 25 de septiembre de 2026, 11 días tarde. En 2025-2026 se adjudicó 39 % de las partidas y el fallo salió hasta el 13 de enero de 2025, con entregas desde febrero y marzo.
-  Fuentes: <a href="https://consultorsalud.com.mx/compra-medicamentos-2027-2028-birmex/" target="_blank" rel="noopener">convocatoria 2027-2028</a> · <a href="https://codigof.mx/salud-adjudica-85-de-claves-en-compra-consolidada-de-medicamentos-para-2027-2028/" target="_blank" rel="noopener">resultado 2027-2028</a> · <a href="https://politica.expansion.mx/mexico/2026/10/04/compra-medicamentos-2027-2028-birmex" target="_blank" rel="noopener">Expansión, oct 2026</a> · <a href="https://politica.expansion.mx/mexico/2025/01/15/compra-consolidada-adjudica-39-de-los-medicamentos-temen-desabasto" target="_blank" rel="noopener">Expansión, ene 2025</a> · <a href="https://www.garrigues.com/es_ES/noticia/mexico-publicada-nueva-ley-adquisiciones-arrendamientos-servicios-sector-publico" target="_blank" rel="noopener">nueva Ley de Adquisiciones</a>.</p>`;
+  Fuentes: <a href="https://codigof.mx/salud-adjudica-85-de-claves-en-compra-consolidada-de-medicamentos-para-2027-2028/" target="_blank" rel="noopener">resultado 2027-2028</a> · <a href="https://github.com/GersainBarron/gemelo-digital-medicamentos/blob/main/investigacion/fuentes_institucionales.md" target="_blank" rel="noopener">convocatoria y notas (investigación)</a> · <a href="https://politica.expansion.mx/mexico/2025/01/15/compra-consolidada-adjudica-39-de-los-medicamentos-temen-desabasto" target="_blank" rel="noopener">Expansión, ene 2025</a> · <a href="https://www.garrigues.com/es_ES/noticia/mexico-publicada-nueva-ley-adquisiciones-arrendamientos-servicios-sector-publico" target="_blank" rel="noopener">nueva Ley de Adquisiciones</a>.</p>`;
 }
 
 init();

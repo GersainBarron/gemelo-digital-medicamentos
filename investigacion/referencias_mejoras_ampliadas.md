@@ -92,9 +92,9 @@ Etiquetas: **[DATO]** medido y publicado · **[PROPUESTA]** cómo meterlo al gem
 
 ## F. Contexto México 2026 (para escenarios realistas)
 
-- **[DATO]** Expediente y receta electrónica: el ISSSTE tiene 660 unidades de primer nivel y 144 hospitales digitalizados; las 34 restantes deben entrar antes de diciembre de 2026.
-- **[DATO]** El IMSS avanza en la programación digital de la consulta de especialidad para evitar el cierre de agendas.
-- **[DATO]** Telemedicina ISSSTE: de 239 unidades (dic 2025) a 859 (may 2026); su efecto depende de conectividad, agenda, capacitación y continuidad del seguimiento.
+- **[DATO]** Expediente y receta electrónica: una institución federal de seguridad social tiene 660 unidades de primer nivel y 144 hospitales digitalizados; las 34 restantes deben entrar antes de diciembre de 2026.
+- **[DATO]** Otra institución federal avanza en la programación digital de la consulta de especialidad para evitar el cierre de agendas.
+- **[DATO]** Telemedicina en una institución federal: de 239 unidades (dic 2025) a 859 (may 2026); su efecto depende de conectividad, agenda, capacitación y continuidad del seguimiento.
 - **[PROPUESTA]** Escenario «registro digital»: sube la probabilidad de que cada paso quede registrado → baja «sin rastro». Escenario «agenda digital sin cierre de año»: se quita la temporada de octubre a diciembre. Telemedicina como desvío real (quedó pendiente de la primera investigación).
 
 ---
@@ -148,9 +148,9 @@ Orden sugerido:
 - Acompañamiento en lista de espera Chile (BID 2023): https://publications.iadb.org/publications/spanish/document/Estudio-exploratorio-de-cuantificacion-de-resultados-del-modelo-de-gestion-del-cuidado-y-acompanamiento-de-personas-en-lista-de-espera-no-GES-en-el-sistema-publico-de-salud-de-Chile.pdf
 - Microsimulación de políticas de lista de espera (UFRO 2023): https://congreso2023.ufro.cl/images/presentaciones/e-poster/jueves/Pantalla6/09-525-EVALUACION-CON-MICROSIMULACION-DE-POLITICAS-DE-GESTION.pdf
 - Colombia Res. 1552 de 2013: https://normograma.supersalud.gov.co/compilacion/docs/resolucion_minsaludps_1552_2013.htm
-- Digitalización ISSSTE/IMSS (oct 2026): https://www.tiempo.com.mx/local/expediente-medico-digital-listo-en-febrero-2027-eduardo-clark/
-- IMSS programación digital de especialidad: https://www.imss.gob.mx/sites/all/statics/i2f_news/IMSS.%20Boletin.%20442.docx
-- Telemedicina ISSSTE 2026: https://consultorsalud.com.mx/?p=315454
+- Digitalización del expediente (oct 2026): https://www.tiempo.com.mx/local/expediente-medico-digital-listo-en-febrero-2027-eduardo-clark/
+- Programación digital de especialidad: https://www.imss.gob.mx/sites/all/statics/i2f_news/IMSS.%20Boletin.%20442.docx
+- Telemedicina 2026: https://consultorsalud.com.mx/?p=315454
 
 ---
 

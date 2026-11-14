@@ -1,7 +1,7 @@
 // Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 // =====================================================================
 //  referencias.js · Motor del recorrido de referencia y contrarreferencia
-//  (SIRECO · ISSSTE Hidalgo, Región I). Investigación base en
+//  (red del SNS en Hidalgo, Región I). Investigación base en
 //  investigacion/referencia_contrarreferencia.md
 //
 //  Cada referencia se arma como una sola secuencia de tramos contiguos
@@ -27,7 +27,7 @@ export const REGLAS = {
   archivarDias: 5,      // cuánto se ve una ficha cerrada en el diagrama
   maxVueltas: 6,
   inicio: -300,         // primer día con referencias (≈ 1 ene 2026)
-  porDia: 5.5,          // [SUPUESTO] referencias por día hábil en la red ISSSTE Hidalgo
+  porDia: 5.5,          // [SUPUESTO] referencias por día hábil en la red del SNS en Hidalgo
   porPeso: 0.104,       // misma tasa por unidad emisora (CMF 3, UMF 2, CAF 1) para la red nacional
   microrregion: 0.6,    // se refiere fuera de la región si la otra unidad queda a < 60 % de la distancia
   // capacidad (agenda de primeras consultas)
@@ -94,12 +94,12 @@ function habilesDesde(R, t, n) {
 
 // --------------------------------------------------------------- catálogos
 export const ETAPAS = {
-  SOLICITUD: { n: 'Solicitud en UMF', area: 'Médico familiar', docs: ['Nota de referencia', 'SM-1-17 anverso'], sla: 'mismo día' },
-  VALIDACION: { n: 'Validación', area: 'Área de referencia · emisora', docs: ['SM-1-17 sellado', 'Vigencia de derechos'], sla: '≤ 2 días hábiles' },
+  SOLICITUD: { n: 'Solicitud en UMF', area: 'Médico familiar', docs: ['Nota de referencia', 'Formato de referencia'], sla: 'mismo día' },
+  VALIDACION: { n: 'Validación', area: 'Área de referencia · emisora', docs: ['Formato de referencia sellado', 'Vigencia de derechos'], sla: '≤ 2 días hábiles' },
   ACEPTACION: { n: 'Aceptación', area: 'Unidad receptora', docs: ['Respuesta de la receptora'], sla: '≤ 3 días hábiles' },
   CITA: { n: 'Cita y traslado', area: 'Agenda de la receptora', docs: ['Comprobante de cita', 'Pasajes'], sla: 'atención ≤ 15 días desde la creación' },
   ESPECIALIDAD: { n: 'Atención especializada', area: 'Especialista', docs: ['Nota de especialidad'], sla: null },
-  CONTRARREF: { n: 'Contrarreferencia', area: 'Especialista · receptora', docs: ['SM-1-17 reverso'], sla: '≤ 3 días tras el alta' },
+  CONTRARREF: { n: 'Contrarreferencia', area: 'Especialista · receptora', docs: ['Formato de contrarreferencia'], sla: '≤ 3 días tras el alta' },
   SEGUIMIENTO: { n: 'Seguimiento en UMF', area: 'Médico familiar', docs: ['Plan de manejo'], sla: null },
   CERRADA: { n: 'Cierre natural', area: 'Contrarreferida y en control', docs: [], sla: null },
   DEVUELTA: { n: 'Devuelta', area: 'Rechazo o corrección', docs: ['Motivo de rechazo'], sla: null },
@@ -107,7 +107,7 @@ export const ETAPAS = {
   NO_ACUDIO: { n: 'No acudió', area: 'Cita sin registro', docs: [], sla: null },
   URGENCIAS: { n: 'Urgencias', area: 'Triage · receptora', docs: ['Nota de urgencias'], sla: null },
   ESTUDIOS: { n: 'Estudio diferido', area: 'Auxiliares de diagnóstico', docs: ['Solicitud de estudio'], sla: null },
-  TERCER: { n: 'Envío a otro nivel', area: '3er nivel o microrregión', docs: ['Nueva SM-1-17'], sla: null },
+  TERCER: { n: 'Envío a otro nivel', area: '3er nivel o microrregión', docs: ['Nuevo formato de referencia'], sla: null },
   QUEMADA: { n: 'Quemada', area: 'Venció sin atención', docs: [], sla: null },
   ABANDONO: { n: 'No regresó', area: 'Abandono del paciente', docs: [], sla: null },
   SIN_CIERRE: { n: 'Atendida sin cierre', area: 'Sin contrarreferencia', docs: [], sla: null },
@@ -123,13 +123,13 @@ export const SISTEMA_ES = { EN_PROCESO: 'En proceso', SIN_RASTRO: 'Sin rastro', 
 const ESPERA = { INTERCONSULTA: 5, SOLICITUD: 2, VALIDACION: 5, ACEPTACION: 10, URGENCIAS: 3, ESPECIALIDAD: 60, ESTUDIOS: 120, TERCER: 10, DEVUELTA: 10, CONTRARREF: 5, SEGUIMIENTO: 45, NO_ACUDIO: 15, LIMBO: 15 };
 
 export const RECEPTORAS = {
-  HGP: { corto: 'HG Pachuca', nombre: 'HG Dra. Columba Rivera Osorio, Pachuca', nivel: 2, acep: 2, cita: [32, 110], limbo: 0.08, devuelve: 0.12, contra: 0.66, escala: 'HR1', color: '#2dd4bf' },
+  HGP: { corto: 'HG Pachuca', nombre: 'Hospital General Pachuca', nivel: 2, acep: 2, cita: [32, 110], limbo: 0.08, devuelve: 0.12, contra: 0.66, escala: 'HR1', color: '#2dd4bf' },
   CHI: { corto: 'CH Ixmiquilpan', nombre: 'Clínica Hospital Ixmiquilpan', nivel: 2, acep: 2, cita: [24, 80], limbo: 0.10, devuelve: 0.15, contra: 0.62, escala: 'HGP', color: '#60a5fa' },
   CHH: { corto: 'CH Huejutla', nombre: 'Clínica Hospital Huejutla de Reyes', nivel: 2, acep: 3, cita: [28, 95], limbo: 0.12, devuelve: 0.16, contra: 0.58, escala: 'HGT', color: '#f472b6' },
   CMFE: { corto: 'CMFE Pachuca', nombre: 'CMF con Especialidades Pachuca', nivel: 2, acep: 1.5, cita: [20, 60], limbo: 0.05, devuelve: 0.08, contra: 0.72, escala: 'HR1', color: '#facc15' },
   HGT: { corto: 'HG Tampico', nombre: 'HG Tampico (Región IX · microrregión)', nivel: 2, fuera: true, acep: 5, cita: [42, 140], limbo: 0.16, devuelve: 0.20, contra: 0.55, escala: 'HR1', color: '#fb923c' },
-  HR1: { corto: 'HR 1° de Octubre', nombre: 'HR (HAE) "Primero de Octubre", CDMX', nivel: 3, acep: 5, cita: [55, 170], limbo: 0.14, devuelve: 0.20, contra: 0.60, escala: 'CMN', color: '#a78bfa' },
-  CMN: { corto: 'CMN 20 de Noviembre', nombre: 'CMN "20 de Noviembre", CDMX', nivel: 3, acep: 7, cita: [65, 190], limbo: 0.10, devuelve: 0.25, contra: 0.70, escala: null, color: '#38bdf8' },
+  HR1: { corto: 'HR CDMX', nombre: 'Hospital Regional de Alta Especialidad, CDMX', nivel: 3, acep: 5, cita: [55, 170], limbo: 0.14, devuelve: 0.20, contra: 0.60, escala: 'CMN', color: '#a78bfa' },
+  CMN: { corto: 'CMN CDMX', nombre: 'Centro Médico Nacional, CDMX', nivel: 3, acep: 7, cita: [65, 190], limbo: 0.10, devuelve: 0.25, contra: 0.70, escala: null, color: '#38bdf8' },
 };
 /** a dónde se reenvía cuando la receptora rechaza por región o especialidad */
 const ALTERNA = { CHH: 'HGT', CHI: 'HGP', HGP: 'HR1', CMFE: 'HGP', HGT: 'HGP', HR1: 'HGP', CMN: 'HR1' };
@@ -152,7 +152,7 @@ const ESP_I = new Map(ESPECIALIDADES.map((x, i) => [x, i]));
 PRIO_RESERVA = ESPECIALIDADES.map(e => (PRIO[e.n] || [0.04, 0.14]).reduce((a, b) => a + b, 0));
 /** holgura de agenda de las receptoras de Hidalgo [SUPUESTO]: < 1 se saturan */
 const HOLGURA_HGO = { HGP: 0.97, CHI: 1.1, CHH: 0.93, CMFE: 1.2, HGT: 0.88, HR1: 0.92, CMN: 1.0 };
-const MOTIVOS_EMISORA = ['Formato SM-1-17 incompleto', 'Sin vigencia de derechos', 'Falta resumen clínico'];
+const MOTIVOS_EMISORA = ['Formato de referencia incompleto', 'Sin vigencia de derechos', 'Falta resumen clínico'];
 const MOTIVOS_RX = ['No corresponde a la región', 'Falta estudio previo', 'Especialidad sin agenda', 'Diagnóstico no pertinente para el nivel', 'Formato incompleto'];
 const ESTUDIOS = ['Ultrasonido', 'Tomografía', 'Resonancia magnética', 'Endoscopia', 'Ecocardiograma', 'Laboratorio especial'];
 const TRIAGE = ['Triage amarillo', 'Triage naranja', 'Triage rojo'];
@@ -179,7 +179,7 @@ function corto(nombre) { const [p, ...r] = nombre.split(' '); const s = p + ' ' 
 export function redHidalgo(data) {
   const rx = Object.fromEntries(Object.entries(RECEPTORAS).map(([id, x], idx) => [id, { id, idx, region: 'I', cve: '13', carga: 1, holgura: HOLGURA_HGO[id], ...x }]));
   const emisoras = data.units
-    .filter(u => u.inst === 'ISSSTE' && u.nivel === 'Primer Nivel' && u.tipo !== 'CMFE')
+    .filter(u => u.nivel === 'Primer Nivel' && u.tipo !== 'CMFE')
     .map((u, idx) => ({ id: u.clues, idx, clues: u.clues, nombre: u.nombre, corto: corto(u.nombre), tipo: u.tipo, ruta: u.ruta, km: u.km, cve: '13', region: 'I', w: PESO[u.tipo] || 1 }));
   return {
     nombre: 'Hidalgo', emisoras, rx, porDia: REGLAS.porDia,
@@ -203,7 +203,7 @@ const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase
 const PALABRAS_VACIAS = new Set(['HR', 'HAE', 'DR', 'M', 'DE', 'LA', 'DEL', 'EL', 'LIC', 'GRAL', 'LOS']);
 const tokens = s => new Set(norm(s).split(/[^A-Z0-9]+/).filter(w => w.length > 1 && !PALABRAS_VACIAS.has(w)));
 
-/** Red nacional: 1,033 unidades de assets/estados_issste.json con regionalización 2025 y microrregión por distancia */
+/** Red nacional: 1,033 unidades de assets/unidades_nacional.json con regionalización 2025 y microrregión por distancia */
 export function redNacional(data, seed = 7) {
   const R = rng(seed);
   const est = Object.fromEntries(data.estados.map(e => [e.cve, e]));
@@ -215,7 +215,7 @@ export function redNacional(data, seed = 7) {
       emisoras.push({ id: u.clues, idx: emisoras.length, clues: u.clues, nombre: u.nombre, corto: corto(u.nombre), tipo: u.tipo, cve: u.cve, estado: E.abbr, region, xy: u.xy, w: PESO[u.tipo] || 1 });
       continue;
     }
-    const tipo = /20 DE NOVIEMBRE/.test(u.nombre) ? 'CMN' : u.tipo;
+    const tipo = /^CMN\b/.test(u.nombre) ? 'CMN' : u.tipo;
     rx[u.clues] = {
       id: u.clues, idx: Object.keys(rx).length, nombre: u.nombre, corto: corto(u.nombre), tipo, nivel: u.nivel, cve: u.cve, estado: E.abbr, region, xy: u.xy,
       color: COLOR_REGION[REGIONES.indexOf(region)] || '#94a3b8', carga: Math.exp(0.35 * (R() + R() + R() - 1.5)), ...TIPO_RX[tipo],
@@ -289,7 +289,7 @@ const mediana = a => { if (!a.length) return null; const s = [...a].sort((x, y) 
 // =====================================================================
 export class Referencias {
   /**
-   * @param data assets/unidades_hidalgo.json (red de Hidalgo) o assets/estados_issste.json (red nacional), o una red ya armada
+   * @param data assets/unidades_hidalgo.json (red de Hidalgo) o assets/unidades_nacional.json (red nacional), o una red ya armada
    * @param corteDia último día con referencias nuevas
    */
   constructor(data, { seed = 20261104, corteDia = 0, inicio = REGLAS.inicio, esc = {} } = {}) {
@@ -527,7 +527,7 @@ export class Referencias {
           push('TERCER', t, { rx: rec, unidad: u.corto, nota: 'Rebasa la capacidad resolutiva → ' + U(u.escala).corto });
           rec = u.escala; fuera = false; t = habilesDesde(R, t, 1 + R() * 3); st = 'ACEPTACION'; break;
         case 'CONTRARREF':
-          push('CONTRARREF', t, { rx: rec, unidad: u.corto, reg: this._reg(0.95), nota: 'SM-1-17 reverso · plan de manejo' });
+          push('CONTRARREF', t, { rx: rec, unidad: u.corto, reg: this._reg(0.95), nota: 'Formato de contrarreferencia · plan de manejo' });
           t = habilesDesde(R, t, R() < 0.6 ? 0 : 1 + R() * 3); st = 'SEGUIMIENTO'; break;
         case 'SEGUIMIENTO':
           push('SEGUIMIENTO', t, { unidad: e.corto, reg: this._reg(0.85), nota: 'Control en la unidad de origen' });

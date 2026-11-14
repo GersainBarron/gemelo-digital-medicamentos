@@ -222,7 +222,7 @@ async function open3d() {
   if (V3p || !S.R) return;
   V3p = (async () => {
     try {
-      ISS ||= await fetch('assets/estados_issste.json').then(r => r.json());
+      ISS ||= await fetch('assets/unidades_nacional.json').then(r => r.json());
       const { Torre3D } = await import('./torre3d.js');
       const v = new Torre3D({ iss: ISS, getGLB: window.PLAN_GLB });
       await v.load($('#tw3'));
@@ -251,13 +251,13 @@ const ST_UC = ['', 'ok', 'warn', 'crit'];
 function nameOf(t) {
   if (t.type === 'unit') return unitOf(t.i).nombre;
   if (t.type === 'del') return `Delegación ${rowOf(t.cve)?.nombre || t.cve}`;
-  if (t.type === 'cenadi') return 'CENADI';
+  if (t.type === 'cnd') return 'CND';
   return 'Torre vigía';
 }
 function whyOf(t) {
   if (t.type === 'unit') return unitOf(t.i).m[0]?.[1] || 'sin observaciones';
   if (t.type === 'del') { const r = rowOf(t.cve); if (!r) return ''; const c = Object.entries(r.c).filter(([, x]) => x.st === 'crit').map(([k]) => S.R.matriz.cols.find(c => c.id === k).n); return c.length ? `en rojo: ${c.join(', ')}` : 'sin rojos'; }
-  if (t.type === 'cenadi') { const e = S.R.eslabones.find(x => x.id === 'cenadi'); const k = e.kpis.filter(k => k.st === 'crit').map(k => `${k.n} ${fmtV(k.v, k.fmt)}`); return k.join(' · ') || 'en meta'; }
+  if (t.type === 'cnd') { const e = S.R.eslabones.find(x => x.id === 'cnd'); const k = e.kpis.filter(k => k.st === 'crit').map(k => `${k.n} ${fmtV(k.v, k.fmt)}`); return k.join(' · ') || 'en meta'; }
   return '';
 }
 function tagTxt(t) { return `<span class="tw3-eye" aria-hidden="true"></span><b>${esc(nameOf(t))}</b><small>${esc(whyOf(t))}</small>`; }
@@ -266,18 +266,18 @@ function cola3d() {
   const q = V3.queue;
   $('#tw3-queue').innerHTML = q.length ? q.map((t, k) => {
     const st = V3.stOf(t);
-    return `<button class="tw3-q ${st}" data-q="${k}"><i class="dot"></i><span><b>${esc(nameOf(t))}</b><small>${esc(whyOf(t))}</small></span><em>${t.type === 'unit' ? 'Unidad' : t.type === 'del' ? 'Delegación' : 'CENADI'}</em></button>`;
+    return `<button class="tw3-q ${st}" data-q="${k}"><i class="dot"></i><span><b>${esc(nameOf(t))}</b><small>${esc(whyOf(t))}</small></span><em>${t.type === 'unit' ? 'Unidad' : t.type === 'del' ? 'Delegación' : 'CND'}</em></button>`;
   }).join('') : '<p class="muted">Nada en rojo: el ojo descansa.</p>';
   markQueue();
 }
 function markQueue() { if (!V3) return; [...$('#tw3-queue').querySelectorAll('[data-q]')].forEach(b => b.classList.toggle('now', V3.patrol && +b.dataset.q === V3.qi)); }
 
-// ficha flotante, como la del CENADI 3D
+// ficha flotante, como la del CND 3D
 function closePanel() { $('#tw3 .u3d-panel')?.remove(); }
 function panel3d(s) {
   let pn = $('#tw3 .u3d-panel');
   if (!pn) { pn = document.createElement('div'); pn.className = 'u3d-panel tw3-panel'; $('#tw3').appendChild(pn); pn.addEventListener('click', e => { if (e.target.closest('.u3d-x')) { closePanel(); V3.select(null, false); } const g = e.target.closest('[data-goto]'); if (g) { const [t, v] = g.dataset.goto.split(':'); pick3(t === 'unit' ? { type: 'unit', i: +v } : t === 'del' ? { type: 'del', cve: v } : { type: t }); } const ge = e.target.closest('[data-eslabon]'); if (ge) { S.sel = ge.dataset.eslabon; S.tab = 'tablero'; url(); tabs(); cadena(); detalle(); $('#detalle').scrollIntoView({ behavior: 'smooth' }); } }); }
-  pn.innerHTML = s.type === 'unit' ? fichaUnidad(unitOf(s.i)) : s.type === 'del' ? fichaDel(s.cve) : s.type === 'cenadi' ? fichaCenadi() : fichaTorre();
+  pn.innerHTML = s.type === 'unit' ? fichaUnidad(unitOf(s.i)) : s.type === 'del' ? fichaDel(s.cve) : s.type === 'cnd' ? fichaCnd() : fichaTorre();
 }
 const hdr = (t, sub, st) => `<header><div><b>${esc(t)}</b><small>${sub}</small></div><button class="u3d-x" aria-label="Cerrar">×</button></header>${st ? `<span class="chip ${st}">${esc(st === 'crit' ? 'Rojo' : st === 'warn' ? 'Ámbar' : st === 'ok' ? 'En meta' : 'Sin dato')}</span>` : ''}`;
 const dl = rows => `<dl>${rows.filter(Boolean).map(([k, v, c]) => `<dt>${esc(k)}</dt><dd class="${c || ''}">${v}</dd>`).join('')}</dl>`;
@@ -305,19 +305,19 @@ function fichaDel(cve) {
   return hdr(`Delegación ${r.nombre}`, `${esc(r.dueno)} · revisa ${esc(r.analista)}${r.piloto ? ' · piloto' : ''}`, st) + `
     <p class="u3d-h">Su fila en la matriz</p>
     ${dl(S.R.matriz.cols.map(c => [c.n, `${esc(r.c[c.id].v)}<small>${esc(r.c[c.id].det)}</small>`, r.c[c.id].st]))}
-    ${nac ? `<p class="u3d-h">Almacén estatal · 30 días</p>${dl([['Demanda atendida', fmtV(nac.abasto, 'pct1'), nac.abasto < 0.97 ? 'warn' : 'ok'], ['Días en cero', (Math.round(nac.outH / 24 * 10) / 10).toLocaleString('es-MX'), nac.outH ? 'crit' : ''], ['Embarques del CENADI tarde', `${nac.late} de ${nac.ships}`, nac.late ? 'warn' : '']])}` : ''}
+    ${nac ? `<p class="u3d-h">Almacén estatal · 30 días</p>${dl([['Demanda atendida', fmtV(nac.abasto, 'pct1'), nac.abasto < 0.97 ? 'warn' : 'ok'], ['Días en cero', (Math.round(nac.outH / 24 * 10) / 10).toLocaleString('es-MX'), nac.outH ? 'crit' : ''], ['Embarques del CND tarde', `${nac.late} de ${nac.ships}`, nac.late ? 'warn' : '']])}` : ''}
     <p class="u3d-h">Sus ${us.length} unidades</p>
     <div class="tw3-bar">${n.map((x, k) => x ? `<i class="s${k}" style="flex:${x}" title="${ST_U[k]}: ${x}"></i>` : '').join('')}</div>
     <p class="tw3-cnt"><span class="crit">${n[3]} en rojo</span> · <span class="warn">${n[2]} en ámbar</span> · ${n[1]} en plazo · ${n[0]} sin pendientes</p>
     <button class="tw3-link" data-rol="del:${cve}">Ver el tablero del administrador delegacional →</button>
     ${peores.length ? `<p class="u3d-h">Directores a llamar</p><ul class="tw3-l">${peores.map(u => `<li class="${ST_UC[u.st]}"><button data-goto="unit:${u.i}"><b>${esc(u.nombre)}</b> · ${esc(u.m[0]?.[1] || '')}</button></li>`).join('')}</ul>` : ''}`;
 }
-function fichaCenadi() {
-  const E = ['cenadi', 'dnac'].map(id => S.R.eslabones.find(e => e.id === id));
-  return hdr('CENADI', 'Centro Nacional de Distribución · Tlalnepantla', E[0].st) + E.map(e => `
+function fichaCnd() {
+  const E = ['cnd', 'dnac'].map(id => S.R.eslabones.find(e => e.id === id));
+  return hdr('CND', 'Centro Nacional de Distribución · Tlalnepantla', E[0].st) + E.map(e => `
     <p class="u3d-h">${esc(e.n)} · ${esc(e.dueno)}</p>
     ${dl(e.kpis.map(k => [k.n, fmtV(k.v, k.fmt), k.st]))}`).join('') + `
-    <button class="tw3-link" data-eslabon="cenadi">Ver los indicadores en el tablero →</button>`;
+    <button class="tw3-link" data-eslabon="cnd">Ver los indicadores en el tablero →</button>`;
 }
 function fichaTorre() {
   const R = S.R, top = R.reparto.slice(0, 3);
@@ -469,17 +469,17 @@ function matriz() {
 function textos() {
   $('#reglas').innerHTML = `
     <p><b>Una cadena, once eslabones, un dueño por indicador.</b> Cada indicador tiene una meta escrita, un nivel crítico y un área que responde (la A de la matriz RACI); cuando otra área tiene que enterarse, se dice entre paréntesis. Los nombres concretos (analistas, delegaciones, unidades, contratos, almacenistas) salen de cada gemelo.</p>
-    <p><b>Semáforo contra una referencia.</b> Brecha = (meta − valor) ÷ (meta − crítico). Cero es verde, menos de uno es ámbar, uno o más es rojo, y se topa en 3 para que un solo indicador no se lleve todo. Gris: sin dato, que no cuenta como verde. Cada meta dice de dónde sale: MIR del ISSSTE, cifras públicas, IAPHL, una norma o, cuando no hay fuente, una meta interna del gemelo que se dice como tal.</p>
+    <p><b>Semáforo contra una referencia.</b> Brecha = (meta − valor) ÷ (meta − crítico). Cero es verde, menos de uno es ámbar, uno o más es rojo, y se topa en 3 para que un solo indicador no se lleve todo. Gris: sin dato, que no cuenta como verde. Cada meta dice de dónde sale: metas institucionales, cifras públicas, IAPHL, una norma o, cuando no hay fuente, una meta interna del gemelo que se dice como tal.</p>
     <p><b>Atribuir la falla al eslabón correcto.</b> Un indicador de resultado sólo cuenta completo contra su dueño si lo de arriba cumplió. Como los gemelos no están conectados entre sí, son reglas de atribución que la torre aplica, no causas que deduzca. Si el indicador que lo alimenta está en rojo, 65 % de la brecha pasa a ese eslabón; si está en ámbar, 25 %. Las dependencias que usa la torre:</p>
     <ul class="tw-dep">${Object.entries(DEP).map(([k, v]) => `<li><b>${esc(nameK(k))}</b> ← ${v.map(x => esc(nameK(x))).join(' · ')}</li>`).join('')}</ul>
     <p><b>Escalamiento.</b> Nivel 1: el dueño directo atiende en 24 a 48 horas (ámbar). Nivel 2: rojo, a la junta semanal de operación con causa raíz. Nivel 3: rojo de peso 3, mayormente propio y muy lejos de la meta; o cualquier rojo de peso 3 cuando el desabasto ya se ve en dos de estos tres: estados en cero, surtido del almacén estatal y recetas completas. Decide la dirección general. Si la mayor parte de la brecha viene de arriba, baja un nivel: primero se llama allá.</p>
     <p><b>¿De quién es el problema?</b> Suma de brecha × peso por eslabón, después de la atribución, como porcentaje del total. Un eslabón con más indicadores puede acumular más; por eso cada uno muestra cuántos tiene en rojo y en ámbar.</p>`;
   $('#huecos').innerHTML = `
-    <p><b>Los gemelos no están conectados entre sí.</b> Cada uno corre el escenario elegido con sus propios datos: la falla de proveedor del CENADI nacional no sale de los contratos de Hidalgo. La torre los pone lado a lado con su alcance y periodo, no como un solo modelo.</p>
+    <p><b>Los gemelos no están conectados entre sí.</b> Cada uno corre el escenario elegido con sus propios datos: la falla de proveedor del CND nacional no sale de los contratos de Hidalgo. La torre los pone lado a lado con su alcance y periodo, no como un solo modelo.</p>
     <p><b>El detalle fino sólo existe en el piloto Hidalgo.</b> CEDIS estatal, rutas, 60 unidades y recetas se simulan para Hidalgo; los otros 31 estados se ven a nivel de almacén estatal, planeación, red fría e integridad.</p>
-    <p><b>La causa de cada receta no surtida no se registra.</b> El INAI ordenó al ISSSTE transparentar sus recetas no surtidas de 2024 con su causa, y la causa no se registra. Sin ese dato no se puede separar desabasto de clave fuera de cuadro o error de captura.</p>
+    <p><b>La causa de cada receta no surtida no se registra.</b> Un órgano de transparencia ordenó a una institución pública de salud informar sus recetas no surtidas de 2024 con su causa, y la causa no se registra. Sin ese dato no se puede separar desabasto de clave fuera de cuadro o error de captura.</p>
     <p><b>Al proveedor no se le regaña: se le aplica el contrato.</b> La torre señala al administrador del contrato, que es quien exige, aplica penas o inicia la rescisión.</p>
-    <p><b>Encuestas no.</b> CONEVAL señaló que la satisfacción reportada por el ISSSTE (98.4 %) chocaba con una evaluación de 76 % para farmacias, y que las encuestas las aplica el propio personal de la unidad. La torre sólo usa datos de transacciones: recetas, entregas, conteos y registros de temperatura.</p>
+    <p><b>Encuestas no.</b> Una evaluación federal señaló que la satisfacción reportada por una institución de salud (98.4 %) chocaba con una evaluación de 76 % para farmacias, y que las encuestas las aplica el propio personal de la unidad. La torre sólo usa datos de transacciones: recetas, entregas, conteos y registros de temperatura.</p>
     <p><b>Todo es simulado.</b> Los números sirven para decidir qué datos hay que capturar y quién responde por cada uno, no para calificar a personas reales.</p>`;
   $('#refs').innerHTML = REFS.map(([t, u, d]) => `<p><a href="${u}" target="_blank" rel="noopener">${esc(t)}</a> · ${esc(d)}</p>`).join('');
 }
@@ -492,12 +492,9 @@ const REFS = [
   ['ASCM: ejemplo de tablero SCORmark', 'https://www.ascm.org/globalassets/ascm_website_assets/docs/2026-scormark-dashboard-example-deliverables.pdf', 'semáforo contra cuartiles de referencia'],
   ['DSG.ai: torre de control en la cadena de suministro', 'https://www.dsg.ai/blog/control-tower-in-supply-chain', 'gestión por excepción, vistas por rol, OTIF 88 % base y 93 % meta (ejemplo, no norma)'],
   ['BSC Designer: RACI en la planeación estratégica', 'https://bscdesigner.com/raci-strategic-planning.htm', 'un solo Accountable por indicador'],
-  ['CONEVAL: ficha de monitoreo E018 del ISSSTE', 'https://www.coneval.org.mx/Evaluacion/Documents/EVALUACIONES/FMyE_2017_2018/FMyE_51_E018.pdf', 'meta 97 %, logro 97.5 %; advertencia sobre encuestas'],
-  ['Consultor Salud: el ISSSTE reporta 97 % de abasto (1-abr-2026)', 'https://consultorsalud.com.mx/issste-reporta-97-de-abasto-de-medicamentos-en-sus-unidades-y-elimina-farmacias-por-debajo-del-90/', '766 farmacias, ninguna debajo de 90 %'],
-  ['Zeta Tijuana: comparecencia de Salud (7-nov-2025)', 'https://zetatijuana.com/2025/11/salud-federal-presume-96-de-abasto-de-medicamentos-imss-surte-97-recetas-dice/', 'compra consolidada 2025-26: 99 % de lo solicitado'],
-  ['Cero Desabasto: radiografía 2017-2021', 'https://a.storyblok.com/f/162801/x/0680df0f5f/resumen-radiografia-desabasto-2017-2021.pdf', 'recetas no surtidas efectivamente en el ISSSTE por año'],
-  ['Expansión: recetas no surtidas en 2023', 'https://politica.expansion.mx/mexico/2024/05/06/recetas-no-se-surtieron-completamente-en-2023', 'ISSSTE 98.1 % de recetas surtidas completas'],
-  ['El Universal: el INAI ordena al ISSSTE transparentar recetas no surtidas', 'https://www.eluniversal.com.mx/nacion/ordena-inai-al-issste-transparentar-numero-de-medicamentos-no-surtidos-en-2024-debe-informar-la-causa/', 'la causa de no surtir no se registra'],
+  ['Cero Desabasto: radiografía 2017-2021', 'https://a.storyblok.com/f/162801/x/0680df0f5f/resumen-radiografia-desabasto-2017-2021.pdf', 'recetas no surtidas efectivamente en instituciones públicas, por año'],
+  ['Expansión: recetas no surtidas en 2023', 'https://politica.expansion.mx/mexico/2024/05/06/recetas-no-se-surtieron-completamente-en-2023', '98.1 % de recetas surtidas completas en una institución federal'],
+  ['Fuentes institucionales del gemelo (investigación)', 'https://github.com/GersainBarron/gemelo-digital-medicamentos/blob/main/investigacion/fuentes_institucionales.md', 'metas de abasto y recetas, evaluación de encuestas y transparencia de recetas no surtidas'],
   ['IAPHL: manual de indicadores de monitoreo y evaluación', 'https://iaphl.org/wp-content/uploads/2016/05/M_E_indicators_hdbk.pdf', 'exactitud de inventario, error de surtido, mermas'],
   ['OMS: indicadores de acceso a medicamentos', 'https://www.who.int/tools/monitoring-and-evaluation/access-indicators', '80 % de disponibilidad de la canasta trazadora'],
   ['RHSC: indicadores armonizados de desabasto', 'https://rhsupplies.org/activities-resources/publications/harmonized-suite-of-indicators-to-measure-stockouts-and-availability-of-contraceptives-7374', 'desabasto el día del corte y duración'],

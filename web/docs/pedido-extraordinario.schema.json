@@ -19,7 +19,7 @@
       "properties": {
         "clues": { "type": "string", "pattern": "^[A-Z]{2}[A-Z]{3}[0-9]{6}$", "description": "CLUES de la unidad (Catálogo de Clave Única de Establecimientos de Salud)" },
         "nombre": { "type": "string" },
-        "institucion": { "enum": ["IMSS", "ISSSTE", "IMSS-Bienestar", "SSA"] }
+        "institucion": { "type": "string", "description": "Institución de salud que pide (en el gemelo, SNS)" }
       }
     },
     "supplier": { "type": "string", "description": "Almacén que surte: CEDIS estatal o almacén regional" },
@@ -88,9 +88,9 @@
     "priority": "routine",
     "category": "pedido-extraordinario",
     "authoredOn": "2026-10-27T07:06:00-06:00",
-    "requester": { "clues": "HGIMS000094", "nombre": "UMF 32 PACHUCA", "institucion": "IMSS" },
+    "requester": { "clues": "HGSNS000008", "nombre": "UMF PACHUCA DE SOTO", "institucion": "SNS" },
     "supplier": "CEDIS estatal Hidalgo",
-    "deliverTo": "HGIMS000094",
+    "deliverTo": "HGSNS000008",
     "item": [{
       "clave": "010.000.2127.00", "descripcion": "Amoxicilina suspensión 500 mg/5 ml", "ven": "E", "presentacion": "frasco",
       "existencia": 14, "consumoDiario": 9.6, "coberturaDias": 1.5, "existenciaProyectada": -24.4, "existenciaSeguridad": 14.4,

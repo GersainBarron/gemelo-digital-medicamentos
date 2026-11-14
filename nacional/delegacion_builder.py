@@ -1,6 +1,6 @@
 # Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 # =====================================================================
-#  delegacion_builder.py · Edificio delegacional del ISSSTE (genérico)
+#  delegacion_builder.py · Edificio delegacional del SNS (genérico)
 #  Para el flujo nacional 3D de Planeación (web/js/plan3d.js): se coloca
 #  en la sede de cada una de las 32 delegaciones, junto a su pila de
 #  peticiones. No reproduce un inmueble real (cada delegación ocupa uno
@@ -193,7 +193,7 @@ def main():
     for o in c.objects:
         if o is not root:
             o.parent = root
-    root['wh_type'] = 'delegacion'; root['wh_name'] = 'Edificio delegacional del ISSSTE (genérico)'
+    root['wh_type'] = 'delegacion'; root['wh_name'] = 'Edificio delegacional del SNS (genérico)'
     cam = bpy.data.objects.new('DL_Cam', bpy.data.cameras.new('DL_Cam'))
     cam.data.lens = 32
     cam.location = (-58, -78, 46)

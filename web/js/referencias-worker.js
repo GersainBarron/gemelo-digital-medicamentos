@@ -3,7 +3,7 @@
 //  referencias-worker.js · Arma la red nacional de referencias y su cubo
 //  diario fuera del hilo de la página.
 //   {tipo:'armar', url, corteDia}      → {tipo:'cubo', cubo, n, ms}
-//     url absoluta (new URL('assets/estados_issste.json', location.href)): dentro del
+//     url absoluta (new URL('assets/unidades_nacional.json', location.href)): dentro del
 //     worker una ruta relativa se resolvería contra js/
 //   Uso: const w = new Worker('js/referencias-worker.js', { type: 'module' });
 //        w.onmessage = e => { if (e.data.tipo === 'cubo') C = Cubo.from(e.data.cubo); };

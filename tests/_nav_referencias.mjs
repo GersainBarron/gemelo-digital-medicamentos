@@ -1,7 +1,7 @@
 // Agrega la pestaña «Referencias» después de «Recorrido» en la navegación de cada vista
 import { readFileSync, writeFileSync } from 'node:fs';
 const W = new URL('../web/', import.meta.url);
-for (const f of ['cenadi', 'compras', 'contratos', 'expedientes', 'laboratorio', 'nacional', 'planeacion', 'redfria', 'torre']) {
+for (const f of ['cnd', 'compras', 'contratos', 'expedientes', 'laboratorio', 'nacional', 'planeacion', 'redfria', 'torre']) {
   const u = new URL(f + '.html', W);
   let s = readFileSync(u, 'utf8');
   if (s.includes('referencias.html')) { console.log('ya estaba', f); continue; }

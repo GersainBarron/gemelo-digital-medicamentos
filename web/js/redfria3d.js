@@ -1,7 +1,7 @@
 // Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 // =====================================================================
 //  redfria3d.js · Cadena de red fría en 3D (assets/redfria.glb)
-//  · Cinco eslabones: CENADI, tráiler, almacén estatal, caja térmica, unidad.
+//  · Cinco eslabones: CND, tráiler, almacén estatal, caja térmica, unidad.
 //  · El aro del piso y la pantalla del registrador toman el color de la
 //    temperatura del eslabón; las cajas de producto se pintan de azul si se
 //    congelaron, ámbar con calor y rojo si el lote se dio de baja.
@@ -14,10 +14,10 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const IS_TOUCH = matchMedia('(pointer: coarse)').matches;
 const B = (x, y, z = 0) => new THREE.Vector3(x, z, -y);
-export const KEYS = ['cenadi', 'reefer', 'estatal', 'caja', 'unidad'];
+export const KEYS = ['cnd', 'reefer', 'estatal', 'caja', 'unidad'];
 const VIEWS = {
   general: { pos: B(41, -66, 64), tgt: B(41, 2, 0) },
-  cenadi: { pos: B(0, -14, 15), tgt: B(0, 6, 1) },
+  cnd: { pos: B(0, -14, 15), tgt: B(0, 6, 1) },
   reefer: { pos: B(24, -14, 10), tgt: B(22, 4, 2) },
   estatal: { pos: B(46, -10, 11), tgt: B(46, 5.5, 1) },
   caja: { pos: B(67, -6, 6), tgt: B(65, 4, 0.6) },
@@ -68,7 +68,7 @@ export class RedFria3D {
     for (const a of this.arrows) a.traverse(m => { if (m.isMesh) m.material = m.material.clone(); });
     // etiquetas
     this.labelBox = document.createElement('div'); this.labelBox.className = 'rf-labels'; this.box.appendChild(this.labelBox);
-    const NAMES = { cenadi: 'CENADI', reefer: 'Tráiler refrigerado', estatal: 'Almacén estatal', caja: 'Caja térmica', unidad: 'Unidad' };
+    const NAMES = { cnd: 'CND', reefer: 'Tráiler refrigerado', estatal: 'Almacén estatal', caja: 'Caja térmica', unidad: 'Unidad' };
     for (const k of KEYS) {
       const el = document.createElement('button'); el.className = 'rf-label'; el.dataset.k = k;
       el.innerHTML = `<i></i><b>${NAMES[k]}</b><span>—</span>`;
@@ -130,7 +130,7 @@ export class RedFria3D {
     const w = this.box.clientWidth, h = this.box.clientHeight;
     for (const k of KEYS) {
       const a = this.st[k].anchor, el = this.labels[k]; if (!a || !el) continue;
-      const p = a.getWorldPosition(new THREE.Vector3()); p.y += k === 'cenadi' ? 7 : k === 'reefer' ? 6.5 : 5;
+      const p = a.getWorldPosition(new THREE.Vector3()); p.y += k === 'cnd' ? 7 : k === 'reefer' ? 6.5 : 5;
       const q = p.project(this.camera);
       const vis = q.z < 1 && q.x > -1.1 && q.x < 1.1;
       el.style.display = vis ? '' : 'none';

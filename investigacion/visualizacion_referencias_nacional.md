@@ -7,7 +7,7 @@ Base actual: `web/referencias.html` (Hidalgo, 32 emisoras, ~1,100 referencias, u
 
 ## 1. El problema de escala
 
-- Con 1,033 unidades ISSSTE (ya están en `assets/estados_issste.json`, con coordenadas `xy`, estado, región y HR) y la misma tasa que Hidalgo (5.5 referencias por día hábil para 32 emisoras), el país generaría **~175 referencias por día hábil** → **~55,000 al año** y **10,000 a 20,000 abiertas** al mismo tiempo.
+- Con 1,033 unidades del SNS (ya están en `assets/unidades_nacional.json`, con coordenadas `xy`, estado, región y HR) y la misma tasa que Hidalgo (5.5 referencias por día hábil para 32 emisoras), el país generaría **~175 referencias por día hábil** → **~55,000 al año** y **10,000 a 20,000 abiertas** al mismo tiempo.
 - El diagrama actual muestra 28 fichas por etapa. Con 10,000 abiertas, "Cita y traslado" tendría miles: no caben y el "+N" deja de informar.
 - La literatura lo llama el límite de la **visualización unitaria** (una marca por registro): solo sirve si cada marca se distingue; con muchos registros hay que pasar a **agregación, muestreo o resumen** (Park et al., ATOM).
 - Shneiderman lo plantea igual para datos grandes: el mantra "**visión general primero, zoom y filtro, detalle bajo demanda**" sigue vigente, pero el zoom y el filtro deben apoyarse en **marcadores agregados que representen cientos o miles de marcadores atómicos**.
@@ -46,11 +46,11 @@ Base actual: `web/referencias.html` (Hidalgo, 32 emisoras, ~1,100 referencias, u
 ## 3. Propuesta de diseño
 
 ### Nivel 0 · Visión general nacional
-**A. Mapa de flujos** (nuevo, usando `estados_issste.json`):
+**A. Mapa de flujos** (nuevo, usando `unidades_nacional.json`):
 - **Nodos** = unidades receptoras agrupadas jerárquicamente. En lugar del agrupamiento por píxeles de flowmap.gl, usar la jerarquía real: **región (16 HR) → estado → unidad**.
 - **Círculo del nodo**: tamaño = pendientes (lista de espera); color = **índice de saturación** (abajo).
 - **Flechas** emisora → receptora agregadas al nivel de zoom: grosor = referencias por semana; color = % fuera del plazo de 15 días (o días promedio).
-- Flechas especiales: **fuera de región** (microrregión, punteadas) y **escalamiento a 3er nivel / CMN 20 de Noviembre**.
+- Flechas especiales: **fuera de región** (microrregión, punteadas) y **escalamiento a 3er nivel / Centro Médico Nacional**.
 - Animación de partículas sobre las flechas: **1 partícula = N referencias** (N se ajusta al zoom), como el replay de Disco.
 - Filtro "mostrar solo el 20 % de flujos más grandes" (simplificación de Disco) para no saturar.
 
@@ -87,7 +87,7 @@ Semáforo de saturación: verde W ≤ 15 d y ρ < 0.9 · amarillo W ≤ 30 · na
 
 - **Motor**: ~55,000 referencias × ~10 tramos ≈ 550,000 tramos; cabe en memoria, pero no se puede recorrer todo cada cuadro. Hay que **precalcular un cubo diario** (día × unidad × etapa → conteos, flujos OD, atenciones) en un **Web Worker** (el proyecto ya usa workers: `torre-worker.js`, `plan-worker.js`).
 - **Render**: para ~1,000 nodos y algunos miles de flujos agregados basta **Canvas 2D** (o el Three.js que ya está en `vendor/`). flowmap.gl requiere deck.gl; se puede replicar la idea con la jerarquía región → estado → unidad sin la dependencia.
-- **Datos**: reutilizar `estados_issste.json` (1,033 unidades con `xy`, estado, región, HR) y las reglas de regionalización y microrregionalización 2025.
+- **Datos**: reutilizar `unidades_nacional.json` (1,033 unidades con `xy`, estado, región, HR) y las reglas de regionalización y microrregionalización 2025.
 - **Calibración**: tasa de referencia por unidad proporcional a su población usuaria (anexo de regionalización 2025).
 
 ---

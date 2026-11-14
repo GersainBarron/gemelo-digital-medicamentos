@@ -3,8 +3,8 @@
 //  compra-sim.js · Compra consolidada: del plan anual al contrato
 //
 //  Toma la demanda por clave del plan de Planeación y simula el
-//  procedimiento como se corrió la compra 2027-2028 (Birmex como área
-//  consolidadora, licitación pública internacional):
+//  procedimiento como una compra consolidada nacional 2027-2028 (un área
+//  consolidadora central, licitación pública internacional):
 //   · Patente y fuente única: adjudicación directa, cerrada antes (3 ago).
 //   · Genéricos: convocatoria, junta de aclaraciones, apertura, evaluación
 //     binaria (cumple o no cumple), ofertas subsecuentes de descuento,

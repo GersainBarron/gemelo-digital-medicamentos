@@ -53,12 +53,12 @@ El contenedor raíz de cada ciclo de abasto (desde la necesidad presupuestal has
     },
     "folio_institucional": {
       "type": "string",
-      "example": "EXP-2026-IMSS-HGO-00451",
+      "example": "EXP-2026-SNS-HGO-00451",
       "description": "Folio legible para humanos y auditoría oficial."
     },
     "institucion": {
       "type": "string",
-      "enum": ["IMSS", "ISSSTE", "IMSS_BIENESTAR", "SECRETARIA_SALUD"]
+      "enum": ["SNS"]
     },
     "clave_cnis": {
       "type": "string",

@@ -36,9 +36,9 @@ let C, T, D0, worker, svg, gTok, gParts, paths = {}, parts = [], mapa = null, RE
 export async function iniciar() {
   const qs = new URLSearchParams(location.search);
   T = qs.has('t') ? Math.max(0, +qs.get('t')) : 8 * H;
-  document.title = 'Referencia y contrarreferencia · Red nacional ISSSTE';
+  document.title = 'Referencia y contrarreferencia · Red nacional del SNS';
   document.querySelector('.brand-text b').textContent = 'Referencia y contrarreferencia · red nacional';
-  document.querySelector('.brand-text span').innerHTML = 'Gemelo digital · <em class="author">Gersain Barron</em> · 1,033 unidades ISSSTE, agregado por etapa';
+  document.querySelector('.brand-text span').innerHTML = 'Gemelo digital · <em class="author">Gersain Barron</em> · 1,033 unidades del SNS, agregado por etapa';
   $('loading').textContent = 'Armando la red nacional (≈ 34 mil referencias)…';
   for (const id of ['f-rx', 'f-v']) $(id).hidden = true;
   for (const id of ['f-reg', 'f-est']) $(id).hidden = false;
@@ -46,9 +46,9 @@ export async function iniciar() {
 
   worker = new Worker('js/referencias-worker.js', { type: 'module' });
   const [r, geo, red] = await Promise.all([
-    pedir({ tipo: 'armar', url: new URL('assets/estados_issste.json', location.href).href, corteDia: Math.floor(T / DAY) }, 'cubo'),
+    pedir({ tipo: 'armar', url: new URL('assets/unidades_nacional.json', location.href).href, corteDia: Math.floor(T / DAY) }, 'cubo'),
     fetch('assets/estados_mx.json').then(x => x.json()),
-    fetch('assets/estados_issste.json').then(x => x.json()),
+    fetch('assets/unidades_nacional.json').then(x => x.json()),
   ]);
   C = Cubo.from(r.cubo);
   RED = red;

@@ -1,12 +1,11 @@
-# Oficinas centrales del ISSSTE, Buenavista (CDMX)
-# Antigua Torre de Ferrocarriles Nacionales de Mexico, 1968-1970.
+# Oficinas centrales del SNS (CDMX): torre de oficinas de 17 niveles.
 # Datos base (edemx.com): 17 niveles, 61.5 m, concreto armado, marmol y vidrio,
 # planta en "Y": tres cuerpos unidos por un nucleo triangular ("libro abierto").
 # Medidas en metros. Las dimensiones de planta son estimadas.
 import bpy, bmesh, math
 from mathutils import Matrix, Vector
 
-NOMBRE = "ISSSTE_Buenavista"
+NOMBRE = "Oficinas_Centrales"
 
 # ------------------------------------------------------------ limpieza
 col = bpy.data.collections.get(NOMBRE)
@@ -98,7 +97,7 @@ class Mesh:
         ob.parent = parent
         return ob
 
-root = bpy.data.objects.new("ISSSTE_root", None)
+root = bpy.data.objects.new("OC_root", None)
 root.empty_display_type = "PLAIN_AXES"; root.empty_display_size = 8
 col.objects.link(root)
 
@@ -158,7 +157,7 @@ def ala(idx, ang):
     me.box((L, ALA_W + 0.4, 1.4), (cx, 0), z_tipo + h_tipo, MARMOL, m)
     # equipos en azotea
     me.box((6, 4, 2.2), (cx + 4, 0), z_tipo + h_tipo + 0.2, CONC, m)
-    return me.to_object(f"ISSSTE_ala_{idx+1}", root)
+    return me.to_object(f"OC_ala_{idx+1}", root)
 
 for i, a in enumerate(ANGULOS):
     ala(i, a)
@@ -185,7 +184,7 @@ for i in range(3):
     ang = math.atan2(d.y, d.x)
     m = Matrix.Translation(mid + nrm * 0.15) @ Matrix.Rotation(ang, 4, "Z")
     nuc.box((2.2, 0.4, ALTURA - PB - 3), (0, 0), PB + 1.5, VIDRIO, m)
-nuc.to_object("ISSSTE_nucleo", root)
+nuc.to_object("OC_nucleo", root)
 
 # ------------------------------------------------------------ plaza, vestibulo y calle
 pz = Mesh()
@@ -210,17 +209,17 @@ pz.box((180, 18, 0.05), (0, -82), 0, ASF)
 for i in range(12):
     pz.box((5, 0.25, 0.02), (-80 + i * 15, -82), 0.05, LINEA)
 pz.box((180, 3, 0.25), (0, -71.5), 0, PLAZA)  # banqueta
-pz.to_object("ISSSTE_plaza", root)
+pz.to_object("OC_plaza", root)
 
 # bandera
 fl = Mesh()
 fl.box((3.6, 0.05, 2.1), (1.9, 0), 11.6, GUINDA, Matrix.Translation((0, -58, 0)))
-fl.to_object("ISSSTE_bandera", root)
+fl.to_object("OC_bandera", root)
 
 # letrero en el remate del nucleo, mirando al frente (-Y)
-cu = bpy.data.curves.new("ISSSTE_letrero", "FONT")
-cu.body = "ISSSTE"; cu.size = 3.2; cu.align_x = "CENTER"; cu.extrude = 0.15
-txt = bpy.data.objects.new("ISSSTE_letrero", cu)
+cu = bpy.data.curves.new("OC_letrero", "FONT")
+cu.body = "SNS"; cu.size = 3.2; cu.align_x = "CENTER"; cu.extrude = 0.15
+txt = bpy.data.objects.new("OC_letrero", cu)
 txt.data.materials.append(MATS[GUINDA])
 txt.location = (0, -1.0, ALTURA + 5.5)
 txt.rotation_euler = (math.radians(90), 0, 0)
@@ -248,4 +247,4 @@ if bg:
     bg.inputs["Color"].default_value = (*lin("#C9DCEB"), 1)
     bg.inputs["Strength"].default_value = 0.9
 
-print("Modelo ISSSTE Buenavista creado:", NIV, "niveles,", ALTURA, "m")
+print("Modelo de oficinas centrales creado:", NIV, "niveles,", ALTURA, "m")

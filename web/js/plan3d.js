@@ -2,9 +2,9 @@
 // =====================================================================
 //  plan3d.js · Flujo nacional de las peticiones del plan anual en 3D
 //
-//  · Mapa de México por estado (assets/mapa_mexico.glb, km, CENADI en el
+//  · Mapa de México por estado (assets/mapa_mexico.glb, km, CND en el
 //    origen; Blender (x, y, z) → three (x, z, −y)) y la torre de Oficinas
-//    Centrales del ISSSTE en Buenavista (assets/issste_buenavista.glb, en
+//    Centrales del SNS (assets/oficinas_centrales.glb, en
 //    metros, exagerada para que se vea a escala nacional).
 //  · Nodos: 1,033 unidades (columna ∝ peticiones en su escritorio), 32
 //    delegaciones y Oficina Central (pilas de cajas: cada caja = 100
@@ -22,7 +22,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 const IS_TOUCH = matchMedia('(pointer: coarse)').matches;
 const HS = 12;                                     // alto de la losa de cada estado (km)
 const CAJA = 100;                                  // peticiones por caja en las pilas
-const CENTRAL_XY = [4, -12];                       // Buenavista, a 12 km del CENADI
+const CENTRAL_XY = [4, -12];                       // oficinas centrales, a 12 km del CND
 const TOWER_S = 1.6;                               // metros → km exagerado
 const DEL_S = 0.9;                                 // edificio delegacional: un predio de 64 m queda en 58 km
 const AGE_COL = ['#2dd4bf', '#fbbf24', '#f87171'];
@@ -59,15 +59,15 @@ export class PlanFlow3D {
     const loader = new GLTFLoader();
     const [map, tower, dele] = await Promise.all([
       this.getGLB('assets/mapa_mexico.glb').then(b => loader.parseAsync(b, '')),
-      this.getGLB('assets/issste_buenavista.glb').then(b => loader.parseAsync(b, '')),
+      this.getGLB('assets/oficinas_centrales.glb').then(b => loader.parseAsync(b, '')),
       this.getGLB('assets/delegacion.glb').then(b => loader.parseAsync(b, '')),
     ]);
     this.deleScene = dele.scene;
-    // --- mapa: se recolorea cada estado; el CENADI no participa en la planeación
+    // --- mapa: se recolorea cada estado; el CND no participa en la planeación
     this.states = {};
     map.scene.traverse(o => {
       const ud = o.userData || {};
-      if (ud.wh_type === 'cenadi') o.visible = false;
+      if (ud.wh_type === 'cnd') o.visible = false;
       if (ud.wh_type === 'sea' && o.isMesh) o.material = new THREE.MeshBasicMaterial({ color: '#0d1822' });
       if (ud.wh_type === 'state') {
         const st = this.states[ud.wh_cve] = { cve: ud.wh_cve, meshes: [] };
@@ -84,7 +84,7 @@ export class PlanFlow3D {
     scene.add(map.scene);
     const bb = new THREE.Box3(); map.scene.traverse(o => { if (o.isMesh && o.userData.cve) bb.expandByObject(o); });
     this.mapC = bb.getCenter(new THREE.Vector3()); this.mapS = bb.getSize(new THREE.Vector3());
-    // --- torre de Buenavista (sin plaza ni asta)
+    // --- torre de las oficinas centrales (sin plaza ni asta)
     const tw = this.tower = tower.scene;
     tw.traverse(o => { if (/plaza|bandera/.test(o.name)) o.visible = false; if (o.isMesh) { o.userData.central = true; } });
     tw.scale.setScalar(TOWER_S); tw.position.copy(P3(CENTRAL_XY[0], CENTRAL_XY[1], HS));

@@ -6,7 +6,7 @@
 //  (Sprint 1 configuración y catálogos, Sprint 2 asignación de insumos,
 //  Sprint 3 aprobación, negociación, programas especiales y cierre):
 //   · Plan con 5 pasos de configuración y etapas en orden estricto.
-//   · Catálogos del plan: unidades (CLUES ISSSTE ago 2026), insumos (CNIS) y
+//   · Catálogos del plan: unidades (catálogo del SNS, ago 2026), insumos (CNIS) y
 //     kits (insumos exclusivos por kit dentro del plan).
 //   · Asignación por Área Central con propuesta mínima, máxima y reparto
 //     mensual. La propuesta automática sale del pronóstico del gemelo
@@ -51,10 +51,10 @@ export const NIVEL_N = { um: 'Unidad médica', del: 'Delegación', oc: 'Oficina 
 export const METODOS = { pronostico: 'Pronóstico del gemelo (Holt-Winters)', regla: 'Mínimo + 10 % repartido igual (HU08)', anterior: 'Consumo del año anterior' };
 
 // ---------------------------------------------------------------- universo: unidades, delegaciones, insumos, historia
-export function buildUniverse(issste, meds) {
-  const delegaciones = issste.estados.map(e => ({ cve: e.cve, nombre: e.nombre, abbr: e.abbr, region: e.region, responsable: `Resp. ${e.abbr}`, units: [] }));
+export function buildUniverse(catalogo, meds) {
+  const delegaciones = catalogo.estados.map(e => ({ cve: e.cve, nombre: e.nombre, abbr: e.abbr, region: e.region, responsable: `Resp. ${e.abbr}`, units: [] }));
   const delBy = Object.fromEntries(delegaciones.map(d => [d.cve, d]));
-  const units = issste.unidades.map((u, i) => ({ i, clues: u.clues, nombre: u.nombre, tipo: u.tipo, nivel: u.nivel, cve: u.cve, mun: u.mun, peso: PESO[u.tipo] || 1, responsable: `Resp. ${u.clues.slice(-4)}` }));
+  const units = catalogo.unidades.map((u, i) => ({ i, clues: u.clues, nombre: u.nombre, tipo: u.tipo, nivel: u.nivel, cve: u.cve, mun: u.mun, peso: PESO[u.tipo] || 1, responsable: `Resp. ${u.clues.slice(-4)}` }));
   for (const u of units) delBy[u.cve].units.push(u.i);
   const claves = meds.items.map((m, k) => ({
     k, clave: m.c, nombre: m.n, desc: m.d, grupo: m.g, uso: m.u, pz: m.pz, pack: m.pack, w: m.w || 0, frio: !!m.frio, ven: m.ven, tipo: 'Medicamento',
@@ -120,7 +120,7 @@ let PLAN_SEQ = 204;
 export function newPlan(cfg) {
   const id = cfg.id || `PL_0${PLAN_SEQ++}`;
   return {
-    id, folio: `${id} · ISSSTE`, nombre: cfg.nombre, periodicidad: cfg.periodicidad || 'Anual', tipo: cfg.tipo || 'Completo',
+    id, folio: `${id} · SNS`, nombre: cfg.nombre, periodicidad: cfg.periodicidad || 'Anual', tipo: cfg.tipo || 'Completo',
     inicio: cfg.inicio, fin: cfg.fin, periodos: cfg.periodos, creado: cfg.t || 0, status: 'config', etapa: 'catalogos',
     unitsOut: new Set(), clavesOut: new Set(), unitsDone: false, clavesDone: false, kitsDone: false, kits: [], programas: [],
     items: new Map(), byUnit: new Map(), unitSt: new Map(), log: [], notif: [], cierre: null, cancel: null, day: 0, metodo: cfg.metodo || 'pronostico',

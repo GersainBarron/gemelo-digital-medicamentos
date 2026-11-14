@@ -9,7 +9,7 @@
 #     precio, fallo (con estrado) y firma de contratos.
 #   · Carril de patente y fuente única (z −26) que va directo a la firma.
 #   · Fosa de desiertas (z +30), arco de segunda vuelta y fosa "sin contrato".
-#   · Laboratorios al fondo (z −58) y CENADI al final (x 190) con andenes.
+#   · Laboratorios al fondo (z −58) y CND al final (x 190) con andenes.
 #   · Anclas (wh_type = anchor, wh_key) donde el visor acomoda las tarimas.
 #   · Lámparas de cada arco (wh_type = gate_lamp, wh_key): el visor las pinta.
 #  Uso: exec(open(r"...\\nacional\\compra_builder.py", encoding="utf-8").read()); main()
@@ -29,7 +29,7 @@ GATES = [  # clave, letrero, x
 ]
 ANCHORS = {  # dónde se acomodan las tarimas (x, z de Blender = −z de three)
     'plan': (8, 0), 'convocatoria': (34, 0), 'tecnica': (62, 0), 'precio': (90, 0), 'fallo': (118, 0), 'firma': (148, 0),
-    'patente': (90, 26), 'desiertas': (90, -32), 'segunda': (148, -32), 'sincontrato': (176, -34), 'cenadi': (174, 0),
+    'patente': (90, 26), 'desiertas': (90, -32), 'segunda': (148, -32), 'sincontrato': (176, -34), 'cnd': (174, 0),
 }
 
 
@@ -171,13 +171,13 @@ def main():
     for o in seg:
         o.location.y -= 32
     box('CP_CarrilSegunda', c, (130, -32, 0.03), (36, 12, 0.04), M['carril'])
-    # CENADI al final
+    # CND al final
     box('CP_Nave', c, (200, 0, 7), (24, 40, 14), M['nave'])
     box('CP_NaveTecho', c, (200, 0, 14.4), (25, 41, 0.8), M['techo'])
     for i in range(5):
         box(f'CP_Cortina_{i}', c, (187.9, -14 + i * 7, 3), (0.3, 4.5, 5), M['cortina'])
     box('CP_AndenNave', c, (186, 0, 0.6), (4, 38, 1.2), M['anden'])
-    text('CP_TxtCenadi', c, 'CENADI', (200, -20.3, 10), 3.4, M['texto'])
+    text('CP_TxtCnd', c, 'CND', (200, -20.3, 10), 3.4, M['texto'])
     # laboratorios al fondo
     for i in range(8):
         x = 30 + i * 21

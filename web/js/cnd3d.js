@@ -1,8 +1,8 @@
 // Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 // =====================================================================
-//  cenadi3d.js · Escena 3D del CENADI ligada a yard-sim.js
+//  cnd3d.js · Escena 3D del CND ligada a yard-sim.js
 //
-//  · Modelo: assets/cenadi.glb (Blender, nacional/cenadi_builder.py)
+//  · Modelo: assets/cnd.glb (Blender, nacional/cnd_builder.py)
 //  · Todo es función del reloj (posición = f(t)): pausar, adelantar o mover la
 //    hora da siempre la misma escena.
 //  · Tráileres y tortons de proveedor: carretera → caseta → patio → andén norte
@@ -90,7 +90,7 @@ function poseOnRoute(R, u) {        // u en minutos desde el inicio del movimien
 }
 const heading = nose => Math.atan2(-nose[0], nose[1]);         // rotación y de three para un "nariz" en Blender
 
-export class Cenadi3D {
+export class Cnd3D {
   constructor(box, opts = {}) {
     this.box = box; this.opts = opts;
     this.S = null; this.trucks = new Map(); this.visible = true; this.needsRender = true;
@@ -113,7 +113,7 @@ export class Cenadi3D {
     this.controls.maxPolarAngle = Math.PI * 0.47; this.controls.minDistance = 10; this.controls.maxDistance = 700;
     this.controls.addEventListener('change', () => { this.needsRender = true; });
 
-    const gltf = await new GLTFLoader().loadAsync(this.opts.glb || 'assets/cenadi.glb');
+    const gltf = await new GLTFLoader().loadAsync(this.opts.glb || 'assets/cnd.glb');
     const model = this.model = gltf.scene; scene.add(model);
     this.roofObjs = []; this.tpl = {};
     model.traverse(o => {

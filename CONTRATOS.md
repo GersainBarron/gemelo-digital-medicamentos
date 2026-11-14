@@ -4,7 +4,7 @@
 > **Documento Vinculado de Procesos y Alertas:**
 > Este modelo computacional de contratos y órdenes se rige por el ciclo integral de **12 procesos**, el inventario de **30 documentos oficiales** y la **matriz de semáforos y SLAs de alerta temprana** detallados exhaustivamente en [**`PROCESOS_Y_ALERTAS.md`**](PROCESOS_Y_ALERTAS.md).
 
-Este documento traduce el marco jurídico, administrativo y operativo de las adquisiciones consolidadas en el sector salud de México (LAASSP, IMSS, ISSSTE, Birmex) a un **modelo computacional de objetos, eventos discretos y máquinas de estado finitas (FSM)**.
+Este documento traduce el marco jurídico, administrativo y operativo de las adquisiciones consolidadas en el sector salud de México (LAASSP y compra consolidada) a un **modelo computacional de objetos, eventos discretos y máquinas de estado finitas (FSM)**.
 
 Permite simular el ciclo de vida contractual completo, la respuesta de los proveedores, el cálculo diario de penalizaciones por mora, el control de andén, las alertas preventivas y el **mecanismo de rescisión y reinicio automático de suministro con el segundo lugar licitatorio**.
 
@@ -136,7 +136,7 @@ stateDiagram-v2
 
 ### C. La Realidad Operativa: Contratos Multipartida y Recepciones Mixtas
 
-En el sector salud público mexicano (IMSS, ISSSTE, Birmex), los contratos casi nunca son de una sola clave médica. Se adjudican **contratos multipartida con 10, 20 o hasta 50 claves CNIS distintas** a un mismo proveedor.
+En el sector salud público mexicano, los contratos casi nunca son de una sola clave médica. Se adjudican **contratos multipartida con 10, 20 o hasta 50 claves CNIS distintas** a un mismo proveedor.
 
 Cuando se emite una Orden de Suministro por varias partidas simultáneas y arriba el camión a andén, se produce una **Recepción Mixta**:
 
@@ -247,8 +247,8 @@ Representa el marco legal y financiero entre la institución y un proveedor adju
 ```javascript
 class ContratoAbierto {
   constructor(config) {
-    this.id = config.id;                         // "CS-2026-IMSS-045"
-    this.institucion = config.institucion;       // "IMSS" | "ISSSTE" | "IMSS_BIENESTAR"
+    this.id = config.id;                         // "CS-2026-SNS-045"
+    this.institucion = config.institucion;       // "SNS"
     this.proveedorId = config.proveedorId;       // Referencia al objeto Proveedor
     this.proveedorNombre = config.proveedorNombre;
     

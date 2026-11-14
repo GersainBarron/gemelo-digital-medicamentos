@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 const W = new URL('../web/', import.meta.url);
 const { evaluar, fmtV } = await import(new URL('js/torre-engine.js', W));
 const J = f => JSON.parse(readFileSync(new URL('assets/' + f, W)));
-const D = { iss: J('estados_issste.json'), meds: J('medicamentos.json'), hgo: J('unidades_hidalgo.json'), layout: J('warehouse_layout.json'), slotClaves: J('slot_claves.json') };
+const D = { iss: J('unidades_nacional.json'), meds: J('medicamentos.json'), hgo: J('unidades_hidalgo.json'), layout: J('warehouse_layout.json'), slotClaves: J('slot_claves.json') };
 const t0 = performance.now();
 const R = evaluar(D, {});
 console.log(`torre evaluada en ${((performance.now() - t0) / 1000).toFixed(1)} s · ${R.eslabones.length} eslabones`);

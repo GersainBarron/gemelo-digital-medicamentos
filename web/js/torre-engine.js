@@ -40,11 +40,11 @@ import { vistaDia } from './referencias-vista.js';
 // ------------------------------------------------------------------ escenarios
 export const ESCENARIOS = {
   normal: {
-    n: 'Operación normal', desc: 'Todo en su día tipo: plan anual en validación, compra como 2027-2028, proveedores y CENADI con su desempeño habitual.',
+    n: 'Operación normal', desc: 'Todo en su día tipo: plan anual en validación, compra como 2027-2028, proveedores y CND con su desempeño habitual.',
     nac: 'normal', rf: { ctx: 'otono' }, compra: 'base', hgo: 'normal', yard: ['A', 'normal'], marb: 'media',
   },
   proveedor: {
-    n: 'Un proveedor falla', desc: 'Un proveedor de claves de alto consumo incumple: el CENADI sólo tiene 45 % de lo que piden los estados del día 5 al 16, el CEDIS de Hidalgo entra en contingencia y la compra quedó a una sola fuente por clave.',
+    n: 'Un proveedor falla', desc: 'Un proveedor de claves de alto consumo incumple: el CND sólo tiene 45 % de lo que piden los estados del día 5 al 16, el CEDIS de Hidalgo entra en contingencia y la compra quedó a una sola fuente por clave.',
     nac: 'proveedor', rf: { ctx: 'otono' }, compra: 'unica', hgo: 'contingencia', yard: ['A', 'contingencia'], marb: 'media',
   },
   huracan: {
@@ -52,7 +52,7 @@ export const ESCENARIOS = {
     nac: 'huracan', rf: { ctx: 'huracan' }, compra: 'base', hgo: 'normal', yard: ['A', 'normal'], marb: 'media',
   },
   tardia: {
-    n: 'Compra tardía (como 2025)', desc: 'Convocatoria en noviembre, fallo en enero y muchas claves desiertas: el año arranca sin contratos, el CEDIS entra en contingencia y los proveedores llegan todos juntos al CENADI.',
+    n: 'Compra tardía (como 2025)', desc: 'Convocatoria en noviembre, fallo en enero y muchas claves desiertas: el año arranca sin contratos, el CEDIS entra en contingencia y los proveedores llegan todos juntos al CND.',
     nac: 'proveedor', rf: { ctx: 'otono' }, compra: 'tardio', hgo: 'contingencia', yard: ['A', 'pico'], marb: 'baja',
   },
 };
@@ -63,12 +63,12 @@ export const ESLABONES = [
   { id: 'plan', n: 'Planeación', ic: '📋', up: [], dueno: 'Subdirección de Planeación de Insumos', alcance: 'Nacional · plan anual 2027 (1,033 unidades, 32 delegaciones)', link: 'planeacion.html#/mitablero' },
   { id: 'compra', n: 'Compra consolidada', ic: '⚖️', up: ['plan'], dueno: 'Subdirección de Adquisiciones (compra consolidada)', alcance: 'Nacional · licitación 2027 de las claves del plan', link: 'compras.html' },
   { id: 'prov', n: 'Proveedores y contratos', ic: '🤝', up: ['compra'], dueno: 'Administración de contratos (Subdirección de Abasto)', alcance: 'Piloto Hidalgo · 8 contratos · últimos 90 días', link: 'contratos.html' },
-  { id: 'cenadi', n: 'CENADI', ic: '🏭', up: ['prov'], dueno: 'Gerencia del CENADI', alcance: 'CENADI · patio, andenes y surtido · un día tipo', link: 'cenadi.html' },
-  { id: 'dnac', n: 'Distribución nacional', ic: '🚛', up: ['cenadi', 'prov'], dueno: 'Coordinación de Distribución del CENADI', alcance: 'Nacional · CENADI → 32 almacenes estatales · 30 días', link: 'nacional.html' },
+  { id: 'cnd', n: 'CND', ic: '🏭', up: ['prov'], dueno: 'Gerencia del CND', alcance: 'CND · patio, andenes y surtido · un día tipo', link: 'cnd.html' },
+  { id: 'dnac', n: 'Distribución nacional', ic: '🚛', up: ['cnd', 'prov'], dueno: 'Coordinación de Distribución del CND', alcance: 'Nacional · CND → 32 almacenes estatales · 30 días', link: 'nacional.html' },
   { id: 'alm', n: 'Almacén estatal', ic: '📦', up: ['dnac', 'prov'], dueno: 'Jefe(a) del almacén delegacional', alcance: 'Piloto Hidalgo · CEDIS estatal · 90 días e inventario físico del año', link: 'index.html' },
   { id: 'dest', n: 'Distribución estatal', ic: '🚐', up: ['alm'], dueno: 'Jefatura de Distribución delegacional', alcance: 'Piloto Hidalgo · CEDIS → 60 unidades · 30 días', link: 'mapa.html' },
   { id: 'unidad', n: 'Unidad y farmacia', ic: '🏥', up: ['dest', 'alm'], dueno: 'Director(a) de la unidad y Jefatura de farmacia', alcance: 'Piloto Hidalgo · 60 unidades · 30 días', link: 'unidad.html' },
-  { id: 'frio', n: 'Red fría', ic: '❄️', up: [], dueno: 'Coordinación de Red Fría', alcance: 'Nacional · CENADI, 32 almacenes y unidades con refrigerador · 30 días', link: 'redfria.html', trans: true },
+  { id: 'frio', n: 'Red fría', ic: '❄️', up: [], dueno: 'Coordinación de Red Fría', alcance: 'Nacional · CND, 32 almacenes y unidades con refrigerador · 30 días', link: 'redfria.html', trans: true },
   { id: 'integ', n: 'Integridad', ic: '🛡️', up: [], dueno: 'Área central (controles de datos) y Órgano Interno de Control', alcance: 'Nacional · pedidos del plan anual 2027', link: 'planeacion.html#/integridad', trans: true },
   { id: 'ref', n: 'Referencia de pacientes', ic: '🩺', up: [], dueno: 'Coordinación de Referencia y Contrarreferencia (Dirección Médica)', alcance: 'Nacional · 1,033 unidades · simulación · últimos 90 días', link: 'referencias.html?red=nacional', trans: true },
 ];
@@ -197,11 +197,11 @@ export function evaluar(D, cfg = {}, onProg = () => {}) {
   if (G.P.day < dia && G.P.status === 'validacion') { prog(`Planeación: avanzando al día hábil ${dia}`); avanzar(G, dia); }
   prog('Compra consolidada: licitando las claves del plan');
   const C = CS.simular(G.U.claves, G.dem, { esc: esc.compra, seed: 1 });
-  prog('Distribución nacional: CENADI → 32 estados, 30 días');
+  prog('Distribución nacional: CND → 32 estados, 30 días');
   const N = NAC.simulate(D.iss, esc.nac, 'cob');
   prog('Red fría: 30 días de temperatura en la red');
   const F = memo('rf', JSON.stringify(esc.rf), () => RF.simulate(D.iss, esc.rf, 2026));
-  prog('CENADI: patio, andenes y surtido de un día');
+  prog('CND: patio, andenes y surtido de un día');
   const Y = YD.simulate(YD.buildParams(esc.yard[0], esc.yard[1])).kpi;
   prog('Piloto Hidalgo: CEDIS, 60 unidades, rutas y contratos');
   const Hg = memo('hgo', esc.hgo, () => gemeloHidalgo(D, esc));
@@ -341,7 +341,7 @@ function construir({ G, C, N, F, Y, Hg, M, Rf }) {
     }),
     kp('pago', {
       n: 'Facturas pagadas a tiempo', v: kc.pagoATiempoPct, fmt: 'pct', meta: 0.95, crit: 0.80, w: 1,
-      def: 'Facturas pagadas dentro del plazo legal. Si se paga tarde, el proveedor deja de surtir primero al ISSSTE.',
+      def: 'Facturas pagadas dentro del plazo legal. Si se paga tarde, el proveedor deja de surtir primero al SNS.',
       formula: 'facturas pagadas en plazo ÷ facturas pagadas', fuente: 'Plazo del motor de Contratos: 17 días hábiles desde que se verifica la factura (Ley de Adquisiciones 2025). Meta interna 95 %',
       quien: 'Subdirección de Finanzas (pago a proveedores)',
       det: `Por pagar: ${mxn(kc.porPagar)}; ya vencido: ${mxn(kc.porPagarVencido)}.`,
@@ -355,29 +355,29 @@ function construir({ G, C, N, F, Y, Hg, M, Rf }) {
     }),
   ];
 
-  // 4 · CENADI ----------------------------------------------------------------
-  E.cenadi = [
+  // 4 · CND ----------------------------------------------------------------
+  E.cnd = [
     kp('estancia', {
-      n: 'Estancia del proveedor en el CENADI', v: Y.estancia, fmt: 'min', dir: -1, meta: 120, crit: 180, w: 1,
+      n: 'Estancia del proveedor en el CND', v: Y.estancia, fmt: 'min', dir: -1, meta: 120, crit: 180, w: 1,
       def: 'Minutos desde que el tráiler del proveedor entra por la caseta hasta que sale descargado (sin contar la espera en carretera).',
       formula: 'promedio(salida − llegada)', fuente: 'Meta interna del gemelo (2 h); el proveedor cobra la espera',
-      quien: 'Gerencia del CENADI (recepción)', det: `Percentil 90: ${Math.round(Y.estanciaP90)} min. Antes de la caseta esperan en promedio ${Math.round(Y.esperaCarretera)} min en carretera; cola máxima: ${Y.colaMax} tráileres.`,
+      quien: 'Gerencia del CND (recepción)', det: `Percentil 90: ${Math.round(Y.estanciaP90)} min. Antes de la caseta esperan en promedio ${Math.round(Y.esperaCarretera)} min en carretera; cola máxima: ${Y.colaMax} tráileres.`,
     }),
     kp('mas3h', {
       n: 'Tráileres con más de 3 h', v: Y.pctMas3h, fmt: 'pct', dir: -1, meta: 0.05, crit: 0.15, w: 1,
-      def: 'Proveedores que pasan más de 3 horas dentro del CENADI (desde la caseta).', formula: 'tráileres con estancia > 180 min ÷ recibidos', fuente: 'Meta interna del gemelo',
-      quien: 'Gerencia del CENADI (recepción)',
+      def: 'Proveedores que pasan más de 3 horas dentro del CND (desde la caseta).', formula: 'tráileres con estancia > 180 min ÷ recibidos', fuente: 'Meta interna del gemelo',
+      quien: 'Gerencia del CND (recepción)',
     }),
     kp('salidas', {
       n: 'Embarques que salen a tiempo', v: Y.salidasATiempo, fmt: 'pct', meta: 0.95, crit: 0.85, w: 2,
       def: 'Olas de embarque a los estados que salen en su horario.', formula: 'embarques a tiempo ÷ embarques', fuente: 'Meta interna del gemelo',
-      quien: 'Gerencia del CENADI (surtido y embarque)', det: `Atraso promedio por embarque: ${Math.round(Y.atrasoSalida)} min. Tiempo extra del turno: ${(Y.horasExtra / 60).toFixed(1)} h.`,
+      quien: 'Gerencia del CND (surtido y embarque)', det: `Atraso promedio por embarque: ${Math.round(Y.atrasoSalida)} min. Tiempo extra del turno: ${(Y.horasExtra / 60).toFixed(1)} h.`,
     }),
     kp('dock', {
       n: 'Del andén a la ubicación en almacén', v: Y.dockToStock, fmt: 'min', dir: -1, meta: 120, crit: 240, w: 1,
       def: 'Minutos desde que se descarga hasta que la tarima queda ubicada y disponible para surtir.',
       formula: 'promedio(ubicada − descargada)', fuente: 'Meta interna del gemelo',
-      quien: 'Gerencia del CENADI (almacenaje)',
+      quien: 'Gerencia del CND (almacenaje)',
     }),
   ];
 
@@ -387,30 +387,30 @@ function construir({ G, C, N, F, Y, Hg, M, Rf }) {
     const sh = e.ships.filter(s => s.arr <= H);
     return { cve: e.cve, nombre: e.nombre, abasto: e.cumD[H] ? e.cumS[H] / e.cumD[H] : 1, outH: e.outH[H], late: sh.filter(s => s.late).length, ships: sh.length };
   });
-  const fillCenadi = N.daily.length ? sum(N.daily.map(d => d.ship)) / Math.max(1, sum(N.daily.map(d => d.req))) : 1;
+  const fillCnd = N.daily.length ? sum(N.daily.map(d => d.ship)) / Math.max(1, sum(N.daily.map(d => d.req))) : 1;
   const estOut = est.filter(e => e.outH > 0).sort((a, b) => b.outH - a.outH);
   E.dnac = [
     kp('atiempo', {
       n: 'Embarques que llegan a tiempo al estado', v: N.summary.onTime, fmt: 'pct', meta: 0.95, crit: 0.85, w: 2,
-      def: 'Tráileres del CENADI que llegan al almacén estatal en la hora prometida.', formula: 'llegadas a tiempo ÷ llegadas', fuente: 'Meta interna del gemelo',
-      quien: 'Coordinación de Distribución del CENADI',
-      of: [...est].filter(e => e.late).sort((a, b) => b.late - a.late).slice(0, 3).map(e => ({ obj: true, quien: `Ruta CENADI → ${e.nombre}`, txt: `${e.late} de ${e.ships} embarques tarde`, nivel: 1 })),
+      def: 'Tráileres del CND que llegan al almacén estatal en la hora prometida.', formula: 'llegadas a tiempo ÷ llegadas', fuente: 'Meta interna del gemelo',
+      quien: 'Coordinación de Distribución del CND',
+      of: [...est].filter(e => e.late).sort((a, b) => b.late - a.late).slice(0, 3).map(e => ({ obj: true, quien: `Ruta CND → ${e.nombre}`, txt: `${e.late} de ${e.ships} embarques tarde`, nivel: 1 })),
     }),
     kp('surtido', {
-      n: 'Tarimas pedidas por los estados que el CENADI embarcó', v: fillCenadi, fmt: 'pct', meta: 0.98, crit: 0.90, w: 2,
+      n: 'Tarimas pedidas por los estados que el CND embarcó', v: fillCnd, fmt: 'pct', meta: 0.98, crit: 0.90, w: 2,
       def: 'Tarimas embarcadas contra las que pidieron los estados en sus días de embarque.', formula: 'tarimas embarcadas ÷ tarimas pedidas', fuente: 'Indicador de IAPHL (tasa de surtimiento al nivel siguiente); la meta de 98 % es interna',
-      quien: 'Coordinación de Distribución del CENADI',
+      quien: 'Coordinación de Distribución del CND',
     }),
     kp('estados', {
       n: 'Estados que se quedaron sin existencia', v: estOut.length, fmt: 'num', dir: -1, meta: 0, crit: 3, w: 3,
       def: 'Almacenes estatales que llegaron a cero en algún momento de los 30 días.', formula: 'estados con horas en cero > 0', fuente: 'Meta interna: ningún almacén estatal en cero',
-      quien: 'Coordinación de Distribución del CENADI',
+      quien: 'Coordinación de Distribución del CND',
       of: estOut.slice(0, 4).map(e => ({ quien: `Jefe(a) del almacén estatal de ${e.nombre}`, txt: `${Math.round(e.outH / 24 * 10) / 10} días en cero · abasto ${(e.abasto * 100).toFixed(1)} %`, nivel: e.outH > 72 ? 2 : 1 })),
     }),
     kp('abastoEst', {
       n: 'Demanda estatal atendida', v: N.summary.abasto, fmt: 'pct', meta: 0.97, crit: 0.90, w: 2,
-      def: 'De lo que consumieron las unidades de cada estado, cuánto había en el almacén estatal.', formula: 'demanda servida ÷ demanda', fuente: 'Meta interna alineada al 97 % de abasto que el ISSSTE reporta en farmacias (1-abr-2026)',
-      quien: 'Coordinación de Distribución del CENADI',
+      def: 'De lo que consumieron las unidades de cada estado, cuánto había en el almacén estatal.', formula: 'demanda servida ÷ demanda', fuente: 'Meta interna alineada al 97 % de abasto que reportan las farmacias públicas (abr-2026)',
+      quien: 'Coordinación de Distribución del CND',
     }),
   ];
 
@@ -430,7 +430,7 @@ function construir({ G, C, N, F, Y, Hg, M, Rf }) {
     }),
     kp('tolerancia', {
       n: 'Diferencia del inventario físico anual', v: mk.tolFis, fmt: 'pct2', dir: -1, meta: 0.0072, crit: 0.015, w: 1,
-      def: 'Piezas con diferencia en la toma anual contra las piezas contadas.', formula: 'Σ|diferencias| ÷ piezas físicas', fuente: 'Norma IMSS 1821-A03-002: tolerancia 0.72 % en diferencias físicas',
+      def: 'Piezas con diferencia en la toma anual contra las piezas contadas.', formula: 'Σ|diferencias| ÷ piezas físicas', fuente: 'Procedimiento institucional de toma de inventario: tolerancia 0.72 % en diferencias físicas',
       quien: 'Jefe(a) del almacén delegacional de Hidalgo',
     }),
     kp('almacenista', {
@@ -465,7 +465,7 @@ function construir({ G, C, N, F, Y, Hg, M, Rf }) {
   E.unidad = [
     kp('recetas', {
       n: 'Recetas surtidas completas', v: pct(full, rx), fmt: 'pct', meta: 0.97, crit: 0.90, w: 3, serie: Hg.serie,
-      def: 'Recetas con todos sus medicamentos entregados en la ventanilla, el mismo día.', formula: 'recetas completas ÷ recetas presentadas', fuente: 'MIR E018 del ISSSTE: meta 97 % (logro 2017: 97.5 %). En 2023 el ISSSTE surtió completas 98.1 % (Expansión, con datos de Cero Desabasto)',
+      def: 'Recetas con todos sus medicamentos entregados en la ventanilla, el mismo día.', formula: 'recetas completas ÷ recetas presentadas', fuente: 'Meta institucional de recetas surtidas: 97 % (logro 2017: 97.5 %). En 2023 una institución federal surtió completas 98.1 % (Expansión, con datos de Cero Desabasto)',
       quien: 'Director(a) de la unidad (con su Jefatura de farmacia)', det: `${rx.toLocaleString('es-MX')} recetas en 30 días: ${(rx - full).toLocaleString('es-MX')} incompletas, ${den.toLocaleString('es-MX')} negadas por completo.`,
       of: uRank.filter(u => u.s < 0.999).slice(0, 4).map(u => ({ quien: `Director(a) de ${u.nombre}`, txt: `${(u.s * 100).toFixed(1)} % completas · ${u.rx - u.full} recetas incompletas`, nivel: u.s < 0.9 ? 2 : 1 })),
     }),
@@ -537,7 +537,7 @@ function construir({ G, C, N, F, Y, Hg, M, Rf }) {
     kp('plazo', {
       n: 'Atendidas en 15 días o menos', v: pct(rv.EN_PLAZO, rv.ATENDIDAS), fmt: 'pct', meta: 0.565, crit: 0.30, w: 2,
       def: 'Pacientes referidos que fueron atendidos en la unidad receptora a 15 días o menos de creada la referencia (norma de 15 días).', formula: 'atendidas en ≤ 15 días ÷ atendidas en 90 días',
-      fuente: 'Meta sexenal del Programa Institucional ISSSTE 2025-2030: 43.5 % o menos de citas de especialidad a más de 15 días', quien: 'Coordinación de Referencia y Contrarreferencia',
+      fuente: 'Meta sexenal de un programa institucional 2025-2030: 43.5 % o menos de citas de especialidad a más de 15 días', quien: 'Coordinación de Referencia y Contrarreferencia',
       det: `${pl(rv.ATENDIDAS, 'paciente atendido', 'pacientes atendidos')} en 90 días; ${pl(rB.sinAtender15, 'referencia sigue', 'referencias siguen')} sin atender después de 15 días.`,
     }),
     kp('saturadas', {
@@ -549,7 +549,7 @@ function construir({ G, C, N, F, Y, Hg, M, Rf }) {
     kp('cierre', {
       n: 'Cierres con contrarreferencia', v: pct(rv.CERRADA, nCierres), fmt: 'pct', meta: 0.85, crit: 0.60, w: 1,
       def: 'Referencias que terminaron con su contrarreferencia (el paciente regresa a su unidad con plan de manejo), contra todas las que terminaron.', formula: 'cierres naturales ÷ (natural + sin cierre + no regresó + quemada), 90 días',
-      fuente: 'Reglamento de Servicios Médicos del ISSSTE: la contrarreferencia es obligatoria; meta interna del gemelo', quien: 'Unidades receptoras (emiten la contrarreferencia)',
+      fuente: 'Reglamento de servicios médicos: la contrarreferencia es obligatoria; meta interna del gemelo', quien: 'Unidades receptoras (emiten la contrarreferencia)',
       det: `${rv.SIN_CIERRE.toLocaleString('es-MX')} atendidas sin cierre, ${rv.ABANDONO.toLocaleString('es-MX')} no regresaron y ${rv.QUEMADA.toLocaleString('es-MX')} se quemaron.`,
       of: sinCierreRx.slice(0, 3).filter(x => x.sinCierre).map(x => ({ quien: `Área de referencia de ${x.u.corto}`, txt: `${pl(x.sinCierre, 'atendida', 'atendidas')} sin contrarreferencia en 90 días`, nivel: 1 })),
     }),
@@ -576,9 +576,9 @@ function construir({ G, C, N, F, Y, Hg, M, Rf }) {
 // Son reglas de atribución: los gemelos no están conectados, así que la torre aplica la regla, no la deduce.
 export const DEP = {
   'prov.otif': ['compra.margen'], 'prov.cumplimiento': ['compra.margen'],                // sin contrato a tiempo no hay a quién exigirle
-  'dnac.atiempo': ['cenadi.salidas'],
+  'dnac.atiempo': ['cnd.salidas'],
   'dnac.surtido': ['prov.otif', 'compra.contratado'],
-  'dnac.estados': ['cenadi.salidas?dnac.atiempo', 'prov.otif?dnac.surtido'], 'dnac.abastoEst': ['cenadi.salidas?dnac.atiempo', 'prov.otif?dnac.surtido'],
+  'dnac.estados': ['cnd.salidas?dnac.atiempo', 'prov.otif?dnac.surtido'], 'dnac.abastoEst': ['cnd.salidas?dnac.atiempo', 'prov.otif?dnac.surtido'],
   'alm.fill': ['prov.otif', 'dnac.surtido'],
   'dest.urg': ['alm.fill'],
   'unidad.recetas': ['alm.fill', 'dest.urg'],
@@ -638,8 +638,8 @@ function atribuir(eslabones) {
 function estrellaNorte({ Hg, N, C, F, G }) {
   const rx = sum(Hg.units.map(u => u.rx)), full = sum(Hg.units.map(u => u.full));
   const items = [
-    { id: 'recetas', n: 'Recetas surtidas completas', v: rx ? full / rx : 1, fmt: 'pct', meta: 0.97, crit: 0.90, dir: 1, alc: 'Piloto Hidalgo · 60 unidades · 30 días', fuente: 'MIR E018 ISSSTE: 97 %', serie: Hg.serie },
-    { id: 'abasto', n: 'Abasto de los almacenes estatales', v: N.summary.abasto, fmt: 'pct', meta: 0.97, crit: 0.90, dir: 1, alc: 'Nacional · 32 estados · 30 días', fuente: 'ISSSTE abr-2026: 97 %', serie: dailyAbasto(N) },
+    { id: 'recetas', n: 'Recetas surtidas completas', v: rx ? full / rx : 1, fmt: 'pct', meta: 0.97, crit: 0.90, dir: 1, alc: 'Piloto Hidalgo · 60 unidades · 30 días', fuente: 'Meta institucional: 97 %', serie: Hg.serie },
+    { id: 'abasto', n: 'Abasto de los almacenes estatales', v: N.summary.abasto, fmt: 'pct', meta: 0.97, crit: 0.90, dir: 1, alc: 'Nacional · 32 estados · 30 días', fuente: 'Farmacias públicas abr-2026: 97 %', serie: dailyAbasto(N) },
     { id: 'contratado', n: 'Piezas del plan 2027 con contrato', v: C.kpi.cobertura, fmt: 'pct', meta: 0.99, crit: 0.95, dir: 1, alc: 'Nacional · compra consolidada 2027', fuente: 'Compra 2025-26: 99 %' },
     { id: 'expuesto', n: 'Dinero expuesto sin control', v: G.ig.escapado + F.summary.ocultoMxn, fmt: 'mxn', meta: 0, crit: 50e6, dir: -1, alc: 'Pedidos maliciosos del plan anual 2027 + producto de red fría dañado sin detectar en 30 días (periodos distintos)', fuente: 'Meta: cero' },
   ];
@@ -691,7 +691,7 @@ function rolesDe({ G, F, Hg }) {
   for (const l of F.losses) {
     if (l.t > RF.H) continue;
     const n = F.byId[l.where] || F.byId[String(l.where).split(':')[1]];
-    if (!n || n.kind === 'cenadi') continue;
+    if (!n || n.kind === 'cnd') continue;
     const o = frio[n.cve] ||= { oculto: 0, baja: 0, nodos: {} };
     if (l.det) o.baja += l.mxn; else { o.oculto += l.mxn; const x = o.nodos[n.id] ||= { nombre: n.nombre, kind: n.kind, mxn: 0, label: l.label }; x.mxn += l.mxn; }
   }
@@ -719,7 +719,7 @@ function matrizDelegaciones({ G, N, F }) {
   const perd = {};
   for (const l of F.losses) {
     const n = F.byId[l.where] || F.byId[String(l.where).split(':')[1]];
-    if (l.t > RF.H || !n || n.kind === 'cenadi') continue;                             // el CENADI no es de ninguna delegación
+    if (l.t > RF.H || !n || n.kind === 'cnd') continue;                             // el CND no es de ninguna delegación
     const cve = n.cve; if (!cve) continue;
     const o = perd[cve] ||= { oculto: 0, baja: 0 };
     if (l.det) o.baja += l.mxn; else o.oculto += l.mxn;
@@ -729,7 +729,7 @@ function matrizDelegaciones({ G, N, F }) {
   const cols = [
     { id: 'plan', n: 'Planeación', sub: 'bandeja y costo del plan', ic: '📋' },
     { id: 'abasto', n: 'Abasto estatal', sub: 'demanda atendida, 30 días', ic: '📦' },
-    { id: 'llegada', n: 'Llegadas del CENADI', sub: 'a tiempo', ic: '🚛' },
+    { id: 'llegada', n: 'Llegadas del CND', sub: 'a tiempo', ic: '🚛' },
     { id: 'frio', n: 'Red fría', sub: 'dañado sin detectar', ic: '❄️' },
     { id: 'integ', n: 'Integridad', sub: 'pedidos maliciosos que pasaron', ic: '🛡️' },
   ];

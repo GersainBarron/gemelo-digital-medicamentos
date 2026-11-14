@@ -1,13 +1,13 @@
 // Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 // =====================================================================
-//  nacional-sim.js · Abasto del CENADI a los 32 estados (30 días, paso de 1 h)
+//  nacional-sim.js · Abasto del CND a los 32 estados (30 días, paso de 1 h)
 //
 //  · Cada estado tiene un almacén delegacional que consume según su red de
-//    unidades ISSSTE (CLUES ago 2026, ponderadas por nivel de atención).
-//  · El CENADI embarca a cada estado en días fijos según la distancia
+//    unidades del SNS (catálogo ago 2026, ponderadas por nivel de atención).
+//  · El CND embarca a cada estado en días fijos según la distancia
 //    (diario, 3, 2 o 1 vez por semana) con política de reabasto hasta un
 //    objetivo: (periodo de revisión + tránsito + seguridad) × demanda observada.
-//  · Si lo pedido excede la capacidad de embarque o la existencia del CENADI,
+//  · Si lo pedido excede la capacidad de embarque o la existencia del CND,
 //    se reparte "proporcional" o "por cobertura" (iguala días de cobertura al
 //    llegar, igual que la asignación del CEDIS estatal).
 //  · Escenarios: normal, falla de proveedor, cierre carretero, huracán en la
@@ -26,7 +26,7 @@ export function mulberry32(a) {
 const bump = (d, c, w) => Math.exp(-(((d - c) / w) ** 2));
 
 export const PARAMS = {
-  cap: 360,            // tarimas que el CENADI puede embarcar por día
+  cap: 360,            // tarimas que el CND puede embarcar por día
   porCamion: 24,       // tarimas por tráiler de 53'
   seguridad: 5,        // días de inventario de seguridad en el almacén estatal
   costoKm: 34,         // MXN por km de tráiler (ida y vuelta se cobra doble)
@@ -40,7 +40,7 @@ export const SCENARIOS = {
   normal: { nombre: 'Normal', desc: 'Operación tipo: demanda con estacionalidad semanal y embarques en sus días fijos.' },
   proveedor: {
     nombre: 'Falla de proveedor',
-    desc: 'Del día 5 al 16 el CENADI sólo tiene 45 % de lo que piden los estados: un proveedor de claves de alto consumo incumple.',
+    desc: 'Del día 5 al 16 el CND sólo tiene 45 % de lo que piden los estados: un proveedor de claves de alto consumo incumple.',
     fill: d => (d >= 5 && d < 17 ? 0.45 : 1),
   },
   carretera: {
@@ -56,7 +56,7 @@ export const SCENARIOS = {
   },
   pico: {
     nombre: 'Pico respiratorio',
-    desc: 'Temporada respiratoria: la demanda nacional sube hasta 80 % alrededor del día 13 y la capacidad de embarque del CENADI se vuelve el cuello de botella.',
+    desc: 'Temporada respiratoria: la demanda nacional sube hasta 80 % alrededor del día 13 y la capacidad de embarque del CND se vuelve el cuello de botella.',
     mult: (s, d) => 1 + 0.8 * bump(d, 13, 7),
   },
 };
@@ -66,7 +66,7 @@ export const POLICIES = {
 };
 
 // días de salida a la semana: la frecuencia depende de las horas de tránsito y los días
-// se reparten para emparejar la carga diaria del CENADI (de lunes a sábado)
+// se reparten para emparejar la carga diaria del CND (de lunes a sábado)
 const PATTERNS = {
   6: [[0, 1, 2, 3, 4, 5]],
   3: [[0, 2, 4], [1, 3, 5]],

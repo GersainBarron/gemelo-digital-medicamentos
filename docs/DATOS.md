@@ -4,7 +4,7 @@
 
 | Dato | Fuente | Archivo |
 |---|---|---|
-| 60 unidades IMSS e ISSSTE de Hidalgo: CLUES, tipo, municipio, domicilio, coordenadas | Catálogo de Establecimientos de Salud (CLUES), DGIS, corte de agosto 2026 | `investigacion/unidades_imss_issste_hidalgo.csv` → `web/assets/unidades_hidalgo.json` |
+| 60 unidades del SNS en Hidalgo: tipo, municipio, localidad y coordenadas, con nombre y clave genéricos | Ubicación y tipología del Catálogo de Establecimientos de Salud (CLUES), DGIS, corte de agosto 2026 | `investigacion/unidades_hidalgo.csv` → `web/assets/unidades_hidalgo.json` |
 | Contorno del estado de Hidalgo | Geometría simplificada para el mapa | `investigacion/_hidalgo_geo.json` |
 | 60 claves de medicamento: clave, descripción, presentación y grupo | Compendio Nacional de Insumos para la Salud (CNIS) del Consejo de Salubridad General; Cuadro Básico y Catálogo de Medicamentos | `web/assets/medicamentos.json` |
 
@@ -13,8 +13,8 @@ descarga del portal de datos abiertos de la DGIS.
 
 ## Supuestos (simulados)
 
-Todo lo operativo es **simulado**. Sirve para demostrar el método, no describe la operación real del IMSS o del
-ISSSTE.
+Todo lo operativo es **simulado**. Sirve para demostrar el método, no describe la operación real de ninguna
+institución. El SNS es un servicio de salud genérico.
 
 **CEDIS y rutas**
 - La ubicación del CEDIS (20.045, −98.745) es un supuesto.

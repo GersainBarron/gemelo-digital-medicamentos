@@ -2,7 +2,7 @@
 // =====================================================================
 //  torre3d.js · Pestaña "Torre 3D" de la torre de control (torre.html)
 //
-//  · Mapa de México (assets/mapa_mexico.glb, km, CENADI en el origen;
+//  · Mapa de México (assets/mapa_mexico.glb, km, CND en el origen;
 //    Blender (x, y, z) → three (x, z, −y)). Cada estado se tiñe con lo peor
 //    de su fila en la matriz de 32 delegaciones.
 //  · Edificio delegacional (assets/delegacion.glb) en cada sede, con su
@@ -12,7 +12,7 @@
 //  · Torre vigía (assets/vigia.glb, diseño propio) en el Golfo de México,
 //    exagerada. Su ojo-sensor gira hacia lo que la torre señala y proyecta
 //    un haz de luz; en "Patrullar" recorre solo los focos rojos.
-//  · Tocar una unidad, un edificio, un estado, el CENADI o la torre abre la
+//  · Tocar una unidad, un edificio, un estado, el CND o la torre abre la
 //    ficha (la arma torre.js con onPick).
 // =====================================================================
 import * as THREE from 'three';
@@ -56,10 +56,10 @@ export class Torre3D {
     const [map, dele, vig] = await Promise.all(['assets/mapa_mexico.glb', 'assets/delegacion.glb', 'assets/vigia.glb']
       .map(u => this.getGLB(u).then(b => loader.parseAsync(b, ''))));
     // --- mapa
-    this.states = {}; this.cenadi = [];
+    this.states = {}; this.cnd = [];
     map.scene.traverse(o => {
       const ud = o.userData || {};
-      if (ud.wh_type === 'cenadi') o.traverse(m => { if (m.isMesh) { m.userData.cenadi = true; this.cenadi.push(m); } });
+      if (ud.wh_type === 'cnd') o.traverse(m => { if (m.isMesh) { m.userData.cnd = true; this.cnd.push(m); } });
       if (ud.wh_type === 'sea' && o.isMesh) o.material = new THREE.MeshBasicMaterial({ color: '#0b1a26' });
       if (ud.wh_type === 'state') {
         const st = this.states[ud.wh_cve] = { cve: ud.wh_cve, meshes: [] };
@@ -76,7 +76,7 @@ export class Torre3D {
     scene.add(map.scene);
     const bb = new THREE.Box3(); map.scene.traverse(o => { if (o.isMesh && o.userData.cve) bb.expandByObject(o); });
     this.mapC = bb.getCenter(new THREE.Vector3()); this.mapS = bb.getSize(new THREE.Vector3());
-    this.cenadiPos = P3(0, 0, HS + 20);
+    this.cndPos = P3(0, 0, HS + 20);
     // --- posiciones
     const E = Object.fromEntries(this.iss.estados.map(e => [e.cve, e]));
     this.dels = this.iss.estados.map(e => ({ cve: e.cve, nombre: e.nombre, abbr: e.abbr, pos: P3(e.hub[0], e.hub[1], HS), label: P3(e.label[0], e.label[1], HS), area: e.area_km2 }));
@@ -199,7 +199,7 @@ export class Torre3D {
     }
     this.anim = 1;
   }
-  // focos que recorre el ojo al patrullar: torre → peores delegaciones → unidades en rojo → CENADI
+  // focos que recorre el ojo al patrullar: torre → peores delegaciones → unidades en rojo → CND
   setScope(cve) { this.scope = cve || null; if (this.R) { this.buildQueue(); this.qi = -1; this.tNext = 0; } }
   buildQueue() {
     const R = this.R, q = [];
@@ -210,11 +210,11 @@ export class Torre3D {
     }
     const rows = [...R.matriz.rows].filter(r => r.score >= 4).slice(0, 6);
     const us = R.unidades.filter(u => u.st === 3).sort((a, b) => (b.integ?.monto || 0) - (a.integ?.monto || 0) || b.esc2 - a.esc2).slice(0, 8);
-    const cen = R.eslabones.find(e => e.id === 'cenadi');
+    const cen = R.eslabones.find(e => e.id === 'cnd');
     for (let k = 0; k < Math.max(rows.length, us.length); k++) {
       if (rows[k]) q.push({ type: 'del', cve: rows[k].cve });
       if (us[k]) q.push({ type: 'unit', i: us[k].i });
-      if (k === 1 && cen && cen.st !== 'ok') q.push({ type: 'cenadi' });
+      if (k === 1 && cen && cen.st !== 'ok') q.push({ type: 'cnd' });
     }
     this.queue = q;
   }
@@ -222,13 +222,13 @@ export class Torre3D {
     if (!s) return null;
     if (s.type === 'del') return this.dels[this.dIdx[s.cve]].pos.clone().add(new THREE.Vector3(0, 12, 0));
     if (s.type === 'unit') return this.uPos[s.i].clone().add(new THREE.Vector3(0, U_H[this.uSt[s.i]] * 0.5, 0));
-    if (s.type === 'cenadi') return this.cenadiPos.clone();
+    if (s.type === 'cnd') return this.cndPos.clone();
     return null;
   }
   stOf(s) {
     if (s.type === 'del') { const r = this.rowOf?.[s.cve]; return r ? worst(r) : 'nd'; }
     if (s.type === 'unit') return ['ok', 'ok', 'warn', 'crit'][this.uSt[s.i]];
-    if (s.type === 'cenadi') return this.R?.eslabones.find(e => e.id === 'cenadi')?.st || 'ok';
+    if (s.type === 'cnd') return this.R?.eslabones.find(e => e.id === 'cnd')?.st || 'ok';
     return 'ok';
   }
   aimAt(s) {
@@ -237,7 +237,7 @@ export class Torre3D {
     if (!p) { this.look.on = false; this.tag.hidden = true; return; }
     this.look.to.copy(p); this.look.on = true;
     if (!this.look.init) { this.look.cur.copy(p); this.look.init = true; }
-    this.look.r = s.type === 'del' ? 70 : s.type === 'cenadi' ? 60 : 30;
+    this.look.r = s.type === 'del' ? 70 : s.type === 'cnd' ? 60 : 30;
     this.look.col.set(SEM[this.stOf(s)]);
     this.onTarget?.(s);
   }
@@ -251,7 +251,7 @@ export class Torre3D {
     if (s.type === 'tower') return this.flyTo(this.eyeWorld.clone().setY(this.eyeWorld.y * 0.5), 1900 * this.aspectK());
     if (s.type === 'del') { const d = this.dels[this.dIdx[s.cve]]; return this.flyTo(d.label.clone(), THREE.MathUtils.clamp(Math.sqrt(d.area) * 5, 520, 2400) * this.aspectK()); }
     if (s.type === 'unit') return this.flyTo(this.uPos[s.i].clone(), 380 * this.aspectK());
-    if (s.type === 'cenadi') return this.flyTo(this.cenadiPos.clone(), 420 * this.aspectK());
+    if (s.type === 'cnd') return this.flyTo(this.cndPos.clone(), 420 * this.aspectK());
   }
 
   // ------------------------------------------------------------ cámara
@@ -290,7 +290,7 @@ export class Torre3D {
       if (u) return { type: 'unit', i: u.instanceId };
       const dm = ray.intersectObjects(this.dParts, false)[0];
       if (dm) return { type: 'del', cve: this.dels[dm.instanceId].cve };
-      if (this.cenadi.length && ray.intersectObjects(this.cenadi, false)[0]) return { type: 'cenadi' };
+      if (this.cnd.length && ray.intersectObjects(this.cnd, false)[0]) return { type: 'cnd' };
       const m = ray.intersectObjects(stMeshes, false)[0];
       if (m) return { type: 'del', cve: m.object.userData.cve };
       return null;

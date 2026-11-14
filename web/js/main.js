@@ -24,7 +24,7 @@ import { MarbetesUI } from './marbetes-ui.js';
 
 const MODEL_URL = 'assets/almacen_medicamentos.glb';
 const LAYOUT_URL = 'assets/warehouse_layout.json';
-const UNITS_URL = 'assets/unidades_hidalgo.json';       // red IMSS/ISSSTE de Hidalgo (CLUES)
+const UNITS_URL = 'assets/unidades_hidalgo.json';       // red del SNS en Hidalgo
 const IS_TOUCH = matchMedia('(pointer: coarse)').matches;
 
 // Partes que no se seleccionan por sí solas (se selecciona el objeto padre)

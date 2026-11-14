@@ -2,7 +2,7 @@
 // =====================================================================
 //  ops.js · Operación logística del CEDIS (datos simulados)
 //  Entradas (arribos de proveedor), inventario, salidas por ruta a las
-//  60 unidades IMSS/ISSSTE de Hidalgo y solicitudes de emergencia.
+//  60 unidades del SNS en Hidalgo y solicitudes de emergencia.
 //
 //  Todo se calcula sobre el reloj de la simulación (sim.time, segundos).
 //  Para conectar datos reales, reemplaza los métodos marcados  >>> API.
@@ -22,7 +22,7 @@ export const TARGETS = {
 };
 
 // Proveedores genéricos (sin nombres comerciales)
-const SUPPLIERS = ['CENADI-Birmex', 'Distribuidor nacional A', 'Distribuidor nacional B', 'Laboratorio nacional C',
+const SUPPLIERS = ['CND', 'Distribuidor nacional A', 'Distribuidor nacional B', 'Laboratorio nacional C',
   'Distribuidor regional D', 'Laboratorio de biológicos E', 'Distribuidor especializado F', 'Transferencia almacén delegacional'];
 
 // Claves de ejemplo para solicitudes urgentes, por nivel

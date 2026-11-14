@@ -4,7 +4,7 @@
 //
 //  Misma corrida de la torre, recortada al alcance de cada puesto:
 //   · jefe   Jefe de jefes (la torre completa, en torre.js)
-//   · area   Dueño de un eslabón (Adquisiciones, CENADI, Red Fría…)
+//   · area   Dueño de un eslabón (Adquisiciones, CND, Red Fría…)
 //   · ana    Analista de Oficina Central (sus delegaciones)
 //   · del    Administrador(a) delegacional (su estado y sus unidades)
 //   · unit   Director(a) de unidad médica (su unidad)
@@ -29,7 +29,7 @@ const worstSt = arr => arr.reduce((s, x) => (({ ok: 0, nd: 0, warn: 1, crit: 2 }
 
 const SUPERVISA = {
   plan: 'los 5 analistas de Oficina Central y los 32 administradores delegacionales', compra: 'el equipo de la licitación consolidada', prov: 'los administradores de los 8 contratos del piloto',
-  cenadi: 'recepción, almacenaje, surtido y embarque del CENADI', dnac: 'las rutas del CENADI a los 32 almacenes estatales', alm: 'los almacenistas del CEDIS de Hidalgo',
+  cnd: 'recepción, almacenaje, surtido y embarque del CND', dnac: 'las rutas del CND a los 32 almacenes estatales', alm: 'los almacenistas del CEDIS de Hidalgo',
   dest: 'las rutas del CEDIS a las 60 unidades', unidad: 'los directores y las jefaturas de farmacia', frio: 'los responsables de red fría de cada almacén y unidad', integ: 'los revisores de pedidos y el enlace con el Órgano Interno de Control',
 };
 export const ROLES = {
@@ -60,7 +60,7 @@ export function rolFoco(R, r) {
   if (r.t === 'del') return { type: 'del', cve: r.cve };
   if (r.t === 'unit') return { type: 'unit', i: r.i };
   if (r.t === 'k') return { type: 'del', cve: '13' };
-  if (r.t === 'area' && (r.id === 'cenadi' || r.id === 'dnac')) return { type: 'cenadi' };
+  if (r.t === 'area' && (r.id === 'cnd' || r.id === 'dnac')) return { type: 'cnd' };
   if (r.t === 'area' && ['alm', 'dest', 'unidad', 'prov'].includes(r.id)) return { type: 'del', cve: '13' };
   return null;
 }
@@ -154,13 +154,13 @@ function vistaDel(R, cve) {
   if (D.frio.oculto > 0) acc.push({ m: { ref: `del:${cve}.frio`, meta: 0, dir: -1, fmt: 'mxn' }, nivel: D.frio.oculto > 250000 ? 2 : 1, txt: `Revisa la red fría: ${mxn(D.frio.oculto)} de producto dañado que nadie detectó`, det: D.frio.nodos.map(x => `${x.nombre} (${x.label})`).join(' · ') });
   const ig = { n: (D.integ?.n || 0) + (D.integU?.n || 0), monto: (D.integ?.monto || 0) + (D.integU?.monto || 0), c: [...new Set([...(D.integ?.c || []), ...(D.integU?.c || [])])] };
   if (ig.n) acc.push({ m: { ref: `del:${cve}.integ`, meta: 0, dir: -1, fmt: 'mxn' }, nivel: ig.monto > 1e6 ? 3 : 2, txt: `Da vista al Órgano Interno de Control: ${ig.n} ${ig.n === 1 ? 'pedido malicioso pasó' : 'pedidos maliciosos pasaron'} los controles`, det: `${mxn(ig.monto)} · ${ig.c.join(', ')}` });
-  if (nac?.outH) acc.push({ arriba: true, nivel: 1, txt: `Tu almacén estatal estuvo ${(Math.round(nac.outH / 24 * 10) / 10).toLocaleString('es-MX')} días en cero`, det: `Demanda atendida ${fmtV(nac.abasto, 'pct1')}; ${nac.late} de ${nac.ships} embarques llegaron tarde.`, a: 'a la Coordinación de Distribución del CENADI', go: 'area:dnac' });
+  if (nac?.outH) acc.push({ arriba: true, nivel: 1, txt: `Tu almacén estatal estuvo ${(Math.round(nac.outH / 24 * 10) / 10).toLocaleString('es-MX')} días en cero`, det: `Demanda atendida ${fmtV(nac.abasto, 'pct1')}; ${nac.late} de ${nac.ships} embarques llegaron tarde.`, a: 'a la Coordinación de Distribución del CND', go: 'area:dnac' });
   if (piloto) for (const id of ['alm', 'dest']) { const e = R.eslabones.find(x => x.id === id); for (const k of e.kpis) if (k.st === 'crit') acc.push({ m: { ref: `kpi:${id}.${k.id}`, meta: k.meta, dir: k.dir, fmt: k.fmt }, quien: k.quien, rol: `area:${id}`, nivel: 2, txt: `${e.id === 'alm' ? 'Almacén' : 'Distribución'}: ${k.n} en ${fmtV(k.v, k.fmt)}`, det: `Meta ${fmtV(k.meta, k.fmt)}. Responde: ${k.quien}.`, go: `area:${id}` }); }
   const st = worstSt(Object.values(row.c).map(c => c.st));
   const tiles = R.matriz.cols.map(c => tile(c.n, esc(row.c[c.id].v), row.c[c.id].st, row.c[c.id].det)).join('') + tile('Unidades en rojo', `${cnt[3]}<i> de ${us.length}</i>`, cnt[3] ? 'crit' : cnt[2] ? 'warn' : 'ok', `${cnt[2]} en ámbar`);
   const ups = [
     { n: A.nombre, st: A.sem, det: `revisa tus peticiones en Central: ${n0(A.venc)} vencidas entre sus ${A.dels.length} delegaciones`, go: `ana:${A.a}` },
-    nac && { n: 'CENADI → tu almacén estatal', st: nac.outH ? 'crit' : nac.late ? 'warn' : 'ok', det: `${fmtV(nac.abasto, 'pct1')} de demanda atendida · ${nac.late} de ${nac.ships} embarques tarde`, go: 'area:dnac' },
+    nac && { n: 'CND → tu almacén estatal', st: nac.outH ? 'crit' : nac.late ? 'warn' : 'ok', det: `${fmtV(nac.abasto, 'pct1')} de demanda atendida · ${nac.late} de ${nac.ships} embarques tarde`, go: 'area:dnac' },
     { n: 'Compra consolidada', st: R.eslabones.find(e => e.id === 'compra').st, det: `${fmtV(R.norte.find(x => x.id === 'contratado').v, 'pct')} de las piezas del plan con contrato`, go: 'area:compra' },
   ].filter(Boolean);
   const downs = [{ n: `Tus ${us.length} unidades médicas`, st: cnt[3] ? 'crit' : cnt[2] ? 'warn' : 'ok', det: `${cnt[3]} en rojo, ${cnt[2]} en ámbar, ${cnt[1]} en plazo, ${cnt[0]} sin pendientes` }, { n: 'Pacientes del estado', st: nac?.outH ? 'crit' : 'ok', det: nac?.outH ? 'hubo días sin existencia en el almacén estatal' : 'el almacén estatal no llegó a cero' }];

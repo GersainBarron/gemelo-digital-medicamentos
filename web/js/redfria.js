@@ -1,6 +1,6 @@
 // Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 // =====================================================================
-//  redfria.js · Página "Red fría · CENADI a la unidad"
+//  redfria.js · Página "Red fría · CND a la unidad"
 //  Une la simulación térmica (redfria-sim.js), la cadena en 3D
 //  (redfria3d.js), la ficha de la unidad, la curva de 30 días, el mapa de
 //  equipos, la bitácora, la tabla por estado y la comparación de inversiones.
@@ -114,7 +114,7 @@ function tripAt(list, t) {
 function prodOf(loss, t) { return loss && loss.t <= t ? (loss.det ? 'baja' : 'oculto') : null; }
 function chainAt(id, t) {
   const S = App.S, u = S.byId[id]; if (!u) return {};
-  const cen = S.byId.CENADI, est = S.byId['EST' + u.cve];
+  const cen = S.byId.CND, est = S.byId['EST' + u.cve];
   const reefers = S.trips.filter(x => x.kind === 'reefer' && x.to === est.id);
   const cajas = S.trips.filter(x => x.kind === 'caja' && x.to === u.id);
   const rf = tripAt(reefers, t), cj = tripAt(cajas, t);
@@ -122,7 +122,7 @@ function chainAt(id, t) {
   const c = eqs(cen), e = eqs(est), un = eqs(u);
   const tripTxt = (x) => x.tr ? (x.active ? `en camino · ${tC(x.T)}` : `llegó ${tC(x.T)}`) : 'sin viaje';
   return {
-    cenadi: { T: c.T, prod: c.prod, txt: tC(c.T), st: c.st },
+    cnd: { T: c.T, prod: c.prod, txt: tC(c.T), st: c.st },
     reefer: { T: rf.T, active: rf.active, prod: prodOf(rf.tr?.loss, t) || (rf.tr?.froze ? 'frio' : 'ok'), txt: tripTxt(rf), tr: rf.tr },
     estatal: { T: e.T, prod: e.prod, txt: tC(e.T), st: e.st },
     caja: { T: cj.T, active: cj.active, prod: prodOf(cj.tr?.loss, t) || (cj.tr?.froze && cj.tr.dep + cj.tr.dur <= t ? 'frio' : 'ok'), txt: tripTxt(cj), tr: cj.tr },
@@ -151,7 +151,7 @@ function renderKpis() {
 }
 
 // ------------------------------------------------------------------ ficha de la unidad
-const NAMES = { cenadi: 'Cámara del CENADI', reefer: 'Tráiler refrigerado', estatal: 'Almacén estatal', caja: 'Caja térmica', unidad: 'Refrigerador de la unidad' };
+const NAMES = { cnd: 'Cámara del CND', reefer: 'Tráiler refrigerado', estatal: 'Almacén estatal', caja: 'Caja térmica', unidad: 'Refrigerador de la unidad' };
 function renderFicha(chain = chainAt(App.sel, App.t)) {
   const S = App.S, u = S.byId[App.sel]; if (!u) return;
   const est = S.byId['EST' + u.cve], e = App.data.estados.find(x => x.cve === u.cve);
@@ -216,7 +216,7 @@ function select(id) {
 // ------------------------------------------------------------------ curva de 30 días
 function renderCurve() {
   const S = App.S, u = S.byId[App.sel]; if (!u) return;
-  const est = S.byId['EST' + u.cve], cen = S.byId.CENADI;
+  const est = S.byId['EST' + u.cve], cen = S.byId.CND;
   const W = 1000, Hh = 240, pl = 38, pr = 8, pt = 10, pb = 26, lo = -8, hi = 24;
   const X = h => pl + (W - pl - pr) * h / H, Y = T => pt + (Hh - pt - pb) * (1 - (Math.max(lo, Math.min(hi, T)) - lo) / (hi - lo));
   const line = (arr, step = 1) => { let d = ''; for (let h = 0; h < H; h += step) d += `${h ? 'L' : 'M'}${X(h + 0.5).toFixed(1)} ${Y(arr[h]).toFixed(1)}`; return d; };
@@ -295,7 +295,7 @@ function renderFeed() {
   const S = App.S;
   let ev = S.events.filter(x => x.t <= App.t);
   if (App.feedF === 'hidden') ev = ev.filter(x => (x.kind === 'eq' ? x.e.det == null || x.e.det > App.t : x.tr.det == null) && (x.kind === 'eq' ? x.e.froze || x.e.loss : x.tr.loss));
-  if (App.feedF === 'sel') { const u = S.byId[App.sel]; ev = ev.filter(x => x.kind === 'eq' ? x.n.id === u.id || x.n.id === 'EST' + u.cve || x.n.id === 'CENADI' : x.tr.to === u.id || x.tr.to === 'EST' + u.cve); }
+  if (App.feedF === 'sel') { const u = S.byId[App.sel]; ev = ev.filter(x => x.kind === 'eq' ? x.n.id === u.id || x.n.id === 'EST' + u.cve || x.n.id === 'CND' : x.tr.to === u.id || x.tr.to === 'EST' + u.cve); }
   const list = ev.slice(-80).reverse();
   $('#feed-sub').textContent = `${nf.format(ev.length)} hasta ${fmtT(App.t)}`;
   $('#feed').innerHTML = list.length ? list.map(x => {
@@ -425,7 +425,7 @@ $('#compare').addEventListener('click', e => {
 async function init() {
   for (const k of ['ctx', 'mon', 'ref', 'pla', 'pack']) setSeg('#' + k, App.lv[k]);
   setSeg('.speed', App.speed, 'speed'); playIcon();
-  [App.data, App.outline] = await Promise.all([fetch('assets/estados_issste.json').then(r => r.json()), fetch('assets/estados_mx.json').then(r => r.json())]);
+  [App.data, App.outline] = await Promise.all([fetch('assets/unidades_nacional.json').then(r => r.json()), fetch('assets/estados_mx.json').then(r => r.json())]);
   App.S = simulate(App.data, App.lv);
   indexEvents();
   if (!App.sel || !App.S.byId[App.sel] || App.S.byId[App.sel].kind !== 'unidad') App.sel = pickDefault();

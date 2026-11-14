@@ -2,7 +2,7 @@
 // =====================================================================
 //  referencias-mapa.js · Mapa de flujos de referencias y saturación
 //  Canvas 2D sobre los estados de México (assets/estados_mx.json, km con
-//  origen en el CENADI, mismas coordenadas que las unidades).
+//  origen en el CND, mismas coordenadas que las unidades).
 //  Agregación jerárquica según el filtro (como flowmap.gl, pero con la
 //  regionalización real en vez de grupos por píxel):
 //   · país   → nodos = estados; flechas estado → estado
@@ -19,7 +19,7 @@ const TIPO_C = { normal: 'rgba(45,212,191,', fuera: 'rgba(251,146,60,', escal: '
 export class MapaFlujos {
   /**
    * @param canvas elemento <canvas>
-   * @param geo assets/estados_mx.json · red assets/estados_issste.json
+   * @param geo assets/estados_mx.json · red assets/unidades_nacional.json
    * @param on { select(nodo), hover(nodo|null, ev) }
    */
   constructor(canvas, C, geo, red, on = {}) {

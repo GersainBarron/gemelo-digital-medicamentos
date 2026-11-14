@@ -1,13 +1,13 @@
 // Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 // =====================================================================
-//  nacional3d.js · Mapa 3D de México por estado con los flujos del CENADI
+//  nacional3d.js · Mapa 3D de México por estado con los flujos del CND
 //
 //  · Modelo: assets/mapa_mexico.glb (Blender, nacional/mapa_mexico_builder.py),
-//    en km con el CENADI en el origen. Blender (x, y, z) → three (x, z, −y).
+//    en km con el CND en el origen. Blender (x, y, z) → three (x, z, −y).
 //  · Cada estado (wh_type = state) se recolorea según el indicador elegido.
 //    Al seleccionarlo se levanta, su costado brilla con pulso, se dibuja su
 //    contorno, los demás se oscurecen y aparecen sus unidades por nivel.
-//  · Flujos: arcos curvos del CENADI a cada estado, grosor ∝ tarimas por semana
+//  · Flujos: arcos curvos del CND a cada estado, grosor ∝ tarimas por semana
 //    (Jenny et al. 2018). Tráileres en ruta como función del reloj.
 // =====================================================================
 import * as THREE from 'three';
@@ -64,7 +64,7 @@ export class Nacional3D {
       }
       if (ud.wh_type === 'state_label') (this.states[ud.wh_cve] ||= { cve: ud.wh_cve, meshes: [], labels: [] }).labels.push(o);
       if (ud.wh_type === 'sea' && o.isMesh) { o.material = new THREE.MeshBasicMaterial({ color: '#0d1822' }); this.sea = o; }
-      if (o.name === 'MX_CENADI') this.tower = o;
+      if (o.name === 'MX_CND') this.tower = o;
     });
     for (const st of Object.values(this.states)) {
       st.base = st.top.color.clone(); st.cur = st.top.color.clone(); st.target = st.top.color.clone();

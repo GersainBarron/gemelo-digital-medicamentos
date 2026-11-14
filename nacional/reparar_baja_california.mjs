@@ -3,7 +3,7 @@
 //  reparar_baja_california.mjs · Restituye el contorno continental de
 //  Baja California (cve 02) en estados_mx.json, que había quedado sólo con
 //  sus islas. Proyecta con EPSG:6372 (México ITRF2008 / LCC, GRS80) igual
-//  que el resto del archivo: km, origen en el CENADI (19.535 N, 99.185 O).
+//  que el resto del archivo: km, origen en el CND (19.535 N, 99.185 O).
 //  Uso: node nacional/reparar_baja_california.mjs <geojson de estados>
 //  Fuente del contorno: geojson de estados de México (MX-BCN). Antes de
 //  escribir comprueba la proyección contra Sonora y Sinaloa ya presentes.

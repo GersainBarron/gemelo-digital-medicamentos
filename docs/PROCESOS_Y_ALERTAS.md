@@ -1,6 +1,6 @@
 # Mapa Maestro de Procesos, Ciclo Documental y Matriz de Alertas Tempranas (Abasto de Salud)
 
-Este documento contiene la investigación exhaustiva y definitiva del **ciclo de vida integral de los procesos, el inventario documental completo (30 documentos oficiales), los 12 cuellos de botella ("atorones") y la matriz de monitoreo/alertas (SLAs)** en la cadena de abasto del sector salud público mexicano (IMSS, ISSSTE, Birmex, IMSS-Bienestar y Secretaría de Salud).
+Este documento contiene la investigación exhaustiva y definitiva del **ciclo de vida integral de los procesos, el inventario documental completo (30 documentos oficiales), los 12 cuellos de botella ("atorones") y la matriz de monitoreo/alertas (SLAs)** en la cadena de abasto del sector salud público mexicano, aplicada a un servicio de salud genérico (SNS).
 
 ---
 

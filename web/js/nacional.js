@@ -1,8 +1,8 @@
 // Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 // =====================================================================
-//  nacional.js · Página "Red nacional · CENADI a 32 estados"
+//  nacional.js · Página "Red nacional · CND a 32 estados"
 //  Une la simulación (nacional-sim.js) con el mapa 3D (nacional3d.js), la
-//  ficha del estado, el mosaico, la carga del CENADI, la tabla de estados,
+//  ficha del estado, el mosaico, la carga del CND, la tabla de estados,
 //  la bitácora y la comparación de escenarios.
 // =====================================================================
 import { simulate, SCENARIOS, POLICIES, H, DAYS, stateAt, summaryAt, fmtT, dayOf, FREQ_TXT } from './nacional-sim.js';
@@ -38,7 +38,7 @@ if (!POLICIES[App.pol]) App.pol = 'cob';
 const RAMPS = {
   cov: { n: 'Cobertura en días', cls: [[0, '#ef4444', 'sin abasto'], [3, '#f97316', '< 3'], [5, '#fbbf24', '3 a 5'], [8, '#34d399', '5 a 8'], [Infinity, '#14b8a6', '8 o más']] },
   abasto: { n: 'Abasto acumulado', cls: [[0.9, '#ef4444', '< 90 %'], [0.97, '#f97316', '90 a 97 %'], [0.995, '#fbbf24', '97 a 99.5 %'], [0.9999, '#34d399', '99.5 a 99.9 %'], [Infinity, '#14b8a6', '100 %']] },
-  unid: { n: 'Unidades ISSSTE', cls: [[10, '#1e3a3a', '< 10'], [20, '#155e57', '10 a 19'], [35, '#0f8a7e', '20 a 34'], [50, '#14b8a6', '35 a 49'], [Infinity, '#5eead4', '50 o más']] },
+  unid: { n: 'Unidades del SNS', cls: [[10, '#1e3a3a', '< 10'], [20, '#155e57', '10 a 19'], [35, '#0f8a7e', '20 a 34'], [50, '#14b8a6', '35 a 49'], [Infinity, '#5eead4', '50 o más']] },
 };
 function colorOf(e, st) {
   if (App.metric === 'unid') return RAMPS.unid.cls.find(c => e.total < c[0])[1];
@@ -85,7 +85,7 @@ let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   if (App.playing && App.S) { App.t += dt * App.speed; if (App.t >= H - 0.01) { App.t = H - 0.01; App.playing = false; playIcon(); } }
-  if (App.view && App.S) { App.view.setTime(App.t); App.view.frame(dt, App.playing); placeCenadi(); }
+  if (App.view && App.S) { App.view.setTime(App.t); App.view.frame(dt, App.playing); placeCnd(); }
   if (Math.floor(App.t) !== App.lastH && now - App.lastUi > 250) { App.lastUi = now; refresh(); }
   requestAnimationFrame(loop);
 }
@@ -118,7 +118,7 @@ function renderKpis() {
     k('Estados sin abasto', m.out, '', `${nf.format(m.outH)} horas-estado acumuladas`, m.out ? 'crit' : m.outH ? 'warn' : 'ok'),
     k('Tráileres en ruta', m.trucks, '', `${nf.format(m.pallets)} tarimas en camino`),
     k('Entregas a tiempo', pct(m.onTime, 0), '', `${m.late} tarde de ${m.arrived} entregadas`, m.onTime >= 0.97 ? 'ok' : m.onTime >= 0.9 ? 'warn' : 'crit'),
-    k('Carga del CENADI hoy', nf.format(m.today.ship), `/ ${P.cap}`, m.today.req > m.today.ship + 1 ? `pidieron ${nf.format(m.today.req)} tarimas` : 'tarimas embarcadas', m.today.req > m.today.ship + 1 ? 'warn' : 'ok'),
+    k('Carga del CND hoy', nf.format(m.today.ship), `/ ${P.cap}`, m.today.req > m.today.ship + 1 ? `pidieron ${nf.format(m.today.req)} tarimas` : 'tarimas embarcadas', m.today.req > m.today.ship + 1 ? 'warn' : 'ok'),
     k('Flete acumulado', money(m.costo), '', `${nf.format(Math.round(m.km))} km de tráiler`),
   ].join('');
 }
@@ -143,8 +143,8 @@ function renderFicha() {
   if (!App.sel) {
     const ranked = App.S.E.map(e => ({ e, st: App.st[e.cve] })).sort((a, b) => a.st.cov - b.st.cov).slice(0, 6);
     const tot = [0, 1, 2].map(i => App.data.estados.reduce((a, e) => a + e.niveles[i], 0)), T = tot.reduce((a, b) => a + b, 0);
-    box.innerHTML = `<header><div><span class="eyebrow">Red nacional</span><h2>CENADI → 32 estados</h2><p class="sub">Toca un estado en el mapa, en el mosaico o en la tabla para ver su ficha.</p></div></header>
-      <h3>Unidades ISSSTE por nivel de atención</h3>${levelRows(tot, T, Object.fromEntries(Object.keys(TIPO).map(k => [k, App.data.estados.reduce((a, e) => a + e.tipos[k], 0)])))}
+    box.innerHTML = `<header><div><span class="eyebrow">Red nacional</span><h2>CND → 32 estados</h2><p class="sub">Toca un estado en el mapa, en el mosaico o en la tabla para ver su ficha.</p></div></header>
+      <h3>Unidades del SNS por nivel de atención</h3>${levelRows(tot, T, Object.fromEntries(Object.keys(TIPO).map(k => [k, App.data.estados.reduce((a, e) => a + e.tipos[k], 0)])))}
       <h3>Menor cobertura ahora</h3><div class="fx-list">${ranked.map(({ e, st }) => `<button class="fx-item" data-cve="${e.cve}"><i style="background:${SEMC[st.sem]}"></i><b>${esc(e.nombre)}</b><em>${st.inv <= 1e-6 ? 'sin abasto' : `${f1(st.cov)} días`}</em></button>`).join('')}</div>`;
     return;
   }
@@ -155,7 +155,7 @@ function renderFicha() {
   const trTxt = st.transitPal ? `${nf.format(st.transitPal)} tarimas · ${st.transitTrucks} tráiler${st.transitTrucks > 1 ? 'es' : ''}<small class="${tr.wait && App.t >= tr.dep + tr.holdU * tr.T ? 'stop' : tr.late ? 'late' : ''}">llega ${fmtT(tr.arr)}${tr.wait ? ` · ${tr.motivo}` : ''}${tr.late ? ` · ${Math.round(tr.arr - tr.prom)} h tarde` : ''}</small>` : 'nada en camino';
   const nd = st.nextDep;
   const la = st.lastArr;
-  box.innerHTML = `<header><div><span class="eyebrow">Región ${esc(e.region)} · ${esc(e.hr || '')}</span><h2>${esc(e.nombre)}</h2><p class="sub">${nf.format(e.km)} km del CENADI · ${e.horas} h de camino · sale ${FREQ_TXT(e.freq)}</p></div><button class="fx-x" id="fx-close" aria-label="Cerrar">×</button></header>
+  box.innerHTML = `<header><div><span class="eyebrow">Región ${esc(e.region)} · ${esc(e.hr || '')}</span><h2>${esc(e.nombre)}</h2><p class="sub">${nf.format(e.km)} km del CND · ${e.horas} h de camino · sale ${FREQ_TXT(e.freq)}</p></div><button class="fx-x" id="fx-close" aria-label="Cerrar">×</button></header>
     <div class="chips"><span class="chip ${st.sem}">${st.inv <= 1e-6 ? 'Sin abasto' : `Cobertura ${f1(st.cov)} días`}</span><span class="chip ${st.abasto >= 0.999 ? 'ok' : st.abasto >= 0.98 ? 'warn' : 'crit'}">Abasto ${pct(st.abasto)}</span>${st.transitPal ? `<span class="chip info">${st.transitTrucks} en camino</span>` : ''}</div>
     <h3>Unidades por nivel de atención · ${T}</h3>${levelRows(e.niveles, T, e.tipos)}
     <h3>Abasto del almacén estatal</h3>
@@ -209,7 +209,7 @@ function renderTiles() {
 }
 $('#tiles').addEventListener('click', e => { const b = e.target.closest('[data-cve]'); if (b) select(App.sel === b.dataset.cve ? null : b.dataset.cve, 'scroll'); });
 
-// ------------------------------------------------------------------ carga del CENADI
+// ------------------------------------------------------------------ carga del CND
 function renderLoad() {
   const D = App.S.daily, P = App.S.P, W = 640, Hh = 210, pl = 34, pb = 40, pt = 8;
   const max = Math.max(P.cap * 1.15, ...D.map(d => d.req));
@@ -232,7 +232,7 @@ function renderLoad() {
   g += `<text class="ax" x="${pl}" y="${Hh - 18}" opacity=".8">día</text>`;
   $('#load-chart').innerHTML = `<svg viewBox="0 0 ${W} ${Hh}">${g}</svg>`;
   const cut = D.filter(d => d && d.req > d.ship + 1).length;
-  $('#load-note').textContent = `Renglón de abajo: estados con menos de ${P.riesgo} días de cobertura al cierre de cada día. ${cut ? `En ${cut} día${cut > 1 ? 's' : ''} lo pedido superó lo que el CENADI pudo embarcar.` : 'Lo pedido siempre cupo en la capacidad del CENADI.'}`;
+  $('#load-note').textContent = `Renglón de abajo: estados con menos de ${P.riesgo} días de cobertura al cierre de cada día. ${cut ? `En ${cut} día${cut > 1 ? 's' : ''} lo pedido superó lo que el CND pudo embarcar.` : 'Lo pedido siempre cupo en la capacidad del CND.'}`;
 }
 
 // ------------------------------------------------------------------ tabla de estados
@@ -321,7 +321,7 @@ $('#compare').addEventListener('click', e => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
-// ------------------------------------------------------------------ 3D: selección, tooltip, etiqueta del CENADI
+// ------------------------------------------------------------------ 3D: selección, tooltip, etiqueta del CND
 const tip = $('#tip');
 function showTip(html, ev) {
   if (!html) { tip.hidden = true; return; }
@@ -336,18 +336,18 @@ function hitHtml(h) {
   if (h.type === 'ship' && h.s) { const s = h.s, e = App.S.E[s.i]; return `<b>Embarque a ${esc(e.nombre)}</b><div class="r">Tarimas<em>${s.pallets} en ${s.trucks} tráiler${s.trucks > 1 ? 'es' : ''}</em></div><div class="r">Salió<em>${fmtT(s.dep)}</em></div><div class="r">Llega<em>${fmtT(s.arr)}</em></div>${s.wait ? `<div class="r">Incidencia<em>${esc(s.motivo)}</em></div>` : ''}${s.late ? `<div class="r">Atraso<em>${Math.round(s.arr - s.prom)} h</em></div>` : ''}`; }
   return '';
 }
-let cenadiTag = null;
-function placeCenadi() {
-  if (!cenadiTag) return;
+let cndTag = null;
+function placeCnd() {
+  if (!cndTag) return;
   const [x, y, ok] = App.view.project(0, 0, 80);
-  cenadiTag.style.display = ok ? '' : 'none';
-  cenadiTag.style.left = `${x}px`; cenadiTag.style.top = `${y}px`;
+  cndTag.style.display = ok ? '' : 'none';
+  cndTag.style.left = `${x}px`; cndTag.style.top = `${y}px`;
 }
 
 // ------------------------------------------------------------------ arranque
 async function init() {
   setSeg('#scn', 's', App.scn); setSeg('#pol', 'p', App.pol); setSeg('#metric', 'm', App.metric); setSeg('.speed', 'speed', App.speed); playIcon(); renderLegend();
-  [App.data, App.outline] = await Promise.all([fetch('assets/estados_issste.json').then(r => r.json()), fetch('assets/estados_mx.json').then(r => r.json())]);
+  [App.data, App.outline] = await Promise.all([fetch('assets/unidades_nacional.json').then(r => r.json()), fetch('assets/estados_mx.json').then(r => r.json())]);
   if (App.sel && !App.data.estados.some(e => e.cve === App.sel)) App.sel = null;
   run();
   $('#loading').remove();
@@ -367,7 +367,7 @@ async function init() {
       if (matchMedia('(pointer: coarse)').matches && h.type !== 'state') { const r = box.getBoundingClientRect(); showTip(hitHtml(h), { clientX: r.left + 20, clientY: r.top + 20 }); setTimeout(() => (tip.hidden = true), 3500); }
     };
     v.onHover = (h, ev) => showTip(hitHtml(h), ev);
-    cenadiTag = document.createElement('div'); cenadiTag.className = 'nx-cenadi'; cenadiTag.textContent = 'CENADI'; box.appendChild(cenadiTag);
+    cndTag = document.createElement('div'); cndTag.className = 'nx-cnd'; cndTag.textContent = 'CND'; box.appendChild(cndTag);
     const hint = document.createElement('div'); hint.className = 'nx-hint'; hint.textContent = matchMedia('(pointer: coarse)').matches ? 'Un dedo gira · dos dedos acercan y mueven' : 'Arrastra para girar · rueda para acercar · clic derecho para mover'; box.appendChild(hint);
     setTimeout(() => hint.remove(), 7000);
     if (App.sel) select(App.sel);

@@ -55,7 +55,7 @@ menos.
 
 ## Fase 4 · Última milla al paciente (Proyecto 3)
 
-Resultados de 30 días en HGZMF 1 Pachuca:
+Resultados de 30 días en el HGZ/MF Pachuca de Soto:
 
 | | Valor |
 |---|---|

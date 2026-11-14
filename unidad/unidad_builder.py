@@ -182,7 +182,7 @@ def materials():
         line=mat('Pintura blanca', '#f2f2ee', 0.6), yellow=mat('Pintura amarilla', '#e8b323', 0.6),
         wood=mat('Madera', '#a7794f', 0.6), metal=mat('Metal', '#9aa3ab', 0.35, 0.6), dark=mat('Gris oscuro', '#3b4148', 0.6),
         white=mat('Blanco', '#f4f4f2', 0.5), glass=mat('Vidrio', '#bfe6ff', 0.05, 0.0, 0.28),
-        seat=mat('Asiento', '#2f6f8f', 0.6), seat2=mat('Asiento ISSSTE', '#4c7a3a', 0.6),
+        seat=mat('Asiento', '#2f6f8f', 0.6), seat2=mat('Asiento verde', '#4c7a3a', 0.6),
         counter=mat('Mostrador', '#e9e2d2', 0.5), teal=mat('Turquesa', '#14b8a6', 0.5), red=mat('Rojo', '#d23b35', 0.5),
         blue=mat('Azul cortina', '#7fb0d8', 0.8), green_or=mat('Verde quirófano', '#4fa58f', 0.6),
         mattress=mat('Colchón', '#9fc7d6', 0.8), steel=mat('Acero inoxidable', '#c8cdd2', 0.25, 0.8),

@@ -150,7 +150,7 @@ export class MarbetesUI {
         ${tile(money(k.exposicionProm), 'Valor promedio de lo que no cuadra en un día')}
       </div>
       <div class="mb-chips">${chip(k.tolFis <= 0.0072, `Diferencias físicas ${pct(k.tolFis, 2)} (tope 0.72 %)`)}${chip(k.tolCont <= 0.008, `Diferencias contables ${pct(k.tolCont, 2)} (tope 0.80 %)`)}${chip(true, 'Controlados aclarados al 100 % con acta')}</div>
-      <p class="muted mb-p">Topes del procedimiento 1821-A03-002 del IMSS para la toma anual: si se pasan, se exige un informe de causas y medidas correctivas.</p>
+      <p class="muted mb-p">Topes del procedimiento institucional de toma anual: si se pasan, se exige un informe de causas y medidas correctivas.</p>
     </section>
     <section class="card">
       <h3>Tomas del año <small>${R.tomas.length}</small></h3>

@@ -1,5 +1,5 @@
 /* Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT */
-/* CENADI · entradas y salidas (usa la base de unidad.css) */
+/* CND · entradas y salidas (usa la base de unidad.css) */
 
 .cn-scn-top { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: end; }
 .f-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }

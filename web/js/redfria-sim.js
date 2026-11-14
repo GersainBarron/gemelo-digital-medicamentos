@@ -1,14 +1,14 @@
 // Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 // =====================================================================
-//  redfria-sim.js · Red fría del CENADI a la unidad (30 días, paso de 5 min)
+//  redfria-sim.js · Red fría del CND a la unidad (30 días, paso de 5 min)
 //
-//  · 1,066 equipos: cámara del CENADI, 32 almacenes estatales y el
-//    refrigerador de cada una de las 1,033 unidades ISSSTE (CLUES ago 2026).
+//  · 1,066 equipos: cámara del CND, 32 almacenes estatales y el
+//    refrigerador de cada una de las 1,033 unidades del SNS (catálogo ago 2026).
 //  · Cada equipo: temperatura que se va hacia la del cuarto con constante τ,
 //    compresor con termostato, aperturas de puerta, apagones (con o sin planta
 //    de emergencia) y fallas de compresor. Los refrigeradores domésticos
 //    tienen zonas frías y algunos el termostato desviado (congelan de noche).
-//  · Viajes: tráiler refrigerado CENADI → estado y caja térmica estado →
+//  · Viajes: tráiler refrigerado CND → estado y caja térmica estado →
 //    unidad, con su vida fría y refrigerantes acondicionados o no.
 //  · Monitoreo: manual (8:00 y 16:00), registrador de 30 días (alarma +8 °C
 //    10 h, −0.5 °C 60 min) o telemetría (aviso a los 30/15 min).
@@ -143,16 +143,16 @@ function simEquipment(e, ctx, clima, lv, seed) {
   const spot = e.eq === 'dom' ? -0.6 - r() * 0.8 : 0;               // zona fría cerca del evaporador
   const set = 5 + offset;
   // aperturas de puerta
-  const doorsPerDay = Math.round(spec.doors * (e.kind === 'cenadi' ? 2 : 1));
+  const doorsPerDay = Math.round(spec.doors * (e.kind === 'cnd' ? 2 : 1));
   const doors = [];
   for (let d = 0; d < DAYS; d++) {
     const dow = d % 7;
     if (e.kind === 'unidad' && e.nivel === 1 && dow >= 5) continue;
-    for (let k = 0; k < doorsPerDay; k++) doors.push(d * 24 + (e.kind === 'cenadi' ? r() * 24 : 8 + r() * 8));
+    for (let k = 0; k < doorsPerDay; k++) doors.push(d * 24 + (e.kind === 'cnd' ? r() * 24 : 8 + r() * 8));
   }
   doors.sort((a, b) => a - b);
   // monitoreo de este equipo
-  const mon = e.kind === 'cenadi' ? 'tele' : lv.mon;
+  const mon = e.kind === 'cnd' ? 'tele' : lv.mon;
   const sat = e.kind !== 'unidad' || e.nivel > 1;
   const checks = e.kind === 'unidad' && e.nivel > 1 ? [8, 16, 24] : [8, 16];
   const minT = new Float32Array(H).fill(99), maxT = new Float32Array(H).fill(-99), meanT = new Float32Array(H);
@@ -228,7 +228,7 @@ function simEquipment(e, ctx, clima, lv, seed) {
 }
 
 // ---------------------------------------------------------------- viajes
-//  tráiler (CENADI → estado) y caja térmica (estado → unidad); perfil cada 15 min
+//  tráiler (CND → estado) y caja térmica (estado → unidad); perfil cada 15 min
 function simTrip(trip, ctx, clima, lv, r) {
   const n = Math.max(2, Math.ceil(trip.dur / 0.25)), prof = new Float32Array(n + 1);
   const mon = lv.mon;
@@ -273,7 +273,7 @@ function simTrip(trip, ctx, clima, lv, r) {
 export function buildNetwork(data, lv, seed = 2026) {
   const nodes = [];
   const byCve = Object.fromEntries(data.estados.map(e => [e.cve, e]));
-  nodes.push({ id: 'CENADI', kind: 'cenadi', cve: '15', nombre: 'CENADI · Tlalnepantla', eq: 'camara', nivel: 0, xy: [0, 0] });
+  nodes.push({ id: 'CND', kind: 'cnd', cve: '15', nombre: 'CND · Tlalnepantla', eq: 'camara', nivel: 0, xy: [0, 0] });
   for (const s of data.estados) nodes.push({ id: 'EST' + s.cve, kind: 'estatal', cve: s.cve, nombre: `Almacén estatal ${s.nombre}`, eq: 'camara', nivel: 0, xy: s.hub });
   for (const u of data.unidades) {
     let eq = 'med';
@@ -295,7 +295,7 @@ export function simulate(data, lvIn = {}, seed = 2026) {
   const lv = { ...BASE, ...lvIn };
   const { nodes, byCve } = buildNetwork(data, lv, seed);
   const clima = climate(data.estados.map(e => e.cve), lv.ctx, seed);
-  const cenadiClima = clima['15'];
+  const cndClima = clima['15'];
   const res = [];
   for (const n of nodes) {
     const R = simEquipment(n, lv.ctx, clima, lv, seed);
@@ -309,7 +309,7 @@ export function simulate(data, lvIn = {}, seed = 2026) {
     const per = s.horas <= 12 ? [0, 3] : [hash(s.cve) % 5];
     for (let d = 0; d < DAYS; d++) if (per.includes(d % 7)) {
       const dep = d * 24 + 18 + (hash(s.cve) % 4);
-      trips.push({ kind: 'reefer', cve: s.cve, to: 'EST' + s.cve, from: 'CENADI', dep, dur: Math.max(1, s.horas) });
+      trips.push({ kind: 'reefer', cve: s.cve, to: 'EST' + s.cve, from: 'CND', dep, dur: Math.max(1, s.horas) });
     }
   }
   for (const n of nodes) if (n.kind === 'unidad') {

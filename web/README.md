@@ -38,7 +38,7 @@ inspección de objetos y capas. Funciona en PC y en iPad (Safari).
 | Almacén | flujo del turno, ocupación, inventario (cobertura, caducidad, exactitud), cuarto frío, andenes |
 | Entradas | KPIs de recepción (cumplimiento de proveedor, tiempo de descarga, rechazos, cadena de frío) y arribos de hoy |
 | Salidas | KPIs de surtido y entrega (nivel de servicio, OTIF, claves negadas) y las 9 rutas del día con sus paradas |
-| Unidades | 60 unidades IMSS e ISSSTE de Hidalgo: mapa, filtros por institución y ruta, búsqueda y estado de entrega |
+| Unidades | 60 unidades del SNS en Hidalgo: mapa, filtro por ruta, búsqueda y estado de entrega |
 | Urgencias | solicitudes N1 vital / N2 urgente / N3 prioritario, con límite de entrega; botón para simular una |
 
 Toca una unidad o una urgencia para ver su ficha (CLUES, ruta, frecuencia, tiempo de traslado).
@@ -247,17 +247,17 @@ La sección también tiene un mapa local con las rutas y la moto en movimiento.
 En el 3D de la unidad, las resurtibles inscritas ya no hacen fila. La moto sale del andén en cada salida y
 regresa, y al tocarla se ven sus entregas. El casillero de la plaza muestra sus compartimentos ocupados.
 
-En HGZMF 1, en 30 días: 501 entregas (324 a domicilio), 364 visitas evitadas, unas 529 horas de pacientes
+En el HGZ/MF Pachuca de Soto, en 30 días: 501 entregas (324 a domicilio), 364 visitas evitadas, unas 529 horas de pacientes
 ahorradas y un costo de unos $47 por entrega a domicilio.
 
 Blender: `bodega/recoleccion/punto_recoleccion_builder.py` genera un casillero de 24 compartimentos con
 pantalla, lector QR y letrero (`assets/punto_recoleccion.glb`). La moto es `Moto_Reparto` de
 `vehiculos.glb`. `unidad_layout.json` incluye `locker`.
 
-### CENADI · entradas y salidas de vehículos (`cenadi.html`)
+### CND · entradas y salidas de vehículos (`cnd.html`)
 
-`js/yard-sim.js` (motor), `js/cenadi3d.js` (escena) y `js/cenadi.js` (página). Simula un día tipo del
-Centro Nacional de Distribución del ISSSTE (operado por Birmex): proveedores que llegan con o sin cita,
+`js/yard-sim.js` (motor), `js/cnd3d.js` (escena) y `js/cnd.js` (página). Simula un día tipo del
+Centro Nacional de Distribución del SNS (operado por un tercero logístico): proveedores que llegan con o sin cita,
 caseta, patio regulador, 14 andenes de recepción, y la flota propia que carga en 24 andenes de embarque
 y regresa de ruta por la misma caseta. Es una simulación de eventos discretos minuto a minuto,
 determinista con semilla.
@@ -286,16 +286,16 @@ Resultado del día tipo: con el plan A en pico la cola en carretera llega a 22 v
 promedio a 2 h 59; con el plan C el mismo pico queda en 3 vehículos y 1 h 01, y todas las salidas
 a tiempo.
 
-Modelo: `assets/cenadi.glb`, de `bodega/nacional/cenadi_builder.py`. Los tráileres fijos del modelo
-sirven de plantilla y se ocultan. Investigación y supuestos: documento "CENADI · Simulación de entradas y
+Modelo: `assets/cnd.glb`, de `bodega/nacional/cnd_builder.py`. Los tráileres fijos del modelo
+sirven de plantilla y se ocultan. Investigación y supuestos: documento "CND · Simulación de entradas y
 salidas de vehículos".
 
-### Red nacional · CENADI a 32 estados (`nacional.html`)
+### Red nacional · CND a 32 estados (`nacional.html`)
 
-Simulación de 30 días (paso de 1 hora) del abasto del CENADI a los almacenes de los 32 estados.
+Simulación de 30 días (paso de 1 hora) del abasto del CND a los almacenes de los 32 estados.
 
 - **Mapa 3D** (`assets/mapa_mexico.glb`): cada estado se colorea por cobertura en días, abasto acumulado o
-  número de unidades. Arcos curvos del CENADI a cada estado con grosor por tarimas a la semana y tráileres
+  número de unidades. Arcos curvos del CND a cada estado con grosor por tarimas a la semana y tráileres
   en ruta (blanco a tiempo, naranja tarde, rojo detenido). "Todas las unidades" muestra las 1,033 unidades.
 - **Al tocar un estado** se levanta, su costado y contorno pulsan, los demás se oscurecen, la cámara vuela
   hacia él y aparecen sus unidades por nivel (aqua 1er, azul 2º, rosa 3er). La ficha muestra unidades por
@@ -303,16 +303,16 @@ Simulación de 30 días (paso de 1 hora) del abasto del CENADI a los almacenes d
   cobertura de 30 días y sus hospitales.
 - **Escenarios:** normal, falla de proveedor, cierre carretero, huracán en la península y pico respiratorio;
   si no alcanza, reparto proporcional o por cobertura. Comparación de los 10 casos.
-- **Además:** 8 indicadores nacionales, mosaico de 32 estados, carga diaria del CENADI contra su capacidad,
+- **Además:** 8 indicadores nacionales, mosaico de 32 estados, carga diaria del CND contra su capacidad,
   tabla ordenable con CSV y bitácora de salidas, llegadas, retrasos y desabasto.
 - Parámetros de la URL: `esc` (normal, proveedor, carretera, huracan, pico), `asig` (cob, prop), `e` (clave
   INEGI del estado, por ejemplo `31`) y `t` (hora 0 a 719).
 
 Modelo: `bodega/nacional/mapa_mexico_builder.py`.
 
-### Red fría · CENADI a la unidad (`redfria.html`)
+### Red fría · CND a la unidad (`redfria.html`)
 
-Simulación térmica de 30 días con paso de 5 minutos: la cámara del CENADI, las de los 32 almacenes
+Simulación térmica de 30 días con paso de 5 minutos: la cámara del CND, las de los 32 almacenes
 estatales, el refrigerador de cada una de las 1,033 unidades y cada viaje en tráiler refrigerado y caja
 térmica.
 
@@ -332,15 +332,15 @@ térmica.
 Modelo: `bodega/nacional/redfria_builder.py`.
 
 ### Torre de control del abasto (`torre.html`)
-- `js/torre-engine.js`: corre sin DOM Planeación, Integridad, Compras, Nacional, Red fría, el patio del CENADI, el piloto Hidalgo (CEDIS, 60 unidades, rutas y contratos) y Marbetes con un mismo escenario; 10 eslabones, 36 indicadores con meta, fuente y dueño; semáforo por brecha, atribución al eslabón de arriba (`DEP`), reparto de la culpa, llamadas por nivel de escalamiento, nombres concretos y matriz de 32 delegaciones.
+- `js/torre-engine.js`: corre sin DOM Planeación, Integridad, Compras, Nacional, Red fría, el patio del CND, el piloto Hidalgo (CEDIS, 60 unidades, rutas y contratos) y Marbetes con un mismo escenario; 10 eslabones, 36 indicadores con meta, fuente y dueño; semáforo por brecha, atribución al eslabón de arriba (`DEP`), reparto de la culpa, llamadas por nivel de escalamiento, nombres concretos y matriz de 32 delegaciones.
 - `js/torre-worker.js`: corre el motor en segundo plano (≈ 6 s por escenario). `js/torre.js`: pantalla. Lee la bitácora de Planeación y los controles de integridad del navegador.
-- `js/torre3d.js`: pestaña "Torre 3D". Mapa con los 32 edificios delegacionales y las 1,033 unidades en semáforo, y la torre vigía (`assets/vigia.glb`) cuyo ojo patrulla los focos rojos con un haz de luz; fichas al tocar unidad, delegación, CENADI o torre.
+- `js/torre3d.js`: pestaña "Torre 3D". Mapa con los 32 edificios delegacionales y las 1,033 unidades en semáforo, y la torre vigía (`assets/vigia.glb`) cuyo ojo patrulla los focos rojos con un haz de luz; fichas al tocar unidad, delegación, CND o torre.
 - `js/torre-roles.js`: "Ver como": la torre de cada responsable (dueño de área, analista de Central, delegación, director de unidad, administrador de contrato) con lo que le toca hoy, de quién depende, cómo se compara y su gente.
 - `js/torre-seguimiento.js`: compromisos de la torre: se crean desde cualquier llamada o acción, la torre los verifica con cada corrida y los escala solos si vencen; reloj por día hábil del plan, reincidentes y CSV.
 - Parámetros: `esc` (normal, proveedor, huracan, tardia), `e` (eslabón abierto), `rol` (p. ej. `del:13`, `unit:377`), `tab=3d`, `debug`. Detalle en `docs/TORRE.md`.
 
 ### Inventario físico con marbetes (pestaña "Marbetes" del CEDIS 3D)
-- `js/marbetes-sim.js`: un año ubicación por ubicación con errores ocultos, tomas anual, selectiva, rotativa o cíclica ABC, marbetes foliados, tres conteos, conciliación, ajustes por nivel de autorización, tolerancias del IMSS (0.72 % físicas, 0.80 % contables) y alertas por almacenista.
+- `js/marbetes-sim.js`: un año ubicación por ubicación con errores ocultos, tomas anual, selectiva, rotativa o cíclica ABC, marbetes foliados, tres conteos, conciliación, ajustes por nivel de autorización, tolerancias institucionales (0.72 % físicas, 0.80 % contables) y alertas por almacenista.
 - `js/marbetes-ui.js`: pestaña con toma, marbete, causas, integridad y comparación; capa 3D "Marbetes" con un marbete por ubicación. Detalle en `docs/MARBETES.md`.
 
 ### Compra consolidada · del plan al contrato (`compras.html`)

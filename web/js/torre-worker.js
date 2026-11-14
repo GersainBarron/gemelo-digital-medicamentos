@@ -8,7 +8,7 @@ onmessage = async e => {
   try {
     if (!D) {
       postMessage({ id, prog: { txt: 'Leyendo datos de los gemelos', p: 0 } });
-      const [iss, meds, hgo, layout, slotClaves] = await Promise.all(['estados_issste.json', 'medicamentos.json', 'unidades_hidalgo.json', 'warehouse_layout.json', 'slot_claves.json'].map(J));
+      const [iss, meds, hgo, layout, slotClaves] = await Promise.all(['unidades_nacional.json', 'medicamentos.json', 'unidades_hidalgo.json', 'warehouse_layout.json', 'slot_claves.json'].map(J));
       D = { iss, meds, hgo, layout, slotClaves };
     }
     const res = evaluar(D, cfg, prog => postMessage({ id, prog }));

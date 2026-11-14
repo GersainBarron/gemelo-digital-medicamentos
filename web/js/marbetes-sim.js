@@ -7,7 +7,7 @@
 //   · salida sin registrar, captura en caja en vez de pieza, ubicación
 //     equivocada, lote equivocado, merma sin acta, robo hormiga, entrada
 //     duplicada y entrada no registrada (tasas por 1,000 movimientos).
-//  Las tomas de inventario los descubren, como en el procedimiento del IMSS
+//  Las tomas de inventario los descubren, como en un procedimiento institucional de toma de inventario
 //  1821-A03-002 (sector salud) y el art. 27 de la Ley General de
 //  Contabilidad Gubernamental (inventario físico conciliado con el registro
 //  contable):
@@ -21,7 +21,7 @@
 //     reclasifica; lo demás se ajusta con autorización según el monto; los
 //     controlados se aclaran al 100 % con acta;
 //   · tolerancias: diferencias físicas ≤ 0.72 % del inventario y contables
-//     ≤ 0.80 % del valor (IMSS 1821-A03-002, 5.2.16 y 5.2.20).
+//     ≤ 0.80 % del valor (topes de un procedimiento institucional de toma de inventario).
 //  Determinista con semilla. Tasas, tiempos y montos de autorización son
 //  supuestos editables.
 // =====================================================================
@@ -42,7 +42,7 @@ export const CAUSAS = {
 export const DISCIPLINA = { alta: { n: 'Alta', k: 0.4, err: 0.012 }, media: { n: 'Media', k: 1, err: 0.03 }, baja: { n: 'Baja', k: 2.2, err: 0.07 } };
 export const ESTRATEGIAS = {
   anual: { n: 'Solo anual', desc: 'Una toma total al cierre del año, con el almacén sin movimientos dos días.' },
-  selectivo: { n: 'Anual + selectivo trimestral', desc: 'Además de la anual, cada trimestre una muestra al azar (10 %), todos los controlados y el 10 % de mayor costo, como pide el IMSS.' },
+  selectivo: { n: 'Anual + selectivo trimestral', desc: 'Además de la anual, cada trimestre una muestra al azar (10 %), todos los controlados y el 10 % de mayor costo, como piden los procedimientos institucionales.' },
   rotativo: { n: 'Anual + rotativo mensual', desc: 'Además de la anual, cada mes una doceava parte de las ubicaciones y todos los controlados: en el año se cuentan todas.' },
   abc: { n: 'Cíclico ABC + anual', desc: 'Conteos todos los días: A (20 % de mayor valor) cada mes, B cada trimestre, C cada semestre y controlados cada semana; más la anual.' },
 };

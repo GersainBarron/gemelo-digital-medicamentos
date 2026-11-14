@@ -13,21 +13,21 @@ El prototipo responde dos preguntas:
 | **Planes de necesidad** | Bandeja con búsqueda, filtros y paginador de 15; nuevo plan en 5 pasos (datos, periodo de catálogos, de asignación, de programas especiales y de aprobación, cada uno con responsables); cancelar plan con motivo; consultar plan | RF_C_01 a RF_C_13, RN_04, RN_27 a RN_37 |
 | **Mi tablero** | Pantalla de inicio por rol: a quién llamar hoy y por qué (atraso, calidad o integridad), KPI con semáforo, escalera de avisos y botón de recordatorio que llega a la campana del responsable | Gemelo |
 | **Tablero del plan** | Etapas con color (verde concluida, café en proceso, gris pendiente), fechas, enlaces "Ir al catálogo", editar configuración inicial con motivo | RF_C_14, HU01 S2 |
-| **Catálogos institucionales** | Unidades (1,033 CLUES ISSSTE): personalizar, quitar o regresar, dentro o fuera del plan, finalizar o cancelar la finalización, descarga. Insumos (60 claves CNIS) con detalle, en pestañas de medicamentos y material de curación. Kits en 3 pasos, con insumos exclusivos por kit | RF_C_16 a RF_C_25, RN_08 a RN_26 |
+| **Catálogos institucionales** | Unidades (1,033 del SNS): personalizar, quitar o regresar, dentro o fuera del plan, finalizar o cancelar la finalización, descarga. Insumos (60 claves CNIS) con detalle, en pestañas de medicamentos y material de curación. Kits en 3 pasos, con insumos exclusivos por kit | RF_C_16 a RF_C_25, RN_08 a RN_26 |
 | **Asignación de insumos** | Vista por delegación, unidad o insumo; asignación automática por pronóstico; asistente de 3 pasos (unidades, insumos, piezas); planeación anual o mensual con propuesta mínima y máxima; carga y descarga CSV con validación; origen "Kit" o "Fuera de kit"; finalizar asignación | HU01 a HU12 S2, RNG-01 a RNG-03 |
 | **Aprobación de insumos** | Por rol: la unidad dictamina sus insumos, la delegación sus unidades y Oficina Central todas las delegaciones. Detalle con planeación mensual, versiones, observaciones de cada nivel y gráfica de existencias (consumo, entradas, existencia). Aprobar, rechazar con motivo, o negociar con nueva propuesta mensual y observaciones; aprobar o rechazar todo; finalizar verificación; solicitud de insumo nuevo; piezas fuera de rango en rojo | HU03 a HU23 S3 |
 | **Programas especiales** | Bandeja, alta en 4 pasos (datos, kits, insumos, piezas), detalle y edición de piezas | HU26 a HU31 S3 |
 | **Cierre del plan** | El aprobador firmante descarga el plan consolidado nacional y sube el oficio en PDF; el plan pasa a "Cerrado" | HU24 S3 |
 | **Notificaciones y bitácora** | Campana por rol (la unidad solo ve las suyas, la delegación las de sus unidades) y registro de movimientos con descarga | HU02 y HU25 S3, REQ_NOFUN_07 |
 | **Seguimiento y traza** | Indicadores de desviación (avance contra lo programado, cierre estimado contra la fecha límite, peticiones vencidas por actor, cuello de botella, de quién es el retraso, piezas y costo contra la propuesta y el presupuesto, fuera de rango y rondas de más); etapas programadas contra reales; avance por nivel; dónde está atorado (antigüedad por actor); reparto del retraso por delegación; a quién se le acaba el tiempo; plazos editables. En el detalle de cada insumo, la traza de la petición por carriles | Gemelo |
-| **Flujo nacional 3D** | Mapa de México por estado con la torre de Buenavista: las peticiones viajan como partículas (asignación, aprobación, negociación, rechazo) entre unidades, delegaciones y Oficina Central; pilas de cajas con lo que cada quien tiene pendiente por antigüedad; estados coloreados por quién tiene la mayoría o por vencidas; línea de tiempo con reproducción y ficha de lo que se atora | Gemelo |
+| **Flujo nacional 3D** | Mapa de México por estado con la torre de las oficinas centrales: las peticiones viajan como partículas (asignación, aprobación, negociación, rechazo) entre unidades, delegaciones y Oficina Central; pilas de cajas con lo que cada quien tiene pendiente por antigüedad; estados coloreados por quién tiene la mayoría o por vencidas; línea de tiempo con reproducción y ficha de lo que se atora | Gemelo |
 | **Integridad del plan** | Actores de mala fe sembrados (unidades, delegaciones y analistas de Central), 15 reglas de alerta y 13 datos que debe crear la plataforma; qué se frena, qué se ve tarde, qué se escapa y cuántas falsas alarmas; ficha y CSV para la ATDT. Detalle en `docs/INTEGRIDAD.md` | Gemelo |
 | **Simulación del ciclo** | Indicadores, avance diario, mapa de delegaciones, reglas de los actores, tabla por delegación y comparación de métodos | Gemelo |
 
 La barra lateral "Sistema Integral de Abasto" enlaza los demás módulos con las vistas del gemelo que ya los representan:
 - Contrataciones: `compras.html` (compra consolidada; ver `docs/COMPRAS.md`)
 - Suministro y reposición: `index.html`
-- Entrega y recepción: `cenadi.html`
+- Entrega y recepción: `cnd.html`
 - Manejo de inventario: `mapa.html`
 - Salidas de unidades médicas: `unidad.html`
 - Monitoreo de KPI: `nacional.html`
@@ -96,7 +96,7 @@ Con el ejemplo, en el día 15:
 
 ## Flujo nacional 3D
 
-Ventana `#/p/ID/flujo` (archivo `web/js/plan3d.js`). Usa el mapa `assets/mapa_mexico.glb`, la torre `assets/issste_buenavista.glb` y el edificio delegacional `assets/delegacion.glb`, los tres de Blender.
+Ventana `#/p/ID/flujo` (archivo `web/js/plan3d.js`). Usa el mapa `assets/mapa_mexico.glb`, la torre `assets/oficinas_centrales.glb` y el edificio delegacional `assets/delegacion.glb`, los tres de Blender.
 - **Delegaciones:** un edificio delegacional genérico en cada una de las 32 sedes, con su pila de peticiones al lado. La franja del letrero y la baliza de la azotea toman el semáforo de su bandeja: gris sin pendientes, verde agua en plazo, ámbar vencidas y rojo más del doble del plazo.
 - **Registro:** el motor guarda en cada día simulado (`P.flow[d]`) dos cosas. La primera es el corte de cuántas peticiones tiene cada nodo, por antigüedad contra su plazo. Los nodos son las 1,033 unidades, las 32 delegaciones y Oficina Central, separada por delegación. La segunda es qué se movió de quién a quién, con la decisión.
 - **Partículas:** cada grupo de peticiones que cambia de escritorio viaja por arcos: unidad → delegación → Central, y de regreso cuando hay negociación. La asignación inicial sale de Central hacia todas las unidades. Lo concluido sube a la torre.
@@ -106,7 +106,7 @@ Ventana `#/p/ID/flujo` (archivo `web/js/plan3d.js`). Usa el mapa `assets/mapa_me
 
 ## Simulación del ciclo
 
-- **Universo:** 1,033 unidades ISSSTE en operación (CLUES ago 2026) en 32 delegaciones y 60 claves CNIS. El 1er nivel recibe las 34 claves de farmacia; el 2º y 3er nivel, las 60. En total son 38,528 pares unidad-insumo.
+- **Universo:** 1,033 unidades del SNS en operación (catálogo ago 2026) en 32 delegaciones y 60 claves CNIS. El 1er nivel recibe las 34 claves de farmacia; el 2º y 3er nivel, las 60. En total son 38,528 pares unidad-insumo.
 - **Consumo:** 36 meses por par (nov 2023 a oct 2026), según:
   - el tamaño de la unidad y el peso de prescripción de la clave;
   - la estacionalidad respiratoria, la tendencia de crónicos y meses con desabasto.

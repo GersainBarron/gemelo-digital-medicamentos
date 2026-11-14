@@ -123,7 +123,7 @@ function side(r) {
     <a class="${!P && r.v !== 'nuevo' ? 'on' : P ? 'on' : ''}" href="#/">Planes de necesidad</a>${sub}
     <a href="compras.html">Contrataciones <small>gemelo</small></a>
     <a href="index.html">Suministro y reposición <small>gemelo</small></a>
-    <a href="cenadi.html">Entrega y recepción <small>gemelo</small></a>
+    <a href="cnd.html">Entrega y recepción <small>gemelo</small></a>
     <a class="off" href="#">Pago a proveedores <small>pendiente</small></a>
     <a href="mapa.html">Manejo de inventario <small>gemelo</small></a>
     <a href="unidad.html">Salidas de unidades <small>gemelo</small></a>
@@ -734,7 +734,7 @@ VIEWS.aprobacion = ({ P, a, b }) => {
   const rows = E.delegStats(U, P).filter(r => r.units && (!f.q || (r.d.nombre + ' ' + r.d.responsable).toLowerCase().includes(f.q.toLowerCase())) && (!f.st || r.status === f.st));
   S._ocRows = rows;
   return `${crumbs(base)}${simBar(P)}
-  <section class="card"><div class="pl-head"><div><span class="eyebrow">${esc(P.folio)} · Oficina Central · ISSSTE</span><h1>Revisión de asignación por delegación</h1><p>${esc(P.nombre)} · ${chip(P.status, E.PLAN_ST[P.status])}</p></div><div class="pl-actions"><button class="btn" id="oc-csv">Descargar</button></div></div>
+  <section class="card"><div class="pl-head"><div><span class="eyebrow">${esc(P.folio)} · Oficina Central · SNS</span><h1>Revisión de asignación por delegación</h1><p>${esc(P.nombre)} · ${chip(P.status, E.PLAN_ST[P.status])}</p></div><div class="pl-actions"><button class="btn" id="oc-csv">Descargar</button></div></div>
   <div class="pl-filters"><input type="search" id="fo-q" placeholder="Delegación o responsable" value="${esc(f.q)}"><select id="fo-st"><option value="">Estatus</option>${['Pendiente', 'En revisión', 'Verificada', 'Finalizado'].map(v => `<option ${f.st === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
   ${table('oc', [{ h: 'Delegación', v: r => r.d.nombre }, { h: 'Responsable', v: r => r.d.responsable, opt: true }, { h: 'Unidades validadas', n: true, v: r => r.delDone }, { h: 'Unidades pendientes', n: true, v: r => r.units - r.ocDone }, { h: 'Claves asignadas', n: true, v: r => r.claves, opt: true }, { h: 'Estatus', v: r => r.status, f: r => chip(r.status === 'Finalizado' ? 'finalizado' : r.status === 'Verificada' ? 'verificada' : r.status === 'En revisión' ? 'revision' : 'pendiente', r.status) }, { h: 'Acciones', nosort: true, v: () => '', f: r => `<a class="btn sm" href="#/p/${P.id}/aprobacion/del/${r.d.cve}">Ver detalle</a>` }], rows)}</section>`;
 };
@@ -1078,12 +1078,12 @@ VIEWS.flujo = ({ P }) => {
   if (!['validacion', 'finalizado', 'cerrado'].includes(P.status)) return `${crumbs(base)}<div class="card"><p class="empty">El flujo arranca en la etapa de aprobación, cuando Oficina Central envía la asignación a las unidades.</p></div>`;
   const F = S.f_flujo ||= { color: 'quien', speed: 1 };
   return `${crumbs(base)}${simBar(P)}
-  <section class="card"><div class="pl-head"><div><span class="eyebrow">${esc(P.folio)} · Flujo nacional</span><h1>¿Por dónde van las peticiones?</h1><p>Cada punto es un grupo de peticiones que cambia de escritorio: de la unidad a su delegación, de la delegación a Oficina Central en Buenavista, y de regreso cuando hay negociación. Las pilas son lo que cada quien tiene pendiente (una caja = 100 peticiones; abajo, las más viejas).</p></div></div></section>
+  <section class="card"><div class="pl-head"><div><span class="eyebrow">${esc(P.folio)} · Flujo nacional</span><h1>¿Por dónde van las peticiones?</h1><p>Cada punto es un grupo de peticiones que cambia de escritorio: de la unidad a su delegación, de la delegación a Oficina Central, y de regreso cuando hay negociación. Las pilas son lo que cada quien tiene pendiente (una caja = 100 peticiones; abajo, las más viejas).</p></div></div></section>
   <div class="fl-wrap">
     <section class="card fl-card">
       <div class="card-h wrap"><h2>La red en 3D <small>toca una delegación, una unidad o la torre</small></h2>
         <div class="pl-actions"><div class="seg" id="fl-color"><button data-c="quien" class="${F.color === 'quien' ? 'active' : ''}">Quién la tiene</button><button data-c="venc" class="${F.color === 'venc' ? 'active' : ''}">Vencidas</button></div><button class="btn sm" id="fl-home">Vista nacional</button></div></div>
-      <div id="fl-3d" class="fl-3d"><div class="u3d-loading">Cargando el mapa y la torre de Buenavista…</div><div id="fl-lab" class="fl-lab"></div><div id="fl-tip" class="tip" hidden></div></div>
+      <div id="fl-3d" class="fl-3d"><div class="u3d-loading">Cargando el mapa y las oficinas centrales…</div><div id="fl-lab" class="fl-lab"></div><div id="fl-tip" class="tip" hidden></div></div>
       <div class="fl-time">
         <button class="icon-btn primary" id="fl-play" aria-label="Reproducir">▶</button>
         <div class="seg" id="fl-speed"><button data-s="1" class="${F.speed === 1 ? 'active' : ''}">1 día/s</button><button data-s="3" class="${F.speed === 3 ? 'active' : ''}">3 días/s</button></div>
@@ -1159,7 +1159,7 @@ BIND.flujo = async ({ P }) => {
 const sum3 = (c, n) => c[n * 3] + c[n * 3 + 1] + c[n * 3 + 2];
 function flNodeTip(V, P, h) {
   const c = V.cnt, Nu = V.Nu, ND = V.ND;
-  if (h.type === 'central') { let t = 0; for (let d = 0; d < ND; d++) t += sum3(c, Nu + ND + d); return `<b>Oficina Central · Buenavista</b><br>${n0(t)} peticiones en su escritorio`; }
+  if (h.type === 'central') { let t = 0; for (let d = 0; d < ND; d++) t += sum3(c, Nu + ND + d); return `<b>Oficina Central</b><br>${n0(t)} peticiones en su escritorio`; }
   if (h.type === 'del') { const d = S.U.delegaciones[h.i]; let u = 0; for (const i of d.units) u += sum3(c, i); return `<b>Delegación ${esc(d.nombre)}</b><br>En la delegación ${n0(sum3(c, Nu + h.i))} · en sus unidades ${n0(u)} · en Central ${n0(sum3(c, Nu + ND + h.i))}`; }
   const u = S.U.units[h.i]; return `<b>${esc(u.nombre)}</b><br>${esc(u.clues)} · ${n0(sum3(c, h.i))} peticiones en la unidad`;
 }
@@ -1207,7 +1207,7 @@ function flFicha(V, P) {
       <div class="pl-actions"><a class="btn sm" href="#/p/${P.id}/aprobacion/u/${u.clues}">Ver sus insumos</a></div></div>`;
   } else if (h?.type === 'central') {
     const topC = [...Array(ND).keys()].map(j => [j, sum3(c, Nu + ND + j)]).filter(r => r[1]).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    sel = `<div class="fl-sel"><span class="eyebrow">Oficina Central · Buenavista</span><h3>${n0(s3(tot.oc))} peticiones en su escritorio</h3>
+    sel = `<div class="fl-sel"><span class="eyebrow">Oficina Central</span><h3>${n0(s3(tot.oc))} peticiones en su escritorio</h3>
       ${topC.map(([j, n]) => `<div class="fl-row"><button class="fl-link" data-pick="del:${j}">${esc(S.U.delegaciones[j].nombre)}</button><span class="fl-bar"><i style="width:${(100 * n / topC[0][1]).toFixed(1)}%;background:${ACTC.oc}"></i></span><span class="n">${n0(n)}</span></div>`).join('') || '<p class="muted">Sin pendientes.</p>'}</div>`;
   }
   return `<div class="fl-head"><span class="eyebrow">${d < 0 ? 'Antes del día 0' : `Día hábil ${d} · ${fdate(E.dateOfDay(P, d))}`}</span>
@@ -1571,7 +1571,7 @@ VIEWS.simulacion = ({ P }) => {
   <section class="card"><div class="card-h"><h2>Por delegación</h2></div>${table('simdel', [{ h: 'Delegación', v: r => r.d.nombre }, { h: 'Unidades', n: true, v: r => r.units }, { h: 'Verificadas por la unidad', n: true, v: r => r.umDone, opt: true }, { h: 'Por la delegación', n: true, v: r => r.delDone }, { h: 'Por O. Central', n: true, v: r => r.ocDone }, { h: 'Insumos negociados', n: true, v: r => r.neg }, { h: 'Último día de la delegación', n: true, v: r => r.lastDel ?? -1, f: r => (r.lastDel == null ? '—' : `día ${r.lastDel}`) }, { h: 'Estatus', v: r => r.status, f: r => chip(r.status === 'Finalizado' ? 'finalizado' : r.status === 'Verificada' ? 'verificada' : r.status === 'En revisión' ? 'revision' : 'pendiente', r.status) }], st)}</section>
   <section class="card"><div class="card-h"><h2>¿Qué método de propuesta conviene? <small>ciclo completo simulado desde cero, mismas reglas</small></h2><button class="btn" id="cmp-run">${S.cmp ? 'Recalcular' : 'Calcular comparación'}</button></div><div id="cmp">${S.cmp ? cmpTable() : '<p class="empty">Calcula 4 ciclos completos en segundo plano (unos segundos cada uno).</p>'}</div></section>
   <section class="card"><div class="card-h"><h2>Cómo se calcula</h2></div><div class="pl-defs">
-    <p><b>Universo.</b> 1,033 unidades ISSSTE en operación (CLUES ago 2026) en 32 delegaciones y las 60 claves CNIS del gemelo; el 1er nivel recibe las 34 claves de farmacia y el 2º y 3er nivel las 60. 38,528 pares unidad-insumo.</p>
+    <p><b>Universo.</b> 1,033 unidades del SNS en operación (catálogo ago 2026) en 32 delegaciones y las 60 claves CNIS del gemelo; el 1er nivel recibe las 34 claves de farmacia y el 2º y 3er nivel las 60. 38,528 pares unidad-insumo.</p>
     <p><b>Consumo.</b> 36 meses por par (nov 2023 a oct 2026) según el tamaño de la unidad, el peso de prescripción de la clave, estacionalidad respiratoria, tendencia de crónicos y meses con desabasto. Para 2027 el gemelo agrega cambios que la unidad conoce y el pronóstico no: más derechohabientes, servicios nuevos, sustitución terapéutica o claves que dejan de usarse.</p>
     <p><b>Propuesta.</b> Holt-Winters mensual con estacionalidad de 12 meses: mínimo = pronóstico de 2027, máximo = mínimo + 1.65 desviaciones (tope 30 %), reparto mensual del pronóstico. Alternativas: la regla de la HU08 (mínimo + 10 % repartido igual) y el consumo del año anterior.</p>
     <p><b>Indicadores.</b> El error y la sobreasignación se miden contra la necesidad real simulada, que en la plataforma real no se conoce: es la ventaja del gemelo para comparar métodos. Precios de referencia por grupo terapéutico (supuesto).</p></div></section>`;
@@ -1643,7 +1643,7 @@ BIND.bitacora = ({ P }) => {
 
 // ------------------------------------------------------------------ arranque
 async function init() {
-  const [iss, meds, outline] = await Promise.all(['assets/estados_issste.json', 'assets/medicamentos.json', 'assets/estados_mx.json'].map(u => fetch(u).then(r => r.json())));
+  const [iss, meds, outline] = await Promise.all(['assets/unidades_nacional.json', 'assets/medicamentos.json', 'assets/estados_mx.json'].map(u => fetch(u).then(r => r.json())));
   S.data = { iss, meds }; S.outline = outline;
   S.U = E.buildUniverse(iss, meds);
   S.entries = loadEntries();

@@ -1,6 +1,6 @@
 // Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 // =====================================================================
-//  yard-sim.js · Patio y andenes del CENADI (entradas y salidas de vehículos)
+//  yard-sim.js · Patio y andenes del CND (entradas y salidas de vehículos)
 //
 //  Simulación de eventos discretos minuto a minuto, determinista con semilla.
 //  Cada vehículo pasa por recursos con capacidad limitada:
@@ -10,7 +10,7 @@
 //  La flota propia sale de los andenes de embarque en olas y regresa de ruta
 //  por la misma caseta (o por un carril propio en el escenario C).
 //
-//  Fuente del diseño: documento "CENADI · Simulación de entradas y salidas de
+//  Fuente del diseño: documento "CND · Simulación de entradas y salidas de
 //  vehículos" (26 oct 2026). Los tiempos de proceso son supuestos editables.
 //  Unidades internas: minutos desde las 00:00 del día tipo.
 // =====================================================================

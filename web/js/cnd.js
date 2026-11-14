@@ -1,18 +1,18 @@
 // Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 // =====================================================================
-//  cenadi.js · Página "CENADI · Entradas y salidas"
-//  Une el motor de patio (yard-sim.js) con la escena 3D (cenadi3d.js),
+//  cnd.js · Página "CND · Entradas y salidas"
+//  Une el motor de patio (yard-sim.js) con la escena 3D (cnd3d.js),
 //  el panel de "Dónde se atrasa", los indicadores, el Gantt de andenes,
 //  la gráfica de colas, la agenda y la comparación de escenarios.
 // =====================================================================
 import { buildParams, simulate, SCENARIOS, MODIFIERS, STAGES, stagesAt, delaysAt, stateAt, STATE_COLOR, slotCapacity, meanDockTime, hhmm, dur } from './yard-sim.js';
-import { Cenadi3D } from './cenadi3d.js';
+import { Cnd3D } from './cnd3d.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pct = x => x == null ? '—' : `${Math.round(x * 100)} %`;
 const SEMC = { ok: 'var(--ok)', warn: 'var(--warn)', crit: 'var(--crit)', idle: '#475569' };
-const store = { get(k, d) { try { const v = localStorage.getItem('cenadi.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('cenadi.' + k, JSON.stringify(v)); } catch { /* sin almacenamiento */ } } };
+const store = { get(k, d) { try { const v = localStorage.getItem('cnd.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('cnd.' + k, JSON.stringify(v)); } catch { /* sin almacenamiento */ } } };
 
 const App = {
   scn: store.get('scn', 'A'), mod: store.get('mod', 'normal'), over: {},
@@ -27,7 +27,7 @@ const PARAMS = [
   { k: 'horario', n: 'Horario de recepción', opts: [['480-840', '8:00 a 14:00'], ['420-1020', '7:00 a 17:00'], ['360-1320', '6:00 a 22:00'], ['0-1440', '24 horas']] },
   { k: 'sinCita', n: 'Llegan sin cita', min: 0, max: 1, step: 0.05, f: v => pct(v) },
   { k: 'volumen', n: 'Volumen de proveedores', min: 0.5, max: 3, step: 0.1, f: v => `×${(+v).toFixed(1)}` },
-  { k: 'validadores', n: 'Validadores del ISSSTE', min: 2, max: 16, step: 1, f: v => v },
+  { k: 'validadores', n: 'Validadores del SNS', min: 2, max: 16, step: 1, f: v => v },
   { k: 'montacargas', n: 'Carritos para descargar', min: 2, max: 14, step: 1, f: v => v },
   { k: 'reachTrucks', n: 'Montacargas de rack', min: 1, max: 12, step: 1, f: v => v },
   { k: 'cajones', n: 'Cajones del patio regulador', min: 4, max: 20, step: 1, f: v => v },
@@ -83,7 +83,7 @@ function run() {
   $('#scn-desc').innerHTML = `<b>${esc(SCENARIOS[App.scn].nombre)}</b> · ${esc(MODIFIERS[App.mod].nombre)}. ${esc(SCENARIOS[App.scn].desc)}${Object.keys(App.over).length ? ' <em>Con parámetros ajustados.</em>' : ''}`;
   renderKpis(); renderQueue(); renderGantt(); App.lastUiM = -1; refreshLive(true);
   markCompare();
-  console.debug('[cenadi] día simulado en', Math.round(performance.now() - t0), 'ms');
+  console.debug('[cnd] día simulado en', Math.round(performance.now() - t0), 'ms');
 }
 
 // ------------------------------------------------------------------ reloj
@@ -305,7 +305,7 @@ $('#ag-csv').addEventListener('click', () => {
   const f = x => x == null ? '' : hhmm(x);
   for (const v of S.V) rows.push([v.id, v.prov, v.tipoNombre, v.tarimas, v.frio ? 'si' : 'no', f(v.appt), f(v.arr), f(v.tGateIn), f(v.tDock), v.dock != null ? 'R' + (v.dock + 1) : '', f(v.tUnload1), f(v.tRelease), f(v.tOut), v.tOut != null && v.tGateIn != null ? Math.round(v.tOut - v.tGateIn) : '', stateAt(v, 1799)]);
   const csv = '﻿' + rows.map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(',')).join('\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `cenadi_${App.scn}_${App.mod}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `cnd_${App.scn}_${App.mod}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 });
 
 // ------------------------------------------------------------------ comparación
@@ -379,17 +379,17 @@ async function init() {
   requestAnimationFrame(loop);
   setTimeout(computeCompare, 50);
   try {
-    const view = new Cenadi3D($('#c3d'), { glb: 'assets/cenadi.glb', onZone: z => showView(z) });
+    const view = new Cnd3D($('#c3d'), { glb: 'assets/cnd.glb', onZone: z => showView(z) });
     await view.load();
     $('#c3d .u3d-loading')?.remove();
     view.onPick = v => showPanel(v);
     view.setSim(App.S);
     App.view = view;
     $('#btn-roof').classList.toggle('on', view.roof);
-    window.__cenadi = App;
+    window.__cnd = App;
   } catch (err) {
     console.error(err);
-    $('#c3d .u3d-loading').textContent = 'No se pudo cargar el modelo 3D (assets/cenadi.glb).';
+    $('#c3d .u3d-loading').textContent = 'No se pudo cargar el modelo 3D (assets/cnd.glb).';
   }
 }
 init();

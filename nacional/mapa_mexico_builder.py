@@ -1,15 +1,15 @@
 # Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 # =====================================================================
 #  mapa_mexico_builder.py · Mapa 3D de la República Mexicana por estado
-#  Para la ventana nacional (CENADI → 32 estados).
+#  Para la ventana nacional (CND → 32 estados).
 #   · Lee nacional/estados_mx.json: límites estatales unidos desde la división
 #     municipal 2023 de la CONABIO (derivada del Marco Geoestadístico del
 #     INEGI), proyectados en EPSG:6372 (México ITRF2008 / Lambert) y
-#     simplificados. Unidades en km, origen en el CENADI (Tlalnepantla).
+#     simplificados. Unidades en km, origen en el CND (Tlalnepantla).
 #   · Cada estado es una losa (wh_type = state) con wh_cve, wh_name, wh_abbr,
 #     wh_region y wh_label_x/y; el visor la recolorea y la levanta al
 #     seleccionarla. Nombres como malla (wh_type = state_label).
-#   · CENADI como torre (wh_type = cenadi) y el mar como plano (wh_type = sea).
+#   · CND como torre (wh_type = cnd) y el mar como plano (wh_type = sea).
 #  Uso: exec(open(r"...\\nacional\\mapa_mexico_builder.py", encoding="utf-8").read()); main()
 #       y en otra llamada: export()
 # =====================================================================
@@ -52,7 +52,7 @@ def mats():
         tierra=mat('MX_Estado', (0.55, 0.60, 0.62)),
         lado=mat('MX_Costado', (0.30, 0.33, 0.36)),
         mar=mat('MX_Mar', (0.03, 0.06, 0.10), 0.9),
-        cenadi=mat('MX_CENADI', (0.08, 0.72, 0.65), 0.4, 0.0, 1.5),
+        cnd=mat('MX_CND', (0.08, 0.72, 0.65), 0.4, 0.0, 1.5),
         guinda=mat('MX_Guinda', (0.30, 0.03, 0.08), 0.5),
         texto=mat('MX_Texto', (0.92, 0.94, 0.96), 0.6),
     )
@@ -144,15 +144,15 @@ def main():
     bm = bmesh.new(); bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=2600)
     me = bpy.data.meshes.new('MX_Mar'); bm.to_mesh(me); bm.free(); me.materials.append(M['mar'])
     sea = bpy.data.objects.new('MX_Mar', me); sea.location = (-150, 450, -0.5); sea['wh_type'] = 'sea'; cm.objects.link(sea)
-    # CENADI: torre en el origen
+    # CND: torre en el origen
     bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=24, radius1=9, radius2=6, depth=60)
     for v in bm.verts: v.co.z += H + 30
-    me = bpy.data.meshes.new('MX_CENADI'); bm.to_mesh(me); bm.free(); me.materials.append(M['cenadi'])
-    tw = bpy.data.objects.new('MX_CENADI', me); tw['wh_type'] = 'cenadi'; tw['wh_name'] = 'CENADI · Centro Nacional de Distribución'; cm.objects.link(tw)
+    me = bpy.data.meshes.new('MX_CND'); bm.to_mesh(me); bm.free(); me.materials.append(M['cnd'])
+    tw = bpy.data.objects.new('MX_CND', me); tw['wh_type'] = 'cnd'; tw['wh_name'] = 'CND · Centro Nacional de Distribución'; cm.objects.link(tw)
     bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=24, radius1=16, radius2=16, depth=2)
     for v in bm.verts: v.co.z += H + 1
-    me = bpy.data.meshes.new('MX_CENADI_Base'); bm.to_mesh(me); bm.free(); me.materials.append(M['guinda'])
-    b2 = bpy.data.objects.new('MX_CENADI_Base', me); b2['wh_type'] = 'cenadi'; cm.objects.link(b2)
+    me = bpy.data.meshes.new('MX_CND_Base'); bm.to_mesh(me); bm.free(); me.materials.append(M['guinda'])
+    b2 = bpy.data.objects.new('MX_CND_Base', me); b2['wh_type'] = 'cnd'; cm.objects.link(b2)
     # cámara general
     cam = bpy.data.objects.new('MX_Cam', bpy.data.cameras.new('MX_Cam'))
     cam.data.lens = 35; cam.data.clip_end = 20000

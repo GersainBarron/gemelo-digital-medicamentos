@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 const W = new URL('../web/', import.meta.url);
 const { Referencias, PALANCAS, H } = await import(new URL('js/referencias.js', W));
 const { medir, INDICADORES } = await import(new URL('js/referencias-lab.js', W));
-const data = JSON.parse(readFileSync(new URL('assets/estados_issste.json', W)));
+const data = JSON.parse(readFileSync(new URL('assets/unidades_nacional.json', W)));
 const t = 8 * H;
 const correr = esc => { const t0 = performance.now(); const K = new Referencias(data, { corteDia: 0, esc }); const m = medir(K, t); m.ms = performance.now() - t0; return m; };
 

@@ -5,15 +5,15 @@
 //  · Diorama: assets/compra.glb (Blender, nacional/compra_builder.py), en
 //    metros. Arcos por etapa (gate + gate_lamp), anclas (anchor, wh_key)
 //    donde se acomodan las tarimas, fosas de desiertas y sin contrato,
-//    carril de patente, laboratorios y CENADI.
+//    carril de patente, laboratorios y CND.
 //  · Cada clave del plan es una tarima (alto ∝ log de sus piezas) que avanza
 //    con el calendario de la simulación (compra-sim.js): convocatoria,
-//    evaluación técnica, precio, fallo, firma y entrega al CENADI. Las que
+//    evaluación técnica, precio, fallo, firma y entrega al CND. Las que
 //    no pasan un filtro caen a la fosa de desiertas; en la segunda vuelta
 //    salen hacia el contrato o caen a "sin contrato".
 //  · Color: gris en proceso, verde agua adjudicada, azul patente, ámbar
 //    parcial o segunda vuelta, rojo desierta o sin contrato. Ya en el
-//    CENADI: verde si llegó a tiempo, ámbar o rojo según días sin medicamento.
+//    CND: verde si llegó a tiempo, ámbar o rojo según días sin medicamento.
 //  · Lámparas de cada arco: verde agua si nadie se quedó ahí, ámbar si 1 o 2,
 //    rojo si más (se encienden cuando la etapa ya pasó).
 // =====================================================================
@@ -92,7 +92,7 @@ export class Compra3D {
         }
       }
       const ent = x.primeraEntrega || x.entrega2;
-      if (ent && x.estado !== 'sin contrato') ev.push({ t: d(ent), z: 'cenadi', col: x.diasSin >= 30 ? 'crit' : x.diasSin > 0 ? 'warn' : 'ok' });
+      if (ent && x.estado !== 'sin contrato') ev.push({ t: d(ent), z: 'cnd', col: x.diasSin >= 30 ? 'crit' : x.diasSin > 0 ? 'warn' : 'ok' });
       const h = 0.8 + 1.2 * Math.max(0, Math.log10(x.Q / 1e4));
       return { x, i, ev, h };
     });

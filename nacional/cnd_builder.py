@@ -1,16 +1,16 @@
 # Gemelo digital del abasto de medicamentos · © 2026 Gersain Barron · Licencia MIT
 # =====================================================================
-#  cenadi_builder.py · nivel nacional
-#  CENADI: Centro Nacional de Distribución del ISSSTE (operado por Birmex),
-#  Estado de México. Es el nodo que abastece las ~786 unidades del ISSSTE.
-#  Datos públicos usados:
+#  cnd_builder.py · nivel nacional
+#  CND: Centro Nacional de Distribución del SNS (operado por un tercero
+#  logístico), Estado de México. Es el nodo que abastece las unidades del SNS.
+#  Datos públicos de un centro nacional real usados como base:
 #   · 35,000 posiciones de almacenamiento y 38 andenes (ConsultorSalud, nov 2025)
 #   · seis antecámaras de red fría (ConsultorSalud, nov 2025)
 #   · red fría con refrigeración y congelación; área confinada de alto valor y
 #     controlados; patios de maniobra, CCTV, planta de emergencia y comedor
 #     (Excélsior, oct 2025)
 #   · 25,118 m² de almacén + 1,756 m² de red fría + 1,036 m² de oficinas de
-#     validación del ISSSTE; operación 24/365 (Quadratín, 2017, sede de
+#     validación; operación 24/365 (Quadratín, 2017, sede de
 #     Tlalnepantla, carretera Lago de Guadalupe)
 #  Lo demás (forma de la nave, altura, distribución interna, patios) es una
 #  propuesta coherente con esos datos.
@@ -22,7 +22,7 @@
 #  Las filas de rack son un objeto por fila (wh_type = rack_row) con
 #  wh_bays / wh_levels / wh_pos_per_bay, para no crear 35,000 objetos; el visor
 #  calcula cada posición: y = y0 + bahía·wh_bay_len, z = nivel·wh_level_h.
-#  Uso: exec(open(r"...\\nacional\\cenadi_builder.py", encoding="utf-8").read()); main()
+#  Uso: exec(open(r"...\\nacional\\cnd_builder.py", encoding="utf-8").read()); main()
 #       y en otra llamada: export()
 # =====================================================================
 import bpy, bmesh, os, math, random
@@ -222,10 +222,10 @@ def building(c):
     box('CN_Franja_Oeste', c, (-0.2, D / 2, HGT - 0.9), (0.08, D + 0.4, 1.2), M['guinda'])
     box('CN_Franja_Este', c, (W + 0.2, D / 2, HGT - 0.9), (0.08, D + 0.4, 1.2), M['guinda'])
     # rotulos
-    text('CN_Rotulo_Oeste', c, 'CENADI', (-0.35, D / 2, 9.0), 6.0, M['guinda'], rot=(math.pi / 2, 0, -math.pi / 2))
+    text('CN_Rotulo_Oeste', c, 'CND', (-0.35, D / 2, 9.0), 6.0, M['guinda'], rot=(math.pi / 2, 0, -math.pi / 2))
     text('CN_Rotulo_Oeste2', c, 'CENTRO NACIONAL DE DISTRIBUCIÓN', (-0.35, D / 2, 5.2), 2.2, M['dark'], rot=(math.pi / 2, 0, -math.pi / 2))
-    text('CN_Rotulo_Sur', c, 'CENADI · EMBARQUE', (W / 2, -0.35, 9.6), 2.6, M['dark'])
-    text('CN_Rotulo_Norte', c, 'CENADI · RECEPCIÓN', (W / 2, D + 0.35, 9.6), 2.6, M['dark'], rot=(math.pi / 2, 0, math.pi))
+    text('CN_Rotulo_Sur', c, 'CND · EMBARQUE', (W / 2, -0.35, 9.6), 2.6, M['dark'])
+    text('CN_Rotulo_Norte', c, 'CND · RECEPCIÓN', (W / 2, D + 0.35, 9.6), 2.6, M['dark'], rot=(math.pi / 2, 0, math.pi))
     # andenes
     docks = []
     for k, x in enumerate(emb):
@@ -405,13 +405,13 @@ def picking(c):
 # ------------------------------------------------------------------ zonas de piso
 def floor_zones(c, emb, rec):
     rnd = random.Random(11)
-    # recepcion / cuarentena / validacion ISSSTE (norte)
+    # recepcion / cuarentena / validacion (norte)
     box('CN_Zona_Recepcion', c, (W / 2, 118, 0.004), (W - 8, 20, 0.008), M['floor'],
         {'wh_type': 'zone', 'wh_zona': 'Recepción'})
     box('CN_Zona_Cuarentena', c, (40, 118, 0.006), (60, 16, 0.01), M['yellow'],
-        {'wh_type': 'zone', 'wh_zona': 'Cuarentena y validación ISSSTE'})
+        {'wh_type': 'zone', 'wh_zona': 'Cuarentena y validación'})
     box('CN_Zona_Cuarentena_In', c, (40, 118, 0.008), (59, 15, 0.01), M['floor'])
-    text('CN_Txt_Cuarentena', c, 'CUARENTENA · VALIDACIÓN ISSSTE', (40, 109.8, 0.03), 1.4, M['guinda'], rot=(0, 0, 0))
+    text('CN_Txt_Cuarentena', c, 'CUARENTENA · VALIDACIÓN', (40, 109.8, 0.03), 1.4, M['guinda'], rot=(0, 0, 0))
     mb = MB([M['pallet'], M['box'], M['boxw'], M['film']])
     for i in range(40):
         x = 14 + (i % 10) * 5.2 + rnd.uniform(-0.3, 0.3)
@@ -532,10 +532,10 @@ def site(c):
                           ('E', (xe, (ys + ye) / 2, YARD + 1.25), (0.25, ye - ys, 2.5)),
                           ('O1', (xs, (ys + ye) / 2 + 12, YARD + 1.25), (0.25, ye - ys - 24, 2.5))):
         box(f'CN_Barda_{nm}', c, loc, size, M['concrete'])
-    # oficinas de validacion ISSSTE y administracion (2 niveles, ~1,036 m2)
+    # oficinas de validacion y administracion (2 niveles, ~1,036 m2)
     ox, oy = -32.0, 18.0
     box('CN_Oficinas', c, (ox, oy, YARD + 4.0), (26, 20, 8.0), M['wall'],
-        {'wh_type': 'office', 'wh_name': 'Oficinas: validación ISSSTE, administración y centro de monitoreo CCTV'})
+        {'wh_type': 'office', 'wh_name': 'Oficinas: validación, administración y centro de monitoreo CCTV'})
     for lv in range(2):
         for s, yy in ((-1, oy - 10.02), (1, oy + 10.02)):
             box(f'CN_Ofi_Vent_{lv}_{s}', c, (ox, yy, YARD + 1.9 + lv * 3.8), (24, 0.06, 2.0), M['glass'])
@@ -594,11 +594,11 @@ def cameras(c):
 def main():
     bpy.ops.wm.read_homefile(use_empty=True)
     mats()
-    root = bpy.data.objects.new('CENADI', None)
+    root = bpy.data.objects.new('CND', None)
     root.empty_display_size = 10
     bpy.context.scene.collection.objects.link(root)
-    for _k, _v in {'wh_type': 'national_dc', 'wh_name': 'CENADI · Centro Nacional de Distribución',
-                 'wh_operador': 'Birmex', 'wh_institucion': 'ISSSTE', 'wh_unidades': 786,
+    for _k, _v in {'wh_type': 'national_dc', 'wh_name': 'CND · Centro Nacional de Distribución',
+                 'wh_operador': 'operador logístico', 'wh_institucion': 'SNS', 'wh_unidades': 786,
                  'wh_andenes': 38, 'wh_posiciones_reportadas': 35000}.items():
         root[_k] = _v
     w = bpy.data.worlds.new('CN_Cielo'); w.color = (0.62, 0.72, 0.82)
@@ -617,7 +617,7 @@ def main():
     total = pos_seco + pos_frio + pos_ctrl
     root['wh_posiciones_modelo'] = total
     os.makedirs(OUT, exist_ok=True)
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, 'cenadi.blend'))
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, 'cnd.blend'))
     return {'objects': len(bpy.data.objects), 'filas_seco': nrows, 'pos_seco': pos_seco,
             'pos_red_fria': pos_frio, 'pos_controlados': pos_ctrl, 'pos_total': total, 'andenes': len(emb) + len(rec)}
 
@@ -632,17 +632,17 @@ def preview(path=None, roof=True, camera='CN_Cam_General', engine='BLENDER_WORKB
         sc.display.shading.light = 'STUDIO'; sc.display.shading.color_type = 'MATERIAL'
         sc.display.shading.show_shadows = True
     sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = res[0], res[1], 100
-    sc.render.filepath = path or os.path.join(ROOT, 'renders', 'preview_cenadi.png')
+    sc.render.filepath = path or os.path.join(ROOT, 'renders', 'preview_cnd.png')
     bpy.ops.render.render(write_still=True)
     for o in bpy.data.objects:
         o.hide_render = False
     return sc.render.filepath
 
 def export(copy_to_web=False):
-    glb = os.path.join(OUT, 'cenadi.glb')
+    glb = os.path.join(OUT, 'cnd.glb')
     bpy.ops.export_scene.gltf(filepath=glb, export_format='GLB', use_visible=True, export_extras=True,
                               export_lights=False, export_cameras=True, export_yup=True)
     if copy_to_web:
         import shutil
-        shutil.copyfile(glb, os.path.join(ROOT, 'web', 'assets', 'cenadi.glb'))
+        shutil.copyfile(glb, os.path.join(ROOT, 'web', 'assets', 'cnd.glb'))
     return {'glb': os.path.getsize(glb)}

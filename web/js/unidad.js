@@ -25,7 +25,7 @@ const expTone = days => days < 0 ? ['crit', 'Caducado'] : days <= 30 ? ['crit', 
 const SPEEDS = { 1: 1, 10: 10, 60: 60, 300: 300 };   // segundos simulados por segundo real
 const STATE = { zero: ['crit', 'En cero'], low: ['warn', 'Bajo mínimo'], over: ['info', 'Sobreabasto'], ok: ['ok', 'Normal'] };
 const STATE_ORDER = { zero: 0, low: 1, over: 2, ok: 3 };
-const DEFAULT_UNIT = 'HGIMS000082';                  // HGZMF 1 Pachuca: farmacia + quirófano
+const DEFAULT_UNIT = 'HGSNS000007';                  // HGZ/MF Pachuca de Soto: farmacia + quirófano
 
 const app = window.__unidad = {
   t: 10.5 * H, speed: 1, playing: true, feed: 'rx', view: 'table',
